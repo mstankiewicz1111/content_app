@@ -1,0 +1,5 @@
+Streamlit
+Google AI
+BeautifulSoup
+Requests
+Pillow
