@@ -1,5 +1,5 @@
-Streamlit
-Google AI
-BeautifulSoup
-Requests
-Pillow
+streamlit
+google-generativeai
+beautifulsoup4
+requests
+pillow
