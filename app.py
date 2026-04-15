@@ -1,6 +1,3 @@
-# 1. Zainstaluj biblioteki
-!pip install streamlit google-generativeai beautifulsoup4 requests Pillow -q
-
 import os
 import urllib.request
 
