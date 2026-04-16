@@ -8,9 +8,8 @@
     <style>
         :root { --bg: #f8f9fa; --text: #333; --border: #ddd; --btn-bg: #000; --btn-text: #fff; --btn-hover: #333; }
         body { font-family: 'Manrope', sans-serif; background-color: var(--bg); color: var(--text); margin: 0; display: flex; height: 100vh; overflow: hidden; }
-        h1, h2, h3 { font-family: 'Outfit', sans-serif; }
+        h1, h2, h3, h4 { font-family: 'Outfit', sans-serif; }
         
-        /* Sidebar */
         .sidebar { width: 300px; background: #fff; border-right: 1px solid var(--border); padding: 20px; display: flex; flex-direction: column; gap: 20px; overflow-y: auto;}
         .sidebar-menu button { background: none; border: none; text-align: left; padding: 10px; width: 100%; cursor: pointer; font-family: 'Manrope', sans-serif; font-size: 15px; border-radius: 4px; color: #555;}
         .sidebar-menu button.active { background: #eee; font-weight: 600; color: #000;}
@@ -18,7 +17,6 @@
         .status-ok { background: #d4edda; color: #155724; border-left: 4px solid #28a745; }
         .status-error { background: #f8d7da; color: #721c24; border-left: 4px solid #dc3545; }
         
-        /* Main Content */
         .main-content { flex: 1; overflow-y: auto; padding: 40px; }
         .logo-container { text-align: center; margin-bottom: 20px; }
         .header-title { text-align: center; margin-bottom: 40px; }
@@ -26,16 +24,15 @@
         .tab-content { display: none; max-width: 900px; margin: 0 auto; background: #fff; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
         .tab-content.active { display: block; }
         
-        /* Form elements */
         input[type="text"], textarea { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 4px; font-family: 'Manrope', sans-serif; margin-top: 5px; margin-bottom: 15px; box-sizing: border-box;}
         button.btn-primary { background: var(--btn-bg); color: var(--btn-text); border: 1px solid var(--btn-bg); padding: 10px 20px; border-radius: 3px; font-weight: 600; font-family: 'Manrope', sans-serif; cursor: pointer; transition: all 0.2s; }
         button.btn-primary:hover { background: var(--btn-hover); transform: translateY(-2px); }
-        button:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; }
         
         .loader { display: none; font-weight: 600; color: #0066cc; margin: 10px 0; }
         .result-box { background: #f1f3f5; padding: 15px; border-radius: 5px; margin-bottom: 20px; white-space: pre-wrap; font-size: 14px;}
         .row { display: flex; gap: 20px; }
         .col { flex: 1; }
+        .box-option { background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #eee;}
     </style>
 </head>
 <body>
@@ -43,7 +40,7 @@
     <div class="sidebar">
         <h3>Menu</h3>
         <div class="sidebar-menu">
-            <button onclick="switchTab('tab1')" id="btn-tab1" class="active">1. Tematy z pomysłu</button>
+            <button onclick="switchTab('tab1')" id="btn-tab1" class="active">1. Propozycje tematów</button>
             <button onclick="switchTab('tab2')" id="btn-tab2">2. Stwórz wpis</button>
             <button onclick="switchTab('tab3')" id="btn-tab3">3. Publikacja IdoSell</button>
         </div>
@@ -67,10 +64,22 @@
         <h1 class="header-title">Asystent Content Marketingu</h1>
 
         <div id="tab1" class="tab-content active">
-            <h2>💡 Propozycje tematów</h2>
-            <label>Wpisz swój pomysł (np. wiskoza na lato):</label>
-            <input type="text" id="idea-input">
-            <button class="btn-primary" onclick="generateIdeas()">Generuj propozycje</button>
+            <h2>💡 Propozycje tematów na bloga</h2>
+            
+            <div class="box-option">
+                <h3 style="margin-top: 0;">Opcja A: Automatyczne Trendy</h3>
+                <p style="font-size: 14px; color: #555;">Nie masz pomysłu? Zdamy się na AI i aktualne trendy sezonowe pod Google Discover.</p>
+                <button class="btn-primary" onclick="generateIdeas('')">🔥 Generuj z trendów</button>
+            </div>
+
+            <div class="box-option">
+                <h3 style="margin-top: 0;">Opcja B: Twój konkretny pomysł</h3>
+                <p style="font-size: 14px; color: #555;">Masz wizję? Wpisz krótkie hasło, a my ubierzemy to w chwytliwe tematy.</p>
+                <label>Wpisz swój pomysł (np. wiskoza na lato):</label>
+                <input type="text" id="idea-input">
+                <button class="btn-primary" onclick="generateIdeas(document.getElementById('idea-input').value)">💡 Generuj z pomysłu</button>
+            </div>
+
             <div id="loader-1" class="loader">⏳ Pracuję nad tematami... To może potrwać do 30 sekund.</div>
             <div id="ideas-result" style="margin-top: 20px;"></div>
         </div>
@@ -106,7 +115,7 @@
                     <label>ID produktów polecanych (oddzielone przecinkami):</label>
                     <input type="text" id="pub-rec-ids" placeholder="16216, 16254" oninput="saveDraft()">
                     <label>ID produktów do treści HTML:</label>
-                    <input type="text" id="pub-html-ids" placeholder="16216, 16254" oninput="saveDraft()">
+                    <input type="text" id="pub-html-ids" placeholder="16216, 16357" oninput="saveDraft()">
                 </div>
                 <div class="col">
                     <label>ID produktów na główny kolaż:</label>
@@ -132,12 +141,10 @@
     </div>
 
     <script>
-        // System Kontekstu Sklepu
-        const SHOP_CONTEXT = `Jesteś copywriterem dla marki odzieżowej z Wrocławia (bawełna, wiskoza). Grupa: Gen Z/Millenialsi. Styl: edgy, zwięzły.`;
+        const SHOP_CONTEXT = `Jesteś copywriterem dla marki odzieżowej z Wrocławia. Grupa docelowa to Gen Z/Millenialsi. Styl: edgy, zwięzły. Zawsze po polsku.`;
         let scrapedContext = "";
         let collageBase64 = "";
 
-        // Nawigacja
         function switchTab(tabId) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.sidebar-menu button').forEach(el => el.classList.remove('active'));
@@ -145,7 +152,6 @@
             document.getElementById('btn-' + tabId).classList.add('active');
         }
 
-        // Zapis stanu do LocalStorage (Super Szybki Draft!)
         function saveDraft() {
             const draft = {
                 topic: document.getElementById('topic-input').value,
@@ -187,7 +193,7 @@
         }
         
         function resetDraft() {
-            if(confirm("Czy na pewno chcesz usunąć całą dotychczasową pracę?")) {
+            if(confirm("Czy na pewno chcesz zresetować całą pracę?")) {
                 localStorage.removeItem('idosell_draft');
                 location.reload();
             }
@@ -195,7 +201,6 @@
 
         window.onload = loadDraft;
 
-        // API Calls
         async function fetchUrlContext() {
             const url = document.getElementById('store-url').value;
             if(!url) return;
@@ -207,19 +212,24 @@
             }
         }
 
-        async function generateIdeas() {
-            const idea = document.getElementById('idea-input').value;
+        async function generateIdeas(ideaStr) {
             document.getElementById('loader-1').style.display = 'block';
             document.getElementById('ideas-result').innerHTML = '';
             
-            const prompt = `${SHOP_CONTEXT} ${scrapedContext} Zaproponuj 3 chwytliwe tematy na wpis blogowy (Google Discover). Bazuj na: "${idea}". Zwróć CZYSTY JSON: [{"tytul": "...", "uzasadnienie": "..."}]`;
+            let prompt_baza = ideaStr ? `Bazuj na następującym pomyśle: "${ideaStr}".` : `Skup się na aktualnym sezonie i rynkowych trendach.`;
+            
+            const prompt = `${SHOP_CONTEXT} ${scrapedContext}
+Zadanie: Zaproponuj 3 chwytliwe tematy na wpis blogowy (Google Discover). ${prompt_baza}
+Zwróć wynik BEZWZGLĘDNIE jako JSON w formacie:
+[
+  {"tytul": "...", "uzasadnienie": "..."}
+]`;
             
             const res = await fetch('/api/generate', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({prompt}) });
             const data = await res.json();
             document.getElementById('loader-1').style.display = 'none';
             
             try {
-                // Czyszczenie jsona w JS (w razie znaczników markdown z Gemini)
                 let text = data.result.trim();
                 if(text.startsWith("```json")) text = text.substring(7);
                 if(text.startsWith("```")) text = text.substring(3);
@@ -228,14 +238,14 @@
                 const parsed = JSON.parse(text);
                 let html = "";
                 parsed.forEach(item => {
-                    html += `<div style="background:#f9f9f9; padding:15px; margin-bottom:10px; border-left:4px solid #000;">
+                    html += `<div style="background:#fff; padding:15px; margin-bottom:10px; border-left:4px solid #000; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
                         <h4 style="margin-top:0;">${item.tytul}</h4><p>${item.uzasadnienie}</p>
-                        <button class="btn-primary" onclick="setTopicAndSwitch('${item.tytul}')">Realizuj</button>
+                        <button class="btn-primary" onclick="setTopicAndSwitch('${item.tytul.replace(/'/g, "\\'")}')">Realizuj temat</button>
                     </div>`;
                 });
                 document.getElementById('ideas-result').innerHTML = html;
             } catch(e) {
-                document.getElementById('ideas-result').innerHTML = `<p style="color:red">Błąd parsera JSON. Spróbuj ponownie. Odpowiedź AI: ${data.result}</p>`;
+                document.getElementById('ideas-result').innerHTML = `<p style="color:red">Błąd parsera JSON. Odpowiedź AI: ${data.result}</p>`;
             }
         }
 
@@ -260,8 +270,7 @@
             document.getElementById('article-result').innerText = data.result;
             document.getElementById('article-section').style.display = 'block';
             
-            // Auto uzupełnianie leadu i tytułu w Zakładce 3
-            const lines = data.result.split('\\n');
+            const lines = data.result.split('\n');
             let t = "", l = "";
             for(let line of lines) { if(line.startsWith('# ')) { t = line.replace('# ', '').replaceAll('*',''); break; } }
             for(let line of lines) { let cl = line.trim(); if(cl && !cl.startsWith('#') && !cl.startsWith('!')) { l = cl; break; } }
@@ -277,7 +286,7 @@
             if(!rev) return;
             
             document.getElementById('loader-2').style.display = 'block';
-            const prompt = `Popraw ten tekst zgodnie z uwagami: "${rev}". Lead max 300 znaków, zachowaj długość. Tekst: ${curr}`;
+            const prompt = `Popraw tekst zgodnie z uwagami: "${rev}". Lead max 300 znaków. Tekst: ${curr}`;
             
             const res = await fetch('/api/generate', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({prompt}) });
             const data = await res.json();
@@ -291,13 +300,11 @@
             if(!ids) { alert("Podaj ID do kolażu!"); return; }
             
             document.getElementById('loader-collage').style.display = 'block';
-            // 1. Pobierz produkty z IdoSell
             const resProd = await fetch('/api/idosell/products', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ids}) });
             const dataProd = await resProd.json();
             
             if(dataProd.products && dataProd.products.length > 0) {
                 const urls = dataProd.products.map(p => p.url_zdjecia);
-                // 2. Sklej kolaż na backendzie
                 const resCol = await fetch('/api/collage', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({urls: urls}) });
                 const dataCol = await resCol.json();
                 
@@ -306,7 +313,7 @@
                     document.getElementById('collage-preview').src = collageBase64;
                     document.getElementById('collage-preview').style.display = 'block';
                     saveDraft();
-                } else { alert("Błąd generowania kolażu ze zdjęć."); }
+                } else { alert("Błąd generowania kolażu."); }
             } else { alert("Nie znaleziono produktów w sklepie."); }
             document.getElementById('loader-collage').style.display = 'none';
         }
@@ -324,12 +331,12 @@
                 prods = dataProd.products || [];
             }
             
-            const prompt = `Zmień ten artykuł na HTML dla platformy IdoSell. 
+            const prompt = `Zmień ten artykuł na HTML IdoSell. 
 ZASADY: 
-- Każdy akapit w <p style="text-align: justify;"><span style="font-size: 11pt; font-family: Arial,sans-serif; color: #000000;">
-- Każdy nagłówek w <h3 style="font-size: 14pt; text-align: justify;"><span style="font-size: 12pt; font-family: Arial,sans-serif; color: #000000; font-weight: bold;">
-- Wpleć zdjęcia produktów używając układu pół-na-pół (klasy iai-section). 
-Dane produktów (JSON): ${JSON.stringify(prods)}. Zwróć tylko czysty kod HTML.
+- Każdy akapit: <p style="text-align: justify;"><span style="font-size: 11pt; font-family: Arial,sans-serif; color: #000000;">
+- Każdy nagłówek: <h3 style="font-size: 14pt; text-align: justify;"><span style="font-size: 12pt; font-family: Arial,sans-serif; color: #000000; font-weight: bold;">
+- Używaj klas iai-section.
+Produkty: ${JSON.stringify(prods)}. Zwróć tylko czysty kod HTML.
 Artykuł: ${text}`;
 
             const res = await fetch('/api/generate', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({prompt}) });
