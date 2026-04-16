@@ -2,7 +2,9 @@ import os
 import io
 import base64
 import time
+import re
 import requests
+import json
 from flask import Flask, render_template, request, jsonify
 import google.generativeai as genai
 from bs4 import BeautifulSoup
@@ -11,17 +13,21 @@ from PIL import Image
 app = Flask(__name__)
 
 # --- KONFIGURACJA ZMIENNYCH ŚRODOWISKOWYCH ---
-GEMINI_KEY = os.environ.get("GEMINI_API_KEY", "").strip().replace('"', '').replace("'", "")
+# Agresywne czyszczenie klucza: usuwa WSZYSTKIE niewidoczne znaki (zostawia tylko litery, cyfry, _ i -)
+surowy_klucz_gemini = os.environ.get("GEMINI_API_KEY", "")
+GEMINI_KEY = re.sub(r'[^a-zA-Z0-9_\-]', '', surowy_klucz_gemini)
+
 IDOSELL_DOMAIN = os.environ.get("IDOSELL_DOMAIN", "wassyl.pl").strip().replace('"', '').replace("'", "")
 IDOSELL_KEY = os.environ.get("IDOSELL_API_KEY", "").strip().replace('"', '').replace("'", "")
 
+# Konfiguracja modelu (używamy oficjalnej, stabilnej wersji 1.5-flash)
 if GEMINI_KEY:
     genai.configure(api_key=GEMINI_KEY)
-    model = genai.GenerativeModel("gemini-2.5-flash")
+    model = genai.GenerativeModel("gemini-1.5-flash")
 
 # --- FUNKCJE POMOCNICZE ---
 def generuj_tekst_ai(prompt):
-    if not GEMINI_KEY: return "Błąd: Brak klucza API Gemini na serwerze."
+    if not GEMINI_KEY: return "Błąd: Brak klucza API Gemini na serwerze lub klucz jest pusty."
     for proba in range(3):
         try:
             response = model.generate_content(prompt)
@@ -38,7 +44,6 @@ def generuj_tekst_ai(prompt):
 
 @app.route('/')
 def index():
-    # Sprawdzamy status kluczy, by przekazać je do frontu
     status_idosell = bool(IDOSELL_DOMAIN and IDOSELL_KEY)
     return render_template('index.html', status_idosell=status_idosell, domena=IDOSELL_DOMAIN)
 
