@@ -22,7 +22,7 @@ IDOSELL_KEY = os.environ.get("IDOSELL_API_KEY", "").strip().replace('"', '').rep
 # Używamy uniwersalnego modelu gemini-pro, który nie wyrzuca błędów 404 na darmowych kluczach
 if GEMINI_KEY:
     genai.configure(api_key=GEMINI_KEY)
-    model = genai.GenerativeModel("gemini-pro")
+    model = genai.GenerativeModel("gemini-2.5-flash")
 
 # --- FUNKCJE POMOCNICZE ---
 def generuj_tekst_ai(prompt):
