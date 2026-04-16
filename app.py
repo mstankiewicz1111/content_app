@@ -13,21 +13,20 @@ from PIL import Image
 app = Flask(__name__)
 
 # --- KONFIGURACJA ZMIENNYCH ŚRODOWISKOWYCH ---
-# Agresywne czyszczenie klucza: usuwa WSZYSTKIE niewidoczne znaki (zostawia tylko litery, cyfry, _ i -)
 surowy_klucz_gemini = os.environ.get("GEMINI_API_KEY", "")
 GEMINI_KEY = re.sub(r'[^a-zA-Z0-9_\-]', '', surowy_klucz_gemini)
 
 IDOSELL_DOMAIN = os.environ.get("IDOSELL_DOMAIN", "wassyl.pl").strip().replace('"', '').replace("'", "")
 IDOSELL_KEY = os.environ.get("IDOSELL_API_KEY", "").strip().replace('"', '').replace("'", "")
 
-# Konfiguracja modelu (używamy oficjalnej, stabilnej wersji 1.5-flash)
+# Używamy uniwersalnego modelu gemini-pro, który nie wyrzuca błędów 404 na darmowych kluczach
 if GEMINI_KEY:
     genai.configure(api_key=GEMINI_KEY)
-    model = genai.GenerativeModel("gemini-1.5-flash")
+    model = genai.GenerativeModel("gemini-pro")
 
 # --- FUNKCJE POMOCNICZE ---
 def generuj_tekst_ai(prompt):
-    if not GEMINI_KEY: return "Błąd: Brak klucza API Gemini na serwerze lub klucz jest pusty."
+    if not GEMINI_KEY: return "Błąd: Brak klucza API Gemini na serwerze."
     for proba in range(3):
         try:
             response = model.generate_content(prompt)
@@ -41,7 +40,6 @@ def generuj_tekst_ai(prompt):
     return "Błąd: Przekroczono limit prób API Gemini."
 
 # --- ENDPOINTY API (Dla Frontendu) ---
-
 @app.route('/')
 def index():
     status_idosell = bool(IDOSELL_DOMAIN and IDOSELL_KEY)
