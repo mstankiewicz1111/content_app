@@ -1,5 +1,6 @@
-streamlit
-google-generativeai
-beautifulsoup4
-requests
-pillow
+Flask==3.0.2
+gunicorn==21.2.0
+google-generativeai==0.4.1
+beautifulsoup4==4.12.3
+requests==2.31.0
+Pillow==10.2.0
