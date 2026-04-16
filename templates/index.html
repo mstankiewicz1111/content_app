@@ -187,3 +187,225 @@
                     collageBase64 = d.collage;
                     const img = document.getElementById('collage-preview');
                     img.src = d.collage;
+                    img.style.display = 'block';
+                }
+            }
+        }
+        
+        function resetDraft() {
+            if(confirm("Czy na pewno chcesz zresetować całą pracę?")) {
+                localStorage.removeItem('idosell_draft');
+                location.reload();
+            }
+        }
+
+        window.onload = loadDraft;
+
+        async function fetchUrlContext() {
+            const url = document.getElementById('store-url').value;
+            if(!url) return;
+            const res = await fetch('/api/fetch_url', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({url}) });
+            const data = await res.json();
+            if(data.text) {
+                scrapedContext = "Dodatkowy kontekst ze strony: " + data.text;
+                document.getElementById('url-status').innerText = "Kontekst pobrany pomyślnie!";
+            }
+        }
+
+        async function generateIdeas(ideaStr) {
+            document.getElementById('loader-1').style.display = 'block';
+            document.getElementById('ideas-result').innerHTML = '';
+            
+            let prompt_baza = ideaStr ? `Bazuj na następującym pomyśle: "${ideaStr}".` : `Skup się na aktualnym sezonie i rynkowych trendach.`;
+            
+            const prompt = `${SHOP_CONTEXT} ${scrapedContext}
+Zadanie: Zaproponuj 3 chwytliwe tematy na wpis blogowy (Google Discover). ${prompt_baza}
+Zwróć wynik BEZWZGLĘDNIE jako JSON w formacie:
+[
+  {"tytul": "...", "uzasadnienie": "..."}
+]`;
+            
+            const res = await fetch('/api/generate', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({prompt}) });
+            const data = await res.json();
+            document.getElementById('loader-1').style.display = 'none';
+            
+            try {
+                let text = data.result.trim();
+                if(text.startsWith("```json")) text = text.substring(7);
+                if(text.startsWith("```")) text = text.substring(3);
+                if(text.endsWith("```")) text = text.substring(0, text.length-3);
+                
+                const parsed = JSON.parse(text);
+                let html = "";
+                parsed.forEach(item => {
+                    html += `<div style="background:#fff; padding:15px; margin-bottom:10px; border-left:4px solid #000; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                        <h4 style="margin-top:0;">${item.tytul}</h4><p>${item.uzasadnienie}</p>
+                        <button class="btn-primary" onclick="setTopicAndSwitch('${item.tytul.replace(/'/g, "\\'")}')">Realizuj temat</button>
+                    </div>`;
+                });
+                document.getElementById('ideas-result').innerHTML = html;
+            } catch(e) {
+                document.getElementById('ideas-result').innerHTML = `<p style="color:red">Błąd parsera JSON. Odpowiedź AI: ${data.result}</p>`;
+            }
+        }
+
+        function setTopicAndSwitch(topic) {
+            document.getElementById('topic-input').value = topic;
+            switchTab('tab2');
+            saveDraft();
+        }
+
+        async function generateArticle() {
+            const topic = document.getElementById('topic-input').value;
+            const guidelines = document.getElementById('guidelines-input').value;
+            if(!topic) { alert("Podaj temat!"); return; }
+            
+            document.getElementById('loader-2').style.display = 'block';
+            const prompt = `${SHOP_CONTEXT} ${scrapedContext} Napisz wpis na bloga o: "${topic}". Wytyczne: ${guidelines}. Tytuł H1, lead max 300 znaków. Min 3 nagłówki H2. Długość 4000-5000 znaków. Format Markdown.`;
+            
+            const res = await fetch('/api/generate', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({prompt}) });
+            const data = await res.json();
+            document.getElementById('loader-2').style.display = 'none';
+            
+            document.getElementById('article-result').innerText = data.result;
+            document.getElementById('article-section').style.display = 'block';
+            
+            const lines = data.result.split('\n');
+            let t = "", l = "";
+            for(let line of lines) { if(line.startsWith('# ')) { t = line.replace('# ', '').replaceAll('*',''); break; } }
+            for(let line of lines) { let cl = line.trim(); if(cl && !cl.startsWith('#') && !cl.startsWith('!')) { l = cl; break; } }
+            
+            document.getElementById('pub-title').value = t;
+            document.getElementById('pub-lead').value = l;
+            saveDraft();
+        }
+
+        async function reviseArticle() {
+            const rev = document.getElementById('revision-input').value;
+            const curr = document.getElementById('article-result').innerText;
+            if(!rev) return;
+            
+            document.getElementById('loader-2').style.display = 'block';
+            const prompt = `Popraw tekst zgodnie z uwagami: "${rev}". Lead max 300 znaków. Tekst: ${curr}`;
+            
+            const res = await fetch('/api/generate', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({prompt}) });
+            const data = await res.json();
+            document.getElementById('loader-2').style.display = 'none';
+            document.getElementById('article-result').innerText = data.result;
+            saveDraft();
+        }
+
+        async function generateCollage() {
+            const ids = document.getElementById('pub-collage-ids').value;
+            if(!ids) { alert("Podaj ID do kolażu!"); return; }
+            
+            document.getElementById('loader-collage').style.display = 'block';
+            const resProd = await fetch('/api/idosell/products', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ids}) });
+            const dataProd = await resProd.json();
+            
+            if (dataProd.error) {
+                alert("🚨 BŁĄD POBIERANIA PRODUKTÓW:\n" + JSON.stringify(dataProd, null, 2));
+                document.getElementById('loader-collage').style.display = 'none';
+                return;
+            }
+            
+            if(dataProd.products && dataProd.products.length > 0) {
+                const urls = dataProd.products.map(p => p.url_zdjecia);
+                const resCol = await fetch('/api/collage', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({urls: urls}) });
+                const dataCol = await resCol.json();
+                
+                if(dataCol.collage) {
+                    collageBase64 = dataCol.collage;
+                    document.getElementById('collage-preview').src = collageBase64;
+                    document.getElementById('collage-preview').style.display = 'block';
+                    saveDraft();
+                } else { 
+                    alert("🚨 BŁĄD KOLAŻU:\n" + JSON.stringify(dataCol, null, 2)); 
+                }
+            } else { 
+                alert("Nie znaleziono produktów. Upewnij się, że ID są poprawne, a domena to client5056.idosell.com"); 
+            }
+            document.getElementById('loader-collage').style.display = 'none';
+        }
+
+        async function generateHtml() {
+            const ids = document.getElementById('pub-html-ids').value;
+            const text = document.getElementById('article-result').innerText;
+            if(!text) { alert("Brak tekstu artykułu!"); return; }
+            
+            document.getElementById('loader-html').style.display = 'block';
+            let prods = [];
+            if(ids) {
+                const resProd = await fetch('/api/idosell/products', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ids}) });
+                const dataProd = await resProd.json();
+                prods = dataProd.products || [];
+            }
+            
+            const prompt = `Zmień ten artykuł na HTML IdoSell. 
+ZASADY: 
+- Każdy akapit: <p style="text-align: justify;"><span style="font-size: 11pt; font-family: Arial,sans-serif; color: #000000;">
+- Każdy nagłówek: <h3 style="font-size: 14pt; text-align: justify;"><span style="font-size: 12pt; font-family: Arial,sans-serif; color: #000000; font-weight: bold;">
+- Używaj klas iai-section.
+Produkty: ${JSON.stringify(prods)}. Zwróć tylko czysty kod HTML.
+Artykuł: ${text}`;
+
+            const res = await fetch('/api/generate', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({prompt}) });
+            const data = await res.json();
+            document.getElementById('loader-html').style.display = 'none';
+            
+            let htmlCode = data.result.trim();
+            if(htmlCode.startsWith("```html")) htmlCode = htmlCode.substring(7);
+            if(htmlCode.startsWith("```")) htmlCode = htmlCode.substring(3);
+            if(htmlCode.endsWith("```")) htmlCode = htmlCode.substring(0, htmlCode.length-3);
+            
+            document.getElementById('html-result').value = htmlCode.trim();
+            document.getElementById('html-section').style.display = 'block';
+            saveDraft();
+        }
+
+        async function publishToIdosell() {
+            const title = document.getElementById('pub-title').value;
+            const lead = document.getElementById('pub-lead').value;
+            const htmlCode = document.getElementById('html-result').value;
+            const recIdsStr = document.getElementById('pub-rec-ids').value;
+            
+            if(!title || !htmlCode) { alert("Uzupełnij tytuł i wygeneruj HTML!"); return; }
+            
+            const payload = {
+                params: {
+                    shopId: 1,
+                    visible: "n",
+                    langs: [{ langId: "pol", title: title, shortDescription: lead, longDescription: htmlCode }]
+                }
+            };
+            
+            if(collageBase64) {
+                payload.params.pictureData = {
+                    pictureBase64: collageBase64.split(",")[1],
+                    pictureFormat: "jpg"
+                };
+            }
+            
+            if(recIdsStr) {
+                const arr = recIdsStr.split(",").map(x => x.trim()).filter(x => !isNaN(x) && x!=="");
+                if(arr.length > 0) {
+                    payload.params.products = arr.map(id => ({productId: parseInt(id)}));
+                }
+            }
+            
+            document.getElementById('loader-publish').style.display = 'block';
+            const res = await fetch('/api/idosell/publish', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({payload}) });
+            const data = await res.json();
+            document.getElementById('loader-publish').style.display = 'none';
+            
+            if(data.status === 200 && data.response && !data.response.errors) {
+                alert("🎉 SUKCES! Wpis wysłany do IdoSell jako szkic.");
+                localStorage.removeItem('idosell_draft');
+                location.reload();
+            } else {
+                alert("❌ SZCZEGÓŁY BŁĘDU IDOSELL:\n\nStatus: " + data.status + "\nOdpowiedź:\n" + JSON.stringify(data.response, null, 2));
+            }
+        }
+    </script>
+</body>
+</html>
