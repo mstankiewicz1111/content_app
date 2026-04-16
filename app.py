@@ -26,18 +26,23 @@ if GEMINI_KEY:
 
 # --- FUNKCJE POMOCNICZE ---
 def generuj_tekst_ai(prompt):
-    if not GEMINI_KEY: return "Błąd: Brak klucza API Gemini na serwerze."
+    if not GEMINI_KEY: return "Błąd: Brak klucza API Gemini na serwerze lub klucz jest pusty."
+    
     for proba in range(3):
         try:
-            response = model.generate_content(prompt)
+            # Wymuszamy na Google utrzymanie połączenia przez 120 sekund
+            response = model.generate_content(prompt, request_options={"timeout": 120})
             return response.text
         except Exception as e:
-            if "429" in str(e) or "Quota" in str(e):
+            error_msg = str(e).lower()
+            # Łapiemy zarówno limity (429), jak i przeciążenia serwerów Google (504, 503, timeout)
+            if "429" in error_msg or "quota" in error_msg or "504" in error_msg or "503" in error_msg or "timeout" in error_msg:
                 if proba < 2:
-                    time.sleep(30)
+                    time.sleep(15) # Dajemy serwerom Google 15 sekund na oddech
                     continue
             return f"Błąd API Gemini: {str(e)}"
-    return "Błąd: Przekroczono limit prób API Gemini."
+            
+    return "Błąd: Przekroczono limit prób API Gemini. Serwery Google są przeciążone."
 
 # --- ENDPOINTY API (Dla Frontendu) ---
 @app.route('/')
