@@ -10,10 +10,14 @@ from bs4 import BeautifulSoup
 from PIL import Image
 
 # --- KONFIGURACJA API GEMINI ---
-KLUCZ_API = os.environ.get("GEMINI_API_KEY")
+# Dodajemy .strip(), aby usunąć białe znaki i spacje
+KLUCZ_API = os.environ.get("GEMINI_API_KEY", "").strip()
 if not KLUCZ_API:
     st.error("🚨 Brak klucza API Gemini! Ustaw zmienną środowiskową GEMINI_API_KEY w Render.")
     st.stop()
+
+# Zabezpieczenie przed cudzysłowami, jeśli wklejono je w Renderze
+KLUCZ_API = KLUCZ_API.replace('"', '').replace("'", "")
 
 genai.configure(api_key=KLUCZ_API)
 model = genai.GenerativeModel("gemini-2.5-flash")
