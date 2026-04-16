@@ -19,32 +19,27 @@ GEMINI_KEY = re.sub(r'[^a-zA-Z0-9_\-]', '', surowy_klucz_gemini)
 IDOSELL_DOMAIN = os.environ.get("IDOSELL_DOMAIN", "wassyl.pl").strip().replace('"', '').replace("'", "")
 IDOSELL_KEY = os.environ.get("IDOSELL_API_KEY", "").strip().replace('"', '').replace("'", "")
 
-# Używamy uniwersalnego modelu gemini-pro, który nie wyrzuca błędów 404 na darmowych kluczach
 if GEMINI_KEY:
     genai.configure(api_key=GEMINI_KEY)
     model = genai.GenerativeModel("gemini-2.5-flash")
 
 # --- FUNKCJE POMOCNICZE ---
 def generuj_tekst_ai(prompt):
-    if not GEMINI_KEY: return "Błąd: Brak klucza API Gemini na serwerze lub klucz jest pusty."
-    
+    if not GEMINI_KEY: return "Błąd: Brak klucza API Gemini na serwerze."
     for proba in range(3):
         try:
-            # Wymuszamy na Google utrzymanie połączenia przez 120 sekund
             response = model.generate_content(prompt, request_options={"timeout": 120})
             return response.text
         except Exception as e:
             error_msg = str(e).lower()
-            # Łapiemy zarówno limity (429), jak i przeciążenia serwerów Google (504, 503, timeout)
             if "429" in error_msg or "quota" in error_msg or "504" in error_msg or "503" in error_msg or "timeout" in error_msg:
                 if proba < 2:
-                    time.sleep(15) # Dajemy serwerom Google 15 sekund na oddech
+                    time.sleep(15)
                     continue
             return f"Błąd API Gemini: {str(e)}"
-            
-    return "Błąd: Przekroczono limit prób API Gemini. Serwery Google są przeciążone."
+    return "Błąd: Przekroczono limit prób API Gemini."
 
-# --- ENDPOINTY API (Dla Frontendu) ---
+# --- ENDPOINTY API ---
 @app.route('/')
 def index():
     status_idosell = bool(IDOSELL_DOMAIN and IDOSELL_KEY)
@@ -66,15 +61,14 @@ def api_fetch_url():
         resp.raise_for_status()
         zupa = BeautifulSoup(resp.text, "html.parser")
         for script in zupa(["script", "style"]): script.extract()
-        tekst = zupa.get_text(separator=" ", strip=True)[:5000]
-        return jsonify({"text": tekst})
+        return jsonify({"text": zupa.get_text(separator=" ", strip=True)[:5000]})
     except Exception as e:
         return jsonify({"text": "", "error": str(e)})
 
 @app.route('/api/idosell/products', methods=['POST'])
 def api_idosell_products():
     if not IDOSELL_DOMAIN or not IDOSELL_KEY:
-        return jsonify({"error": "Brak konfiguracji API IdoSell"}), 400
+        return jsonify({"error": "Brak konfiguracji API IdoSell w Render."}), 400
     
     ids_str = request.json.get('ids', '')
     lista_id = [x.strip() for x in ids_str.split(",") if x.strip().isdigit()]
@@ -82,30 +76,42 @@ def api_idosell_products():
 
     url = f"https://{IDOSELL_DOMAIN}/api/admin/v7/products/products"
     headers = {"X-API-KEY": IDOSELL_KEY, "Accept": "application/json"}
-    params = [("productIds", pid) for pid in lista_id]
+    
+    # POPRAWKA: Przekazujemy ID po przecinku, np. ?productIds=123,456
+    params = {"productIds": ",".join(lista_id)}
 
-    produkty = []
+    print(f"[DIAGNOSTYKA] Pobieranie produktów. URL: {url}, Params: {params}")
+
     try:
         res = requests.get(url, headers=headers, params=params, timeout=15)
-        if res.status_code == 200:
-            dane = res.json()
-            # TUTAJ BYŁ BŁĄD: IdoSell zwraca "results" z małej litery!
-            for prod in dane.get("results", []):
-                pid = prod.get("productId")
-                zdjecia = prod.get("productImages", [])
-                url_zdjecia = ""
-                if zdjecia:
-                    url_zdjecia = zdjecia[0].get("productImageLargeUrl", "")
-                    if url_zdjecia.startswith("//"): url_zdjecia = "https:" + url_zdjecia
-                
-                urls_data = prod.get("productUrl", {}).get("productUrlsLangData", [])
-                url_produktu = urls_data[0].get("url", "") if urls_data else f"https://wassyl.pl/product-pol-{pid}.html"
-                
-                if url_zdjecia:
-                    produkty.append({"id": str(pid), "url_produktu": url_produktu, "url_zdjecia": url_zdjecia})
+        print(f"[DIAGNOSTYKA] Kod odpowiedzi IdoSell (Produkty): {res.status_code}")
+        
+        if res.status_code != 200:
+            print(f"[DIAGNOSTYKA] Błąd IdoSell: {res.text}")
+            return jsonify({"error": f"Błąd IdoSell {res.status_code}", "details": res.text}), 500
+
+        dane = res.json()
+        produkty = []
+        for prod in dane.get("results", []):
+            pid = prod.get("productId")
+            zdjecia = prod.get("productImages", [])
+            url_zdjecia = ""
+            if zdjecia:
+                url_zdjecia = zdjecia[0].get("productImageLargeUrl", "")
+                if url_zdjecia.startswith("//"): url_zdjecia = "https:" + url_zdjecia
+            
+            urls_data = prod.get("productUrl", {}).get("productUrlsLangData", [])
+            url_produktu = urls_data[0].get("url", "") if urls_data else f"https://wassyl.pl/product-pol-{pid}.html"
+            
+            if url_zdjecia:
+                produkty.append({"id": str(pid), "url_produktu": url_produktu, "url_zdjecia": url_zdjecia})
+        
+        print(f"[DIAGNOSTYKA] Znaleziono produktów: {len(produkty)}")
         return jsonify({"products": produkty})
+    
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        print(f"[DIAGNOSTYKA] Wyjątek Python (Produkty): {str(e)}")
+        return jsonify({"error": "Błąd wewnętrzny Pythona", "details": str(e)}), 500
 
 @app.route('/api/collage', methods=['POST'])
 def api_collage():
@@ -150,18 +156,25 @@ def api_collage():
 @app.route('/api/idosell/publish', methods=['POST'])
 def api_publish():
     payload = request.json.get("payload")
+    # Czy na pewno /entries/entries ? Jeśli tu jest błąd IdoSell wywali 404
     url = f"https://{IDOSELL_DOMAIN}/api/admin/v7/entries/entries"
     headers = {"X-API-KEY": IDOSELL_KEY, "Content-Type": "application/json"}
+    
+    print(f"[DIAGNOSTYKA] Wysyłka wpisu. URL: {url}")
+    
     try:
         res = requests.post(url, headers=headers, json=payload, timeout=30)
+        print(f"[DIAGNOSTYKA] Kod odpowiedzi IdoSell (Publish): {res.status_code}")
+        print(f"[DIAGNOSTYKA] Odpowiedź IdoSell: {res.text[:1000]}") # Drukuj 1000 znaków odpowiedzi
+        
         try:
-            # Próbujemy odczytać odpowiedź jako JSON
             return jsonify({"status": res.status_code, "response": res.json()})
         except Exception:
-            # Jeśli IdoSell zwróci HTML (Błąd 500/404), wyłapiemy czysty tekst
             return jsonify({"status": res.status_code, "response": {"raw_error": res.text}})
+            
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        print(f"[DIAGNOSTYKA] Wyjątek Python (Publish): {str(e)}")
+        return jsonify({"error": "Błąd wewnętrzny Pythona", "details": str(e)}), 500
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
