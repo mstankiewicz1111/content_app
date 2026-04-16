@@ -546,11 +546,13 @@ ${curr}`;
                 prods = dataProd.products || [];
             }
             
+            // --- POPRAWKA: Wymuszenie szerokości zdjęć na 45% ---
             const prompt = `Zmień ten artykuł na HTML IdoSell. 
 ZASADY: 
 - Każdy akapit: <p style="text-align: justify;"><span style="font-size: 11pt; font-family: Arial,sans-serif; color: #000000;">
 - Każdy nagłówek: <h3 style="font-size: 14pt; text-align: justify;"><span style="font-size: 12pt; font-family: Arial,sans-serif; color: #000000; font-weight: bold;">
-- Używaj klas iai-section.
+- Używaj klas iai-section do budowy kolumn.
+- KRYTYCZNE: Wszystkie tagi <img> (zdjęcia produktów) osadzone w układzie dwukolumnowym muszą mieć bezwzględnie ustawione style="width: 45%; height: auto; max-width: 100%;". Absolutnie nie używaj sztywnych szerokości w pikselach (np. usuń width="280").
 Produkty: ${JSON.stringify(prods)}. Zwróć tylko czysty kod HTML.
 Artykuł: ${text}`;
 
@@ -586,6 +588,7 @@ Artykuł: ${text}`;
                     shopId: 1,
                     visible: "n",
                     date: formatDaty,
+                    titleLinkType: "fullContentLink",
                     visibleOnSitesList: [{ siteId: "display_on_blog" }],
                     langs: [{ langId: "pol", title: title, shortDescription: lead, longDescription: htmlCode }]
                 }
