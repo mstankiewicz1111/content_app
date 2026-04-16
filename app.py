@@ -88,7 +88,9 @@ def api_idosell_products():
     try:
         res = requests.get(url, headers=headers, params=params, timeout=15)
         if res.status_code == 200:
-            for prod in res.json().get("Results", []):
+            dane = res.json()
+            # TUTAJ BYŁ BŁĄD: IdoSell zwraca "results" z małej litery!
+            for prod in dane.get("results", []):
                 pid = prod.get("productId")
                 zdjecia = prod.get("productImages", [])
                 url_zdjecia = ""
@@ -97,7 +99,7 @@ def api_idosell_products():
                     if url_zdjecia.startswith("//"): url_zdjecia = "https:" + url_zdjecia
                 
                 urls_data = prod.get("productUrl", {}).get("productUrlsLangData", [])
-                url_produktu = urls_data[0].get("url", "") if urls_data else f"https://{IDOSELL_DOMAIN}/product-pol-{pid}.html"
+                url_produktu = urls_data[0].get("url", "") if urls_data else f"https://wassyl.pl/product-pol-{pid}.html"
                 
                 if url_zdjecia:
                     produkty.append({"id": str(pid), "url_produktu": url_produktu, "url_zdjecia": url_zdjecia})
@@ -152,7 +154,12 @@ def api_publish():
     headers = {"X-API-KEY": IDOSELL_KEY, "Content-Type": "application/json"}
     try:
         res = requests.post(url, headers=headers, json=payload, timeout=30)
-        return jsonify({"status": res.status_code, "response": res.json()})
+        try:
+            # Próbujemy odczytać odpowiedź jako JSON
+            return jsonify({"status": res.status_code, "response": res.json()})
+        except Exception:
+            # Jeśli IdoSell zwróci HTML (Błąd 500/404), wyłapiemy czysty tekst
+            return jsonify({"status": res.status_code, "response": {"raw_error": res.text}})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
