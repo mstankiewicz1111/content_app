@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Asystent Content Marketingu</title>
+    <title>Asystent Content Marketingu | Wassyl</title>
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600&family=Outfit:wght@600;700&display=swap" rel="stylesheet">
     <style>
         :root { --bg: #f8f9fa; --text: #333; --border: #ddd; --btn-bg: #000; --btn-text: #fff; --btn-hover: #333; }
@@ -11,7 +11,8 @@
         h1, h2, h3, h4 { font-family: 'Outfit', sans-serif; }
         
         .sidebar { width: 300px; background: #fff; border-right: 1px solid var(--border); padding: 20px; display: flex; flex-direction: column; gap: 20px; overflow-y: auto;}
-        .sidebar-menu button { background: none; border: none; text-align: left; padding: 10px; width: 100%; cursor: pointer; font-family: 'Manrope', sans-serif; font-size: 15px; border-radius: 4px; color: #555;}
+        .sidebar-menu button { background: none; border: none; text-align: left; padding: 10px; width: 100%; cursor: pointer; font-family: 'Manrope', sans-serif; font-size: 15px; border-radius: 4px; color: #555; transition: 0.2s;}
+        .sidebar-menu button:hover { background: #f1f3f5; }
         .sidebar-menu button.active { background: #eee; font-weight: 600; color: #000;}
         .status-box { padding: 10px; border-radius: 5px; font-size: 14px; }
         .status-ok { background: #d4edda; color: #155724; border-left: 4px solid #28a745; }
@@ -28,11 +29,19 @@
         button.btn-primary { background: var(--btn-bg); color: var(--btn-text); border: 1px solid var(--btn-bg); padding: 10px 20px; border-radius: 3px; font-weight: 600; font-family: 'Manrope', sans-serif; cursor: pointer; transition: all 0.2s; }
         button.btn-primary:hover { background: var(--btn-hover); transform: translateY(-2px); }
         
+        .btn-quick { background: #f8f9fa !important; color: #333 !important; border: 1px solid #ddd !important; font-size: 13px !important; padding: 8px 15px !important; border-radius: 20px !important;}
+        .btn-quick:hover { background: #e9ecef !important; transform: translateY(-1px) !important;}
+
         .loader { display: none; font-weight: 600; color: #0066cc; margin: 10px 0; }
-        .result-box { background: #f1f3f5; padding: 15px; border-radius: 5px; margin-bottom: 20px; white-space: pre-wrap; font-size: 14px;}
+        .result-box { background: #fcfcfc; padding: 20px; border-radius: 5px; border: 1px solid #eee; margin-bottom: 20px; white-space: pre-wrap; font-size: 15px; line-height: 1.6;}
+        .result-box:focus { outline: 2px solid #000; background: #fff;}
         .row { display: flex; gap: 20px; }
         .col { flex: 1; }
         .box-option { background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #eee;}
+        
+        .counter-badge { font-size: 13px; float: right; padding: 4px 10px; border-radius: 12px; background: #e9ecef; color: #555; font-family: monospace; font-weight: bold;}
+        .counter-good { background: #d4edda; color: #155724; }
+        .counter-warn { background: #fff3cd; color: #856404; }
     </style>
 </head>
 <body>
@@ -41,17 +50,17 @@
         <h3>Menu</h3>
         <div class="sidebar-menu">
             <button onclick="switchTab('tab1')" id="btn-tab1" class="active">1. Propozycje tematów</button>
-            <button onclick="switchTab('tab2')" id="btn-tab2">2. Stwórz wpis</button>
+            <button onclick="switchTab('tab2')" id="btn-tab2">2. Stwórz wpis (Dwustopniowo)</button>
             <button onclick="switchTab('tab3')" id="btn-tab3">3. Publikacja IdoSell</button>
         </div>
         <hr>
-        <h4>Analiza strony</h4>
-        <input type="text" id="store-url" placeholder="Wklej link (opcjonalnie)">
+        <h4>Kontekst Sklepu na Żywo</h4>
+        <input type="text" id="store-url" placeholder="Wklej link (np. nowości)">
         <p id="url-status" style="font-size: 12px; color: green;"></p>
-        <button class="btn-primary" onclick="fetchUrlContext()" style="width: 100%;">Pobierz kontekst</button>
+        <button class="btn-primary" onclick="fetchUrlContext()" style="width: 100%;">Pobierz dane ze strony</button>
         <hr>
         <div class="status-box {% if status_idosell %}status-ok{% else %}status-error{% endif %}">
-            {% if status_idosell %} API IdoSell podłączone ({{ domena }}) {% else %} Brak kluczy IdoSell w Render! {% endif %}
+            {% if status_idosell %} API IdoSell OK ({{ domena }}) {% else %} Brak kluczy IdoSell! {% endif %}
         </div>
         <br>
         <button class="btn-primary" onclick="resetDraft()" style="background: #dc3545; border:none; width:100%;">🗑️ Resetuj projekt</button>
@@ -68,15 +77,15 @@
             
             <div class="box-option">
                 <h3 style="margin-top: 0;">Opcja A: Automatyczne Trendy</h3>
-                <p style="font-size: 14px; color: #555;">Nie masz pomysłu? Zdamy się na AI i aktualne trendy sezonowe pod Google Discover.</p>
+                <p style="font-size: 14px; color: #555;">Zdamy się na AI i aktualne trendy sezonowe pod Google Discover (lifestylowy vibe).</p>
                 <button class="btn-primary" onclick="generateIdeas('')">🔥 Generuj z trendów</button>
             </div>
 
             <div class="box-option">
                 <h3 style="margin-top: 0;">Opcja B: Twój konkretny pomysł</h3>
-                <p style="font-size: 14px; color: #555;">Masz wizję? Wpisz krótkie hasło, a my ubierzemy to w chwytliwe tematy.</p>
-                <label>Wpisz swój pomysł (np. wiskoza na lato):</label>
-                <input type="text" id="idea-input">
+                <p style="font-size: 14px; color: #555;">Wpisz krótkie hasło (np. spacer z psem, kino, kawa), a my ubierzemy to w chwytliwe tematy.</p>
+                <label>Twój pomysł:</label>
+                <input type="text" id="idea-input" placeholder="np. sukienka na szybką kawę">
                 <button class="btn-primary" onclick="generateIdeas(document.getElementById('idea-input').value)">💡 Generuj z pomysłu</button>
             </div>
 
@@ -85,22 +94,53 @@
         </div>
 
         <div id="tab2" class="tab-content">
-            <h2>✍️ Kreator treści</h2>
+            <h2>✍️ Dwustopniowy Kreator Treści</h2>
             <p style="font-size: 13px; color: #666;">Zapisujemy Twoją pracę w tle. Nic nie zginie przy odświeżeniu!</p>
-            <label>Wybrany temat artykułu:</label>
-            <input type="text" id="topic-input" oninput="saveDraft()">
-            <label>Dodatkowe wytyczne (opcjonalnie):</label>
-            <textarea id="guidelines-input" rows="3"></textarea>
-            <button class="btn-primary" onclick="generateArticle()">🚀 Generuj artykuł</button>
-            <div id="loader-2" class="loader">⏳ Piszę artykuł (ok. 4000-5000 znaków)... Cierpliwości.</div>
             
-            <div id="article-section" style="display: none; margin-top: 20px;">
-                <h3>📝 Twój Artykuł:</h3>
-                <div id="article-result" class="result-box"></div>
-                <label>Masz uwagi? Wpisz je tutaj:</label>
-                <input type="text" id="revision-input">
-                <button class="btn-primary" onclick="reviseArticle()" style="background:#555; border:none;">🔄 Nanieś poprawki</button>
-                <button class="btn-primary" onclick="switchTab('tab3')" style="float: right;">✅ Idź do Publikacji</button>
+            <label style="font-weight: 600;">Wybrany temat artykułu:</label>
+            <input type="text" id="topic-input" oninput="saveDraft()">
+            
+            <label style="font-weight: 600;">Dodatkowe wytyczne (opcjonalnie):</label>
+            <textarea id="guidelines-input" rows="2" placeholder="np. wspomnij o nowej kolekcji dresów" oninput="saveDraft()"></textarea>
+            
+            <button class="btn-primary" onclick="generatePlan()">📋 KROK 1: Wygeneruj Szkielet (Plan wpisu)</button>
+            <div id="loader-plan" class="loader">⏳ Tworzę strukturę wpisu...</div>
+            
+            <div id="plan-section" style="display: none; margin-top: 25px; padding: 20px; border-left: 4px solid #0066cc; background: #f4f9ff; border-radius: 0 8px 8px 0;">
+                <h3 style="margin-top: 0;">🛠️ Edytor Szkieletu</h3>
+                <p style="font-size: 13px; color: #555;">Możesz tu dopisać swoje punkty, zmienić nagłówki H2 lub usunąć to, co Ci się nie podoba. AI napisze tekst dokładnie na bazie tego pola.</p>
+                <textarea id="plan-result" rows="10" oninput="saveDraft()" style="font-family: monospace; font-size: 14px; background: #fff;"></textarea>
+                
+                <button class="btn-primary" onclick="generateArticleFromPlan()" style="background: #0066cc; border-color: #0066cc; margin-top: 10px;">🚀 KROK 2: Napisz Pełny Artykuł z Planu</button>
+            </div>
+
+            <div id="loader-2" class="loader">⏳ Piszę obszerny artykuł... Cierpliwości (może zająć do minuty).</div>
+            
+            <div id="article-section" style="display: none; margin-top: 30px;">
+                <hr style="border: 0; border-top: 1px solid #eee; margin-bottom: 20px;">
+                <h3 style="display: flex; align-items: center; justify-content: space-between;">
+                    📝 Twój Artykuł 
+                    <span id="char-counter" class="counter-badge">0 znaków</span>
+                </h3>
+                <p style="font-size: 12px; color: #888;">Możesz kliknąć w poniższy tekst i edytować go ręcznie (jak w Wordzie).</p>
+                
+                <div id="article-result" class="result-box" contenteditable="true" oninput="handleArticleEdit()"></div>
+                
+                <label style="font-weight: 600;">Szybkie akcje AI (Dostrajanie):</label>
+                <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
+                    <button class="btn-primary btn-quick" onclick="quickRevise('Zrób tekst bardziej na luzie. Dodaj potoczne wstawki, styl najlepszej przyjaciółki. Pisz swobodniej.')">🛹 Luzacki vibe</button>
+                    <button class="btn-primary btn-quick" onclick="quickRevise('Skróć tekst o około 20%. Wyrzuć lanie wody, zostaw samo "mięso" i zachowaj sens.')">✂️ Skróć o 20%</button>
+                    <button class="btn-primary btn-quick" onclick="quickRevise('Dodaj więcej wzmianek o samych ubraniach, krojach, materiałach (wiskoza, bawełna) i o tym jak są wygodne na co dzień.')">👗 Więcej o ciuchach</button>
+                    <button class="btn-primary btn-quick" onclick="quickRevise('Upewnij się, że tekst skupia się na codziennym, normalnym życiu (spacer, kawa, chill), a nie na wyjściach premium.')">☕️ Lifestylowy fokus</button>
+                </div>
+
+                <label style="font-weight: 600;">Albo wpisz własne uwagi:</label>
+                <input type="text" id="revision-input" placeholder="np. Zmień tytuł na bardziej szokujący">
+                
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
+                    <button class="btn-primary" onclick="reviseArticle()" style="background:#555; border:none;">🔄 Nanieś poprawki (Custom)</button>
+                    <button class="btn-primary" onclick="switchTab('tab3')" style="background: #28a745; border-color: #28a745;">✅ Akceptuję. Idź do Publikacji ➜</button>
+                </div>
             </div>
         </div>
 
@@ -112,17 +152,17 @@
                     <input type="text" id="pub-title" oninput="saveDraft()">
                     <label>Lead wpisu:</label>
                     <textarea id="pub-lead" rows="4" oninput="saveDraft()"></textarea>
-                    <label>ID produktów polecanych (oddzielone przecinkami):</label>
-                    <input type="text" id="pub-rec-ids" placeholder="16216, 16254" oninput="saveDraft()">
-                    <label>ID produktów do treści HTML:</label>
-                    <input type="text" id="pub-html-ids" placeholder="16216, 16357" oninput="saveDraft()">
+                    <label>ID produktów polecanych (w polecanych poniżej wpisu):</label>
+                    <input type="text" id="pub-rec-ids" placeholder="np. 16216, 16254" oninput="saveDraft()">
+                    <label>ID produktów do rozrzucenia w treści HTML:</label>
+                    <input type="text" id="pub-html-ids" placeholder="np. 16216, 16357" oninput="saveDraft()">
                 </div>
                 <div class="col">
-                    <label>ID produktów na główny kolaż:</label>
-                    <input type="text" id="pub-collage-ids" placeholder="16216, 16254">
+                    <label>ID produktów na główną grafikę (Kolaż okładkowy):</label>
+                    <input type="text" id="pub-collage-ids" placeholder="np. 16216, 16254">
                     <button class="btn-primary" onclick="generateCollage()">🖼️ Generuj Kolaż</button>
                     <div id="loader-collage" class="loader">⏳ Pobieram zdjęcia ze sklepu...</div>
-                    <img id="collage-preview" src="" style="width: 100%; margin-top: 15px; border-radius: 5px; display:none;">
+                    <img id="collage-preview" src="" style="width: 100%; margin-top: 15px; border-radius: 5px; display:none; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
                 </div>
             </div>
             
@@ -131,7 +171,7 @@
             <div id="loader-html" class="loader">⏳ Tworzę kod HTML dla IdoSell...</div>
             
             <div id="html-section" style="display: none; margin-top: 20px;">
-                <h3>Podgląd kodu:</h3>
+                <h3>👁️ Podgląd kodu:</h3>
                 <textarea id="html-result" rows="10" readonly></textarea>
                 <br><br>
                 <button class="btn-primary" onclick="publishToIdosell()" style="width: 100%; background: #28a745; border-color: #28a745; font-size: 16px; padding: 15px;">🚀 OPUBLIKUJ SZKIC W IDOSELL</button>
@@ -159,10 +199,8 @@ ZABRONIONE TEMATY I SŁOWA (KRYTYCZNE):
 POŻĄDANY KONTEKST LIFESTYLOWY:
 - Zawsze osadzaj ubrania w kontekście codziennego życia i spędzania czasu wolnego.
 - Odwołuj się do sytuacji takich jak: luźny spacer z psem, kawa z przyjaciółkami, wyjście do kina, szybka randka, chill w domu, uczelnia, czy "bad hair day", w którym trzeba szybko coś na siebie wrzucić i wyglądać dobrze.
-
 Zawsze pisz w nienagannym języku polskim.
 `;
-
         let scrapedContext = "";
         let collageBase64 = "";
 
@@ -171,11 +209,13 @@ Zawsze pisz w nienagannym języku polskim.
             document.querySelectorAll('.sidebar-menu button').forEach(el => el.classList.remove('active'));
             document.getElementById(tabId).classList.add('active');
             document.getElementById('btn-' + tabId).classList.add('active');
+            if(tabId === 'tab2') updateCounter();
         }
 
         function saveDraft() {
             const draft = {
                 topic: document.getElementById('topic-input').value,
+                plan: document.getElementById('plan-result').value,
                 article: document.getElementById('article-result').innerText,
                 title: document.getElementById('pub-title').value,
                 lead: document.getElementById('pub-lead').value,
@@ -192,10 +232,17 @@ Zawsze pisz w nienagannym języku polskim.
             if(draftStr) {
                 const d = JSON.parse(draftStr);
                 document.getElementById('topic-input').value = d.topic || '';
+                
+                if(d.plan) {
+                    document.getElementById('plan-result').value = d.plan;
+                    document.getElementById('plan-section').style.display = 'block';
+                }
                 if(d.article) {
                     document.getElementById('article-result').innerText = d.article;
                     document.getElementById('article-section').style.display = 'block';
+                    updateCounter();
                 }
+                
                 document.getElementById('pub-title').value = d.title || '';
                 document.getElementById('pub-lead').value = d.lead || '';
                 document.getElementById('pub-rec-ids').value = d.recIds || '';
@@ -214,7 +261,7 @@ Zawsze pisz w nienagannym języku polskim.
         }
         
         function resetDraft() {
-            if(confirm("Czy na pewno chcesz zresetować całą pracę?")) {
+            if(confirm("Czy na pewno chcesz zresetować całą pracę? Pamiętaj, że zmiany niezapisane w IdoSell przepadną!")) {
                 localStorage.removeItem('idosell_draft');
                 location.reload();
             }
@@ -222,13 +269,33 @@ Zawsze pisz w nienagannym języku polskim.
 
         window.onload = loadDraft;
 
+        function updateCounter() {
+            const text = document.getElementById('article-result').innerText || "";
+            const len = text.length;
+            const badge = document.getElementById('char-counter');
+            badge.innerText = len + " znaków";
+            
+            // Dynamiczne klasy kolorów
+            badge.classList.remove('counter-good', 'counter-warn');
+            if (len > 3800 && len < 5500) {
+                badge.classList.add('counter-good');
+            } else if (len > 0) {
+                badge.classList.add('counter-warn');
+            }
+        }
+
+        function handleArticleEdit() {
+            updateCounter();
+            saveDraft();
+        }
+
         async function fetchUrlContext() {
             const url = document.getElementById('store-url').value;
             if(!url) return;
             const res = await fetch('/api/fetch_url', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({url}) });
             const data = await res.json();
             if(data.text) {
-                scrapedContext = "Dodatkowy kontekst ze strony: " + data.text;
+                scrapedContext = "DODATKOWY KONTEKST Z ANALIZOWANEJ STRONY (np. nowa kolekcja): " + data.text;
                 document.getElementById('url-status').innerText = "Kontekst pobrany pomyślnie!";
             }
         }
@@ -237,13 +304,23 @@ Zawsze pisz w nienagannym języku polskim.
             document.getElementById('loader-1').style.display = 'block';
             document.getElementById('ideas-result').innerHTML = '';
             
-            let prompt_baza = ideaStr ? `Bazuj na następującym pomyśle: "${ideaStr}".` : `Skup się na aktualnym sezonie i rynkowych trendach.`;
+            let prompt_baza = ideaStr ? 
+                `Bazuj ściśle na tym koncepcie: "${ideaStr}".` : 
+                `Przeanalizuj obecny miesiąc/sezon i zaproponuj tematy bazujące na codziennych sytuacjach (np. spacer, kino).`;
             
             const prompt = `${SHOP_CONTEXT} ${scrapedContext}
-Zadanie: Zaproponuj 3 chwytliwe tematy na wpis blogowy (Google Discover). ${prompt_baza}
-Zwróć wynik BEZWZGLĘDNIE jako JSON w formacie:
+Zadanie: Jako mistrz SEO pod Google Discover, wymyśl 3 ultra-chwytliwe tematy na wpis blogowy.
+${prompt_baza}
+
+WYTYCZNE DLA TYTUŁÓW (Discover-Friendly):
+1. Tytuły nie mogą być nudne. Mają budzić emocje (FOMO, ciekawość).
+2. Stosuj techniki: Niedopowiedzenie, Zestawienia, Obalanie mitów.
+3. Tytuły w formacie clickbaitowym, ale merytoryczne pod kątem lifestyle/codziennego życia.
+
+WYMÓG KRYTYCZNY: Zwróć wynik BEZWZGLĘDNIE jako CZYSTĄ LISTĘ JSON (bez bloków \`\`\`json).
+Format:
 [
-  {"tytul": "...", "uzasadnienie": "..."}
+  {"tytul": "...", "uzasadnienie": "Krótkie wyjaśnienie dlaczego klikną w to w Discover..."}
 ]`;
             
             const res = await fetch('/api/generate', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({prompt}) });
@@ -256,17 +333,18 @@ Zwróć wynik BEZWZGLĘDNIE jako JSON w formacie:
                 if(text.startsWith("```")) text = text.substring(3);
                 if(text.endsWith("```")) text = text.substring(0, text.length-3);
                 
-                const parsed = JSON.parse(text);
+                const parsed = JSON.parse(text.trim());
                 let html = "";
                 parsed.forEach(item => {
                     html += `<div style="background:#fff; padding:15px; margin-bottom:10px; border-left:4px solid #000; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-                        <h4 style="margin-top:0;">${item.tytul}</h4><p>${item.uzasadnienie}</p>
-                        <button class="btn-primary" onclick="setTopicAndSwitch('${item.tytul.replace(/'/g, "\\'")}')">Realizuj temat</button>
+                        <h4 style="margin-top:0; font-size: 18px;">${item.tytul}</h4>
+                        <p style="font-size: 14px; color: #555;"><strong>Dlaczego to zadziała:</strong> ${item.uzasadnienie}</p>
+                        <button class="btn-primary" onclick="setTopicAndSwitch('${item.tytul.replace(/'/g, "\\'")}')">✍️ Przejdź do tego tematu</button>
                     </div>`;
                 });
                 document.getElementById('ideas-result').innerHTML = html;
             } catch(e) {
-                document.getElementById('ideas-result').innerHTML = `<p style="color:red">Błąd parsera JSON. Odpowiedź AI: ${data.result}</p>`;
+                document.getElementById('ideas-result').innerHTML = `<p style="color:red; background:#fee; padding:10px;">Błąd formatu. Odpowiedź AI: ${data.result}</p>`;
             }
         }
 
@@ -276,14 +354,60 @@ Zwróć wynik BEZWZGLĘDNIE jako JSON w formacie:
             saveDraft();
         }
 
-        async function generateArticle() {
+        // --- NOWOŚĆ: GENERATOR PLANU ---
+        async function generatePlan() {
             const topic = document.getElementById('topic-input').value;
             const guidelines = document.getElementById('guidelines-input').value;
-            if(!topic) { alert("Podaj temat!"); return; }
+            if(!topic) { alert("Podaj temat przed stworzeniem planu!"); return; }
+            
+            document.getElementById('loader-plan').style.display = 'block';
+            
+            const prompt = `${SHOP_CONTEXT} ${scrapedContext}
+ZADANIE: Stwórz SZKIELET (plan) artykułu na temat: "${topic}".
+Dodatkowe wytyczne od autora: ${guidelines}
+
+WYMAGANIA:
+Zwróć TYLKO strukturę wpisu w postaci czystego tekstu/listy. 
+Schemat, który masz zastosować:
+1. Proponowany Tytuł (H1)
+2. Lead (zarys tego co tu będzie)
+3. H2: [Tytuł nagłówka 1]
+   - Co znajdzie się w tym akapicie (1 zdanie)
+4. H2: [Tytuł nagłówka 2]
+   - Co znajdzie się w tym akapicie (1 zdanie)
+5. H2: [Tytuł nagłówka 3]
+   - Co znajdzie się w tym akapicie (1 zdanie)
+
+Nie pisz całego artykułu! Przygotuj tylko przejrzysty plan.`;
+
+            const res = await fetch('/api/generate', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({prompt}) });
+            const data = await res.json();
+            document.getElementById('loader-plan').style.display = 'none';
+            
+            document.getElementById('plan-result').value = data.result.trim();
+            document.getElementById('plan-section').style.display = 'block';
+            saveDraft();
+        }
+
+        // --- NOWOŚĆ: GENERATOR ARTYKUŁU Z PLANU ---
+        async function generateArticleFromPlan() {
+            const planText = document.getElementById('plan-result').value;
+            if(!planText) { alert("Najpierw wygeneruj i zaakceptuj plan!"); return; }
             
             document.getElementById('loader-2').style.display = 'block';
-            const prompt = `${SHOP_CONTEXT} ${scrapedContext} Napisz wpis na bloga o: "${topic}". Wytyczne: ${guidelines}. Tytuł H1, lead max 300 znaków. Min 3 nagłówki H2. Długość 4000-5000 znaków. Format Markdown.`;
             
+            const prompt = `${SHOP_CONTEXT} ${scrapedContext}
+ZADANIE: Napisz obszerny, kompletny wpis na bloga na podstawie PONIŻSZEGO ZATWIERDZONEGO PLANU.
+
+[ZATWIERDZONY PLAN]
+${planText}
+
+WYTYCZNE TECHNICZNE:
+1. Rozwiń każdy punkt z planu w soczysty, pełny akapit. 
+2. Całość ma mieć optymalnie między 4000 a 5000 znaków. Pisz zwięźle, bez lania wody, ale wyczerpująco.
+3. Zachowaj lifestylowy "Tone of Voice" Wassyl.
+4. Zwróć wynik formacie Markdown (użyj # dla H1, ## dla H2).`;
+
             const res = await fetch('/api/generate', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({prompt}) });
             const data = await res.json();
             document.getElementById('loader-2').style.display = 'none';
@@ -291,6 +415,7 @@ Zwróć wynik BEZWZGLĘDNIE jako JSON w formacie:
             document.getElementById('article-result').innerText = data.result;
             document.getElementById('article-section').style.display = 'block';
             
+            // Ekstrakcja do Publikacji
             const lines = data.result.split('\n');
             let t = "", l = "";
             for(let line of lines) { if(line.startsWith('# ')) { t = line.replace('# ', '').replaceAll('*',''); break; } }
@@ -298,23 +423,40 @@ Zwróć wynik BEZWZGLĘDNIE jako JSON w formacie:
             
             document.getElementById('pub-title').value = t;
             document.getElementById('pub-lead').value = l;
+            
+            updateCounter();
             saveDraft();
+        }
+
+        // --- NOWOŚĆ: SZYBKIE PRZYCISKI STYLU ---
+        function quickRevise(instruction) {
+            document.getElementById('revision-input').value = instruction;
+            reviseArticle();
         }
 
         async function reviseArticle() {
             const rev = document.getElementById('revision-input').value;
             const curr = document.getElementById('article-result').innerText;
-            if(!rev) return;
+            if(!rev) { alert("Wpisz uwagi do poprawy."); return; }
             
             document.getElementById('loader-2').style.display = 'block';
-            const prompt = `Popraw tekst zgodnie z uwagami: "${rev}". Lead max 300 znaków. Tekst: ${curr}`;
+            const prompt = `${SHOP_CONTEXT}
+Popraw poniższy tekst zgodnie z tą dokładną instrukcją: "${rev}". 
+Zwróć TYLKO zaktualizowany artykuł w formacie Markdown.
+TEKST DO POPRAWY:
+${curr}`;
             
             const res = await fetch('/api/generate', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({prompt}) });
             const data = await res.json();
             document.getElementById('loader-2').style.display = 'none';
+            
             document.getElementById('article-result').innerText = data.result;
+            document.getElementById('revision-input').value = ""; // Wyczyść pole po użyciu
+            updateCounter();
             saveDraft();
         }
+
+        // ... (KOLAŻ, HTML I IDOSELL BEZ ZMIAN PONIŻEJ) ...
 
         async function generateCollage() {
             const ids = document.getElementById('pub-collage-ids').value;
@@ -352,7 +494,7 @@ Zwróć wynik BEZWZGLĘDNIE jako JSON w formacie:
         async function generateHtml() {
             const ids = document.getElementById('pub-html-ids').value;
             const text = document.getElementById('article-result').innerText;
-            if(!text) { alert("Brak tekstu artykułu!"); return; }
+            if(!text) { alert("Brak tekstu artykułu! Wróć do Krok 2."); return; }
             
             document.getElementById('loader-html').style.display = 'block';
             let prods = [];
@@ -392,7 +534,6 @@ Artykuł: ${text}`;
             
             if(!title || !htmlCode) { alert("Uzupełnij tytuł i wygeneruj HTML!"); return; }
             
-            // --- POPRAWKA: Format daty YYYY-MM-DD (zgodnie z Twoim przykładem) ---
             const now = new Date();
             const formatDaty = now.getFullYear() + '-' + 
                 String(now.getMonth() + 1).padStart(2, '0') + '-' + 
@@ -400,19 +541,11 @@ Artykuł: ${text}`;
 
             const payload = {
                 params: {
-                    shopId: 1, 
-                    visible: "n", // Wpis trafi jako niewidoczny (szkic)
-                    date: formatDaty, 
-                    // Dodajemy listę miejsc wyświetlania, aby API zaakceptowało strukturę
-                    visibleOnSitesList: [
-                        { siteId: "display_on_blog" }
-                    ],
-                    langs: [{ 
-                        langId: "pol", 
-                        title: title, 
-                        shortDescription: lead, 
-                        longDescription: htmlCode 
-                    }]
+                    shopId: 1,
+                    visible: "n",
+                    date: formatDaty,
+                    visibleOnSitesList: [{ siteId: "display_on_blog" }],
+                    langs: [{ langId: "pol", title: title, shortDescription: lead, longDescription: htmlCode }]
                 }
             };
             
@@ -431,11 +564,7 @@ Artykuł: ${text}`;
             }
             
             document.getElementById('loader-publish').style.display = 'block';
-            const res = await fetch('/api/idosell/publish', { 
-                method: 'POST', 
-                headers: {'Content-Type': 'application/json'}, 
-                body: JSON.stringify({payload}) 
-            });
+            const res = await fetch('/api/idosell/publish', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({payload}) });
             const data = await res.json();
             document.getElementById('loader-publish').style.display = 'none';
             
