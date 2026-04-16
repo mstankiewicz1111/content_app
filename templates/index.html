@@ -589,7 +589,11 @@ Artykuł: ${text}`;
                     visible: "n",
                     date: formatDaty,
                     titleLinkType: "fullContentLink",
-                    visibleOnSitesList: [{ siteId: "display_on_blog" }],
+                    // --- POPRAWKA: Dodano widoczność na stronie głównej (2_main) ---
+                    visibleOnSitesList: [
+                        { siteId: "display_on_blog" }, // na stronie listy wpisów na blog
+                        { siteId: "2_main" }           // na stronie głównej
+                    ],
                     langs: [{ langId: "pol", title: title, shortDescription: lead, longDescription: htmlCode }]
                 }
             };
