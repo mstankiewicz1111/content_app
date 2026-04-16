@@ -101,20 +101,26 @@
             <input type="text" id="topic-input" oninput="saveDraft()">
             
             <label style="font-weight: 600;">Dodatkowe wytyczne (opcjonalnie):</label>
-            <textarea id="guidelines-input" rows="2" placeholder="np. wspomnij o nowej kolekcji dresów" oninput="saveDraft()"></textarea>
+            <textarea id="guidelines-input" rows="2" placeholder="np. wspomnij o nowej kolekcji" oninput="saveDraft()"></textarea>
             
+            <div style="background: #eef2f5; padding: 15px; border-radius: 5px; margin-bottom: 15px; border-left: 4px solid #0066cc;">
+                <label style="font-weight: 600; margin-top:0;">ID produktów do opisania w tekście (opcjonalnie):</label>
+                <input type="text" id="context-product-ids" placeholder="np. 16216, 16357" oninput="syncProductIds()">
+                <p style="font-size: 12px; color: #555; margin-top: -10px; margin-bottom: 0;">AI pobierze ich nazwy ze sklepu, by merytorycznie opisać je w artykule. ID skopiują się też do publikacji HTML.</p>
+            </div>
+
             <button class="btn-primary" onclick="generatePlan()">📋 KROK 1: Wygeneruj Szkielet (Plan wpisu)</button>
             <div id="loader-plan" class="loader">⏳ Tworzę strukturę wpisu...</div>
             
             <div id="plan-section" style="display: none; margin-top: 25px; padding: 20px; border-left: 4px solid #0066cc; background: #f4f9ff; border-radius: 0 8px 8px 0;">
                 <h3 style="margin-top: 0;">🛠️ Edytor Szkieletu</h3>
-                <p style="font-size: 13px; color: #555;">Możesz tu dopisać swoje punkty, zmienić nagłówki H2 lub usunąć to, co Ci się nie podoba. AI napisze tekst dokładnie na bazie tego pola.</p>
+                <p style="font-size: 13px; color: #555;">Możesz tu dopisać swoje punkty lub zmienić nagłówki H2.</p>
                 <textarea id="plan-result" rows="10" oninput="saveDraft()" style="font-family: monospace; font-size: 14px; background: #fff;"></textarea>
                 
                 <button class="btn-primary" onclick="generateArticleFromPlan()" style="background: #0066cc; border-color: #0066cc; margin-top: 10px;">🚀 KROK 2: Napisz Pełny Artykuł z Planu</button>
             </div>
 
-            <div id="loader-2" class="loader">⏳ Piszę obszerny artykuł... Cierpliwości (może zająć do minuty).</div>
+            <div id="loader-2" class="loader">⏳ Piszę obszerny artykuł... Cierpliwości.</div>
             
             <div id="article-section" style="display: none; margin-top: 30px;">
                 <hr style="border: 0; border-top: 1px solid #eee; margin-bottom: 20px;">
@@ -154,7 +160,7 @@
                     <textarea id="pub-lead" rows="4" oninput="saveDraft()"></textarea>
                     <label>ID produktów polecanych (w polecanych poniżej wpisu):</label>
                     <input type="text" id="pub-rec-ids" placeholder="np. 16216, 16254" oninput="saveDraft()">
-                    <label>ID produktów do rozrzucenia w treści HTML:</label>
+                    <label>ID produktów do rozrzucenia w treści HTML (Skopiowane automatycznie):</label>
                     <input type="text" id="pub-html-ids" placeholder="np. 16216, 16357" oninput="saveDraft()">
                 </div>
                 <div class="col">
@@ -181,9 +187,20 @@
     </div>
 
     <script>
+        // --- KONTEKST Z DODANYMI KATEGORIAMI ---
         const SHOP_CONTEXT = `
 Jesteś topowym ekspertem od content marketingu i copywriterem dla polskiej marki modowej WASSYL.
 Specyfika marki: własna polska szwalnia, fajne, proste i stylowe ubrania na co dzień z bawełny i wiskozy, świetny stosunek jakości do ceny.
+
+WIODĄCE KATEGORIE PRODUKTÓW (Skupiaj się na nich, od najważniejszych):
+1. Bluzy
+2. Komplety dresowe
+3. Bluzki
+4. Spodnie dresowe
+5. Sukienki
+6. Spódnice
+7. Szorty
+
 Grupa docelowa: Gen Z (18-26 lat) oraz późni Millenialsi (27-35 lat).
 
 Twój "Tone of Voice":
@@ -193,16 +210,22 @@ Twój "Tone of Voice":
 - ZERO nudnego, korporacyjnego języka.
 
 ZABRONIONE TEMATY I SŁOWA (KRYTYCZNE):
-- Kategorycznie unikaj słów: premium, luksus, luksusowy, bogactwo, ekskluzywny, prestiż. Wasze klientki szukają super ubrań w normalnych cenach, a nie nadęcia i luksusu.
-- Nigdy nie wspominaj o lokalizacji marki (Wrocław) - to nie ma znaczenia dla klientki.
+- Kategorycznie unikaj słów: premium, luksus, luksusowy, bogactwo, ekskluzywny, prestiż. Wasze klientki szukają super ubrań w normalnych cenach.
+- Kategorycznie zakazane jest wymienianie nazw jakichkolwiek miast, lokalizacji geograficznych czy fizycznych adresów. Skup się na uniwersalnym contencie.
 
 POŻĄDANY KONTEKST LIFESTYLOWY:
 - Zawsze osadzaj ubrania w kontekście codziennego życia i spędzania czasu wolnego.
-- Odwołuj się do sytuacji takich jak: luźny spacer z psem, kawa z przyjaciółkami, wyjście do kina, szybka randka, chill w domu, uczelnia, czy "bad hair day", w którym trzeba szybko coś na siebie wrzucić i wyglądać dobrze.
+- Odwołuj się do sytuacji takich jak: luźny spacer z psem, kawa z przyjaciółkami, wyjście do kina, szybka randka, chill w domu, uczelnia, czy "bad hair day".
 Zawsze pisz w nienagannym języku polskim.
 `;
         let scrapedContext = "";
         let collageBase64 = "";
+
+        // Synchronizacja ID produktów między krokami
+        function syncProductIds() {
+            document.getElementById('pub-html-ids').value = document.getElementById('context-product-ids').value;
+            saveDraft();
+        }
 
         function switchTab(tabId) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
@@ -215,6 +238,7 @@ Zawsze pisz w nienagannym języku polskim.
         function saveDraft() {
             const draft = {
                 topic: document.getElementById('topic-input').value,
+                contextIds: document.getElementById('context-product-ids').value,
                 plan: document.getElementById('plan-result').value,
                 article: document.getElementById('article-result').innerText,
                 title: document.getElementById('pub-title').value,
@@ -232,6 +256,7 @@ Zawsze pisz w nienagannym języku polskim.
             if(draftStr) {
                 const d = JSON.parse(draftStr);
                 document.getElementById('topic-input').value = d.topic || '';
+                document.getElementById('context-product-ids').value = d.contextIds || '';
                 
                 if(d.plan) {
                     document.getElementById('plan-result').value = d.plan;
@@ -275,7 +300,6 @@ Zawsze pisz w nienagannym języku polskim.
             const badge = document.getElementById('char-counter');
             badge.innerText = len + " znaków";
             
-            // Dynamiczne klasy kolorów
             badge.classList.remove('counter-good', 'counter-warn');
             if (len > 3800 && len < 5500) {
                 badge.classList.add('counter-good');
@@ -300,13 +324,28 @@ Zawsze pisz w nienagannym języku polskim.
             }
         }
 
+        // --- POBIERANIE NAZW PRODUKTÓW DO PROMPTU ---
+        async function getProductContextText() {
+            const ids = document.getElementById('context-product-ids').value;
+            if(!ids) return "";
+            try {
+                const resProd = await fetch('/api/idosell/products', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ids}) });
+                const dataProd = await resProd.json();
+                if(dataProd.products && dataProd.products.length > 0) {
+                    const list = dataProd.products.map(p => `- Prawdziwa nazwa produktu w sklepie: "${p.nazwa}"`).join('\n');
+                    return "\n\nPRODUKTY, O KTÓRYCH MUSISZ WSPOMNIEĆ W TEKŚCIE (Wpleć ich nazwy naturalnie):\n" + list;
+                }
+            } catch (e) { console.error("Błąd pobierania kontekstu produktów", e); }
+            return "";
+        }
+
         async function generateIdeas(ideaStr) {
             document.getElementById('loader-1').style.display = 'block';
             document.getElementById('ideas-result').innerHTML = '';
             
             let prompt_baza = ideaStr ? 
                 `Bazuj ściśle na tym koncepcie: "${ideaStr}".` : 
-                `Przeanalizuj obecny miesiąc/sezon i zaproponuj tematy bazujące na codziennych sytuacjach (np. spacer, kino).`;
+                `Przeanalizuj obecny miesiąc/sezon i zaproponuj tematy bazujące na wiodących kategoriach i codziennych sytuacjach.`;
             
             const prompt = `${SHOP_CONTEXT} ${scrapedContext}
 Zadanie: Jako mistrz SEO pod Google Discover, wymyśl 3 ultra-chwytliwe tematy na wpis blogowy.
@@ -354,17 +393,20 @@ Format:
             saveDraft();
         }
 
-        // --- NOWOŚĆ: GENERATOR PLANU ---
         async function generatePlan() {
             const topic = document.getElementById('topic-input').value;
             const guidelines = document.getElementById('guidelines-input').value;
             if(!topic) { alert("Podaj temat przed stworzeniem planu!"); return; }
             
+            document.getElementById('loader-plan').innerText = "⏳ Tworzę strukturę wpisu... (Pobieram ewentualne dane o produktach)";
             document.getElementById('loader-plan').style.display = 'block';
+            
+            const extraProductData = await getProductContextText();
             
             const prompt = `${SHOP_CONTEXT} ${scrapedContext}
 ZADANIE: Stwórz SZKIELET (plan) artykułu na temat: "${topic}".
 Dodatkowe wytyczne od autora: ${guidelines}
+${extraProductData}
 
 WYMAGANIA:
 Zwróć TYLKO strukturę wpisu w postaci czystego tekstu/listy. 
@@ -389,12 +431,14 @@ Nie pisz całego artykułu! Przygotuj tylko przejrzysty plan.`;
             saveDraft();
         }
 
-        // --- NOWOŚĆ: GENERATOR ARTYKUŁU Z PLANU ---
         async function generateArticleFromPlan() {
             const planText = document.getElementById('plan-result').value;
             if(!planText) { alert("Najpierw wygeneruj i zaakceptuj plan!"); return; }
             
+            document.getElementById('loader-2').innerText = "⏳ Piszę obszerny artykuł z uwzględnieniem produktów...";
             document.getElementById('loader-2').style.display = 'block';
+            
+            const extraProductData = await getProductContextText();
             
             const prompt = `${SHOP_CONTEXT} ${scrapedContext}
 ZADANIE: Napisz obszerny, kompletny wpis na bloga na podstawie PONIŻSZEGO ZATWIERDZONEGO PLANU.
@@ -402,10 +446,12 @@ ZADANIE: Napisz obszerny, kompletny wpis na bloga na podstawie PONIŻSZEGO ZATWI
 [ZATWIERDZONY PLAN]
 ${planText}
 
+${extraProductData}
+
 WYTYCZNE TECHNICZNE:
 1. Rozwiń każdy punkt z planu w soczysty, pełny akapit. 
 2. Całość ma mieć optymalnie między 4000 a 5000 znaków. Pisz zwięźle, bez lania wody, ale wyczerpująco.
-3. Zachowaj lifestylowy "Tone of Voice" Wassyl.
+3. Zachowaj lifestylowy "Tone of Voice".
 4. Zwróć wynik formacie Markdown (użyj # dla H1, ## dla H2).`;
 
             const res = await fetch('/api/generate', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({prompt}) });
@@ -415,7 +461,6 @@ WYTYCZNE TECHNICZNE:
             document.getElementById('article-result').innerText = data.result;
             document.getElementById('article-section').style.display = 'block';
             
-            // Ekstrakcja do Publikacji
             const lines = data.result.split('\n');
             let t = "", l = "";
             for(let line of lines) { if(line.startsWith('# ')) { t = line.replace('# ', '').replaceAll('*',''); break; } }
@@ -428,7 +473,6 @@ WYTYCZNE TECHNICZNE:
             saveDraft();
         }
 
-        // --- NOWOŚĆ: SZYBKIE PRZYCISKI STYLU ---
         function quickRevise(instruction) {
             document.getElementById('revision-input').value = instruction;
             reviseArticle();
@@ -451,12 +495,10 @@ ${curr}`;
             document.getElementById('loader-2').style.display = 'none';
             
             document.getElementById('article-result').innerText = data.result;
-            document.getElementById('revision-input').value = ""; // Wyczyść pole po użyciu
+            document.getElementById('revision-input').value = ""; 
             updateCounter();
             saveDraft();
         }
-
-        // ... (KOLAŻ, HTML I IDOSELL BEZ ZMIAN PONIŻEJ) ...
 
         async function generateCollage() {
             const ids = document.getElementById('pub-collage-ids').value;
