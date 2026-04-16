@@ -371,22 +371,27 @@ Artykuł: ${text}`;
             
             if(!title || !htmlCode) { alert("Uzupełnij tytuł i wygeneruj HTML!"); return; }
             
-            // --- POPRAWKA: Generowanie dokładnej daty dla IdoSell ---
+            // --- POPRAWKA: Format daty YYYY-MM-DD (zgodnie z Twoim przykładem) ---
             const now = new Date();
             const formatDaty = now.getFullYear() + '-' + 
                 String(now.getMonth() + 1).padStart(2, '0') + '-' + 
-                String(now.getDate()).padStart(2, '0') + ' ' + 
-                String(now.getHours()).padStart(2, '0') + ':' + 
-                String(now.getMinutes()).padStart(2, '0') + ':' + 
-                String(now.getSeconds()).padStart(2, '0');
+                String(now.getDate()).padStart(2, '0');
 
             const payload = {
                 params: {
-                    shopId: 1,
-                    visible: "n",
-                    date: formatDaty,      // Aktualna data publikacji
-                    addDate: formatDaty,   // Dodane zapobiegawczo dla zgodności z różnymi wersjami API IdoSell
-                    langs: [{ langId: "pol", title: title, shortDescription: lead, longDescription: htmlCode }]
+                    shopId: 1, 
+                    visible: "n", // Wpis trafi jako niewidoczny (szkic)
+                    date: formatDaty, 
+                    // Dodajemy listę miejsc wyświetlania, aby API zaakceptowało strukturę
+                    visibleOnSitesList: [
+                        { siteId: "display_on_blog" }
+                    ],
+                    langs: [{ 
+                        langId: "pol", 
+                        title: title, 
+                        shortDescription: lead, 
+                        longDescription: htmlCode 
+                    }]
                 }
             };
             
@@ -405,7 +410,11 @@ Artykuł: ${text}`;
             }
             
             document.getElementById('loader-publish').style.display = 'block';
-            const res = await fetch('/api/idosell/publish', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({payload}) });
+            const res = await fetch('/api/idosell/publish', { 
+                method: 'POST', 
+                headers: {'Content-Type': 'application/json'}, 
+                body: JSON.stringify({payload}) 
+            });
             const data = await res.json();
             document.getElementById('loader-publish').style.display = 'none';
             
