@@ -1,394 +1,152 @@
-<!DOCTYPE html>
-<html lang="pl">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Asystent Content Marketingu</title>
-    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600&family=Outfit:wght@600;700&display=swap" rel="stylesheet">
-    <style>
-        :root { --bg: #f8f9fa; --text: #333; --border: #ddd; --btn-bg: #000; --btn-text: #fff; --btn-hover: #333; }
-        body { font-family: 'Manrope', sans-serif; background-color: var(--bg); color: var(--text); margin: 0; display: flex; height: 100vh; overflow: hidden; }
-        h1, h2, h3 { font-family: 'Outfit', sans-serif; }
-        
-        /* Sidebar */
-        .sidebar { width: 300px; background: #fff; border-right: 1px solid var(--border); padding: 20px; display: flex; flex-direction: column; gap: 20px; overflow-y: auto;}
-        .sidebar-menu button { background: none; border: none; text-align: left; padding: 10px; width: 100%; cursor: pointer; font-family: 'Manrope', sans-serif; font-size: 15px; border-radius: 4px; color: #555;}
-        .sidebar-menu button.active { background: #eee; font-weight: 600; color: #000;}
-        .status-box { padding: 10px; border-radius: 5px; font-size: 14px; }
-        .status-ok { background: #d4edda; color: #155724; border-left: 4px solid #28a745; }
-        .status-error { background: #f8d7da; color: #721c24; border-left: 4px solid #dc3545; }
-        
-        /* Main Content */
-        .main-content { flex: 1; overflow-y: auto; padding: 40px; }
-        .logo-container { text-align: center; margin-bottom: 20px; }
-        .header-title { text-align: center; margin-bottom: 40px; }
-        
-        .tab-content { display: none; max-width: 900px; margin: 0 auto; background: #fff; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
-        .tab-content.active { display: block; }
-        
-        /* Form elements */
-        input[type="text"], textarea { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 4px; font-family: 'Manrope', sans-serif; margin-top: 5px; margin-bottom: 15px; box-sizing: border-box;}
-        button.btn-primary { background: var(--btn-bg); color: var(--btn-text); border: 1px solid var(--btn-bg); padding: 10px 20px; border-radius: 3px; font-weight: 600; font-family: 'Manrope', sans-serif; cursor: pointer; transition: all 0.2s; }
-        button.btn-primary:hover { background: var(--btn-hover); transform: translateY(-2px); }
-        button:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; }
-        
-        .loader { display: none; font-weight: 600; color: #0066cc; margin: 10px 0; }
-        .result-box { background: #f1f3f5; padding: 15px; border-radius: 5px; margin-bottom: 20px; white-space: pre-wrap; font-size: 14px;}
-        .row { display: flex; gap: 20px; }
-        .col { flex: 1; }
-    </style>
-</head>
-<body>
+import os
+import io
+import base64
+import time
+import requests
+from flask import Flask, render_template, request, jsonify
+import google.generativeai as genai
+from bs4 import BeautifulSoup
+from PIL import Image
 
-    <div class="sidebar">
-        <h3>Menu</h3>
-        <div class="sidebar-menu">
-            <button onclick="switchTab('tab1')" id="btn-tab1" class="active">1. Tematy z pomysłu</button>
-            <button onclick="switchTab('tab2')" id="btn-tab2">2. Stwórz wpis</button>
-            <button onclick="switchTab('tab3')" id="btn-tab3">3. Publikacja IdoSell</button>
-        </div>
-        <hr>
-        <h4>Analiza strony</h4>
-        <input type="text" id="store-url" placeholder="Wklej link (opcjonalnie)">
-        <p id="url-status" style="font-size: 12px; color: green;"></p>
-        <button class="btn-primary" onclick="fetchUrlContext()" style="width: 100%;">Pobierz kontekst</button>
-        <hr>
-        <div class="status-box {% if status_idosell %}status-ok{% else %}status-error{% endif %}">
-            {% if status_idosell %} API IdoSell podłączone ({{ domena }}) {% else %} Brak kluczy IdoSell w Render! {% endif %}
-        </div>
-        <br>
-        <button class="btn-primary" onclick="resetDraft()" style="background: #dc3545; border:none; width:100%;">🗑️ Resetuj projekt</button>
-    </div>
+app = Flask(__name__)
 
-    <div class="main-content">
-        <div class="logo-container">
-            <img src="https://wassyl.pl/data/gfx/mask/pol/logo_1_big.svg" width="220" alt="Wassyl Logo">
-        </div>
-        <h1 class="header-title">Asystent Content Marketingu</h1>
+# --- KONFIGURACJA ZMIENNYCH ŚRODOWISKOWYCH ---
+GEMINI_KEY = os.environ.get("GEMINI_API_KEY", "").strip().replace('"', '').replace("'", "")
+IDOSELL_DOMAIN = os.environ.get("IDOSELL_DOMAIN", "wassyl.pl").strip().replace('"', '').replace("'", "")
+IDOSELL_KEY = os.environ.get("IDOSELL_API_KEY", "").strip().replace('"', '').replace("'", "")
 
-        <div id="tab1" class="tab-content active">
-            <h2>💡 Propozycje tematów</h2>
-            <label>Wpisz swój pomysł (np. wiskoza na lato):</label>
-            <input type="text" id="idea-input">
-            <button class="btn-primary" onclick="generateIdeas()">Generuj propozycje</button>
-            <div id="loader-1" class="loader">⏳ Pracuję nad tematami... To może potrwać do 30 sekund.</div>
-            <div id="ideas-result" style="margin-top: 20px;"></div>
-        </div>
+if GEMINI_KEY:
+    genai.configure(api_key=GEMINI_KEY)
+    model = genai.GenerativeModel("gemini-2.5-flash")
 
-        <div id="tab2" class="tab-content">
-            <h2>✍️ Kreator treści</h2>
-            <p style="font-size: 13px; color: #666;">Zapisujemy Twoją pracę w tle. Nic nie zginie przy odświeżeniu!</p>
-            <label>Wybrany temat artykułu:</label>
-            <input type="text" id="topic-input" oninput="saveDraft()">
-            <label>Dodatkowe wytyczne (opcjonalnie):</label>
-            <textarea id="guidelines-input" rows="3"></textarea>
-            <button class="btn-primary" onclick="generateArticle()">🚀 Generuj artykuł</button>
-            <div id="loader-2" class="loader">⏳ Piszę artykuł (ok. 4000-5000 znaków)... Cierpliwości.</div>
-            
-            <div id="article-section" style="display: none; margin-top: 20px;">
-                <h3>📝 Twój Artykuł:</h3>
-                <div id="article-result" class="result-box"></div>
-                <label>Masz uwagi? Wpisz je tutaj:</label>
-                <input type="text" id="revision-input">
-                <button class="btn-primary" onclick="reviseArticle()" style="background:#555; border:none;">🔄 Nanieś poprawki</button>
-                <button class="btn-primary" onclick="switchTab('tab3')" style="float: right;">✅ Idź do Publikacji</button>
-            </div>
-        </div>
+# --- FUNKCJE POMOCNICZE ---
+def generuj_tekst_ai(prompt):
+    if not GEMINI_KEY: return "Błąd: Brak klucza API Gemini na serwerze."
+    for proba in range(3):
+        try:
+            response = model.generate_content(prompt)
+            return response.text
+        except Exception as e:
+            if "429" in str(e) or "Quota" in str(e):
+                if proba < 2:
+                    time.sleep(30)
+                    continue
+            return f"Błąd API Gemini: {str(e)}"
+    return "Błąd: Przekroczono limit prób API Gemini."
 
-        <div id="tab3" class="tab-content">
-            <h2>⚙️ Formularz Publikacji</h2>
-            <div class="row">
-                <div class="col">
-                    <label>Tytuł wpisu:</label>
-                    <input type="text" id="pub-title" oninput="saveDraft()">
-                    <label>Lead wpisu:</label>
-                    <textarea id="pub-lead" rows="4" oninput="saveDraft()"></textarea>
-                    <label>ID produktów polecanych (oddzielone przecinkami):</label>
-                    <input type="text" id="pub-rec-ids" placeholder="16216, 16254" oninput="saveDraft()">
-                    <label>ID produktów do treści HTML:</label>
-                    <input type="text" id="pub-html-ids" placeholder="16216, 16254" oninput="saveDraft()">
-                </div>
-                <div class="col">
-                    <label>ID produktów na główny kolaż:</label>
-                    <input type="text" id="pub-collage-ids" placeholder="16216, 16254">
-                    <button class="btn-primary" onclick="generateCollage()">🖼️ Generuj Kolaż</button>
-                    <div id="loader-collage" class="loader">⏳ Pobieram zdjęcia ze sklepu...</div>
-                    <img id="collage-preview" src="" style="width: 100%; margin-top: 15px; border-radius: 5px; display:none;">
-                </div>
-            </div>
-            
-            <hr style="margin: 30px 0; border: 0; border-top: 1px solid #ddd;">
-            <button class="btn-primary" onclick="generateHtml()">✨ Konwertuj na IdoSell HTML</button>
-            <div id="loader-html" class="loader">⏳ Tworzę kod HTML dla IdoSell...</div>
-            
-            <div id="html-section" style="display: none; margin-top: 20px;">
-                <h3>Podgląd kodu:</h3>
-                <textarea id="html-result" rows="10" readonly></textarea>
-                <br><br>
-                <button class="btn-primary" onclick="publishToIdosell()" style="width: 100%; background: #28a745; border-color: #28a745; font-size: 16px; padding: 15px;">🚀 OPUBLIKUJ SZKIC W IDOSELL</button>
-                <div id="loader-publish" class="loader" style="text-align: center;">⏳ Wysyłam do API IdoSell...</div>
-            </div>
-        </div>
-    </div>
+# --- ENDPOINTY API (Dla Frontendu) ---
 
-    <script>
-        // System Kontekstu Sklepu
-        const SHOP_CONTEXT = `Jesteś copywriterem dla marki odzieżowej z Wrocławia (bawełna, wiskoza). Grupa: Gen Z/Millenialsi. Styl: edgy, zwięzły.`;
-        let scrapedContext = "";
-        let collageBase64 = "";
+@app.route('/')
+def index():
+    # Sprawdzamy status kluczy, by przekazać je do frontu
+    status_idosell = bool(IDOSELL_DOMAIN and IDOSELL_KEY)
+    return render_template('index.html', status_idosell=status_idosell, domena=IDOSELL_DOMAIN)
 
-        // Nawigacja
-        function switchTab(tabId) {
-            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-            document.querySelectorAll('.sidebar-menu button').forEach(el => el.classList.remove('active'));
-            document.getElementById(tabId).classList.add('active');
-            document.getElementById('btn-' + tabId).classList.add('active');
-        }
+@app.route('/api/generate', methods=['POST'])
+def api_generate():
+    data = request.json
+    prompt = data.get('prompt', '')
+    wynik = generuj_tekst_ai(prompt)
+    return jsonify({"result": wynik})
 
-        // Zapis stanu do LocalStorage (Super Szybki Draft!)
-        function saveDraft() {
-            const draft = {
-                topic: document.getElementById('topic-input').value,
-                article: document.getElementById('article-result').innerText,
-                title: document.getElementById('pub-title').value,
-                lead: document.getElementById('pub-lead').value,
-                recIds: document.getElementById('pub-rec-ids').value,
-                htmlIds: document.getElementById('pub-html-ids').value,
-                htmlCode: document.getElementById('html-result').value,
-                collage: collageBase64
-            };
-            localStorage.setItem('idosell_draft', JSON.stringify(draft));
-        }
+@app.route('/api/fetch_url', methods=['POST'])
+def api_fetch_url():
+    url = request.json.get('url', '')
+    try:
+        headers = {"User-Agent": "Mozilla/5.0"}
+        resp = requests.get(url, headers=headers, timeout=10)
+        resp.raise_for_status()
+        zupa = BeautifulSoup(resp.text, "html.parser")
+        for script in zupa(["script", "style"]): script.extract()
+        tekst = zupa.get_text(separator=" ", strip=True)[:5000]
+        return jsonify({"text": tekst})
+    except Exception as e:
+        return jsonify({"text": "", "error": str(e)})
 
-        function loadDraft() {
-            const draftStr = localStorage.getItem('idosell_draft');
-            if(draftStr) {
-                const d = JSON.parse(draftStr);
-                document.getElementById('topic-input').value = d.topic || '';
-                if(d.article) {
-                    document.getElementById('article-result').innerText = d.article;
-                    document.getElementById('article-section').style.display = 'block';
-                }
-                document.getElementById('pub-title').value = d.title || '';
-                document.getElementById('pub-lead').value = d.lead || '';
-                document.getElementById('pub-rec-ids').value = d.recIds || '';
-                document.getElementById('pub-html-ids').value = d.htmlIds || '';
-                if(d.htmlCode) {
-                    document.getElementById('html-result').value = d.htmlCode;
-                    document.getElementById('html-section').style.display = 'block';
-                }
-                if(d.collage) {
-                    collageBase64 = d.collage;
-                    const img = document.getElementById('collage-preview');
-                    img.src = d.collage;
-                    img.style.display = 'block';
-                }
-            }
-        }
-        
-        function resetDraft() {
-            if(confirm("Czy na pewno chcesz usunąć całą dotychczasową pracę?")) {
-                localStorage.removeItem('idosell_draft');
-                location.reload();
-            }
-        }
+@app.route('/api/idosell/products', methods=['POST'])
+def api_idosell_products():
+    if not IDOSELL_DOMAIN or not IDOSELL_KEY:
+        return jsonify({"error": "Brak konfiguracji API IdoSell"}), 400
+    
+    ids_str = request.json.get('ids', '')
+    lista_id = [x.strip() for x in ids_str.split(",") if x.strip().isdigit()]
+    if not lista_id: return jsonify({"products": []})
 
-        window.onload = loadDraft;
+    url = f"https://{IDOSELL_DOMAIN}/api/admin/v7/products/products"
+    headers = {"X-API-KEY": IDOSELL_KEY, "Accept": "application/json"}
+    params = [("productIds", pid) for pid in lista_id]
 
-        // API Calls
-        async function fetchUrlContext() {
-            const url = document.getElementById('store-url').value;
-            if(!url) return;
-            const res = await fetch('/api/fetch_url', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({url}) });
-            const data = await res.json();
-            if(data.text) {
-                scrapedContext = "Dodatkowy kontekst ze strony: " + data.text;
-                document.getElementById('url-status').innerText = "Kontekst pobrany pomyślnie!";
-            }
-        }
-
-        async function generateIdeas() {
-            const idea = document.getElementById('idea-input').value;
-            document.getElementById('loader-1').style.display = 'block';
-            document.getElementById('ideas-result').innerHTML = '';
-            
-            const prompt = `${SHOP_CONTEXT} ${scrapedContext} Zaproponuj 3 chwytliwe tematy na wpis blogowy (Google Discover). Bazuj na: "${idea}". Zwróć CZYSTY JSON: [{"tytul": "...", "uzasadnienie": "..."}]`;
-            
-            const res = await fetch('/api/generate', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({prompt}) });
-            const data = await res.json();
-            document.getElementById('loader-1').style.display = 'none';
-            
-            try {
-                // Czyszczenie jsona w JS (w razie znaczników markdown z Gemini)
-                let text = data.result.trim();
-                if(text.startsWith("```json")) text = text.substring(7);
-                if(text.startsWith("```")) text = text.substring(3);
-                if(text.endsWith("```")) text = text.substring(0, text.length-3);
+    produkty = []
+    try:
+        res = requests.get(url, headers=headers, params=params, timeout=15)
+        if res.status_code == 200:
+            for prod in res.json().get("Results", []):
+                pid = prod.get("productId")
+                zdjecia = prod.get("productImages", [])
+                url_zdjecia = ""
+                if zdjecia:
+                    url_zdjecia = zdjecia[0].get("productImageLargeUrl", "")
+                    if url_zdjecia.startswith("//"): url_zdjecia = "https:" + url_zdjecia
                 
-                const parsed = JSON.parse(text);
-                let html = "";
-                parsed.forEach(item => {
-                    html += `<div style="background:#f9f9f9; padding:15px; margin-bottom:10px; border-left:4px solid #000;">
-                        <h4 style="margin-top:0;">${item.tytul}</h4><p>${item.uzasadnienie}</p>
-                        <button class="btn-primary" onclick="setTopicAndSwitch('${item.tytul}')">Realizuj</button>
-                    </div>`;
-                });
-                document.getElementById('ideas-result').innerHTML = html;
-            } catch(e) {
-                document.getElementById('ideas-result').innerHTML = `<p style="color:red">Błąd parsera JSON. Spróbuj ponownie. Odpowiedź AI: ${data.result}</p>`;
-            }
-        }
-
-        function setTopicAndSwitch(topic) {
-            document.getElementById('topic-input').value = topic;
-            switchTab('tab2');
-            saveDraft();
-        }
-
-        async function generateArticle() {
-            const topic = document.getElementById('topic-input').value;
-            const guidelines = document.getElementById('guidelines-input').value;
-            if(!topic) { alert("Podaj temat!"); return; }
-            
-            document.getElementById('loader-2').style.display = 'block';
-            const prompt = `${SHOP_CONTEXT} ${scrapedContext} Napisz wpis na bloga o: "${topic}". Wytyczne: ${guidelines}. Tytuł H1, lead max 300 znaków. Min 3 nagłówki H2. Długość 4000-5000 znaków. Format Markdown.`;
-            
-            const res = await fetch('/api/generate', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({prompt}) });
-            const data = await res.json();
-            document.getElementById('loader-2').style.display = 'none';
-            
-            document.getElementById('article-result').innerText = data.result;
-            document.getElementById('article-section').style.display = 'block';
-            
-            // Auto uzupełnianie leadu i tytułu w Zakładce 3
-            const lines = data.result.split('\\n');
-            let t = "", l = "";
-            for(let line of lines) { if(line.startsWith('# ')) { t = line.replace('# ', '').replaceAll('*',''); break; } }
-            for(let line of lines) { let cl = line.trim(); if(cl && !cl.startsWith('#') && !cl.startsWith('!')) { l = cl; break; } }
-            
-            document.getElementById('pub-title').value = t;
-            document.getElementById('pub-lead').value = l;
-            saveDraft();
-        }
-
-        async function reviseArticle() {
-            const rev = document.getElementById('revision-input').value;
-            const curr = document.getElementById('article-result').innerText;
-            if(!rev) return;
-            
-            document.getElementById('loader-2').style.display = 'block';
-            const prompt = `Popraw ten tekst zgodnie z uwagami: "${rev}". Lead max 300 znaków, zachowaj długość. Tekst: ${curr}`;
-            
-            const res = await fetch('/api/generate', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({prompt}) });
-            const data = await res.json();
-            document.getElementById('loader-2').style.display = 'none';
-            document.getElementById('article-result').innerText = data.result;
-            saveDraft();
-        }
-
-        async function generateCollage() {
-            const ids = document.getElementById('pub-collage-ids').value;
-            if(!ids) { alert("Podaj ID do kolażu!"); return; }
-            
-            document.getElementById('loader-collage').style.display = 'block';
-            // 1. Pobierz produkty z IdoSell
-            const resProd = await fetch('/api/idosell/products', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ids}) });
-            const dataProd = await resProd.json();
-            
-            if(dataProd.products && dataProd.products.length > 0) {
-                const urls = dataProd.products.map(p => p.url_zdjecia);
-                // 2. Sklej kolaż na backendzie
-                const resCol = await fetch('/api/collage', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({urls: urls}) });
-                const dataCol = await resCol.json();
+                urls_data = prod.get("productUrl", {}).get("productUrlsLangData", [])
+                url_produktu = urls_data[0].get("url", "") if urls_data else f"https://{IDOSELL_DOMAIN}/product-pol-{pid}.html"
                 
-                if(dataCol.collage) {
-                    collageBase64 = dataCol.collage;
-                    document.getElementById('collage-preview').src = collageBase64;
-                    document.getElementById('collage-preview').style.display = 'block';
-                    saveDraft();
-                } else { alert("Błąd generowania kolażu ze zdjęć."); }
-            } else { alert("Nie znaleziono produktów w sklepie."); }
-            document.getElementById('loader-collage').style.display = 'none';
-        }
+                if url_zdjecia:
+                    produkty.append({"id": str(pid), "url_produktu": url_produktu, "url_zdjecia": url_zdjecia})
+        return jsonify({"products": produkty})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
-        async function generateHtml() {
-            const ids = document.getElementById('pub-html-ids').value;
-            const text = document.getElementById('article-result').innerText;
-            if(!text) { alert("Brak tekstu artykułu!"); return; }
-            
-            document.getElementById('loader-html').style.display = 'block';
-            let prods = [];
-            if(ids) {
-                const resProd = await fetch('/api/idosell/products', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ids}) });
-                const dataProd = await resProd.json();
-                prods = dataProd.products || [];
-            }
-            
-            const prompt = `Zmień ten artykuł na HTML dla platformy IdoSell. 
-ZASADY: 
-- Każdy akapit w <p style="text-align: justify;"><span style="font-size: 11pt; font-family: Arial,sans-serif; color: #000000;">
-- Każdy nagłówek w <h3 style="font-size: 14pt; text-align: justify;"><span style="font-size: 12pt; font-family: Arial,sans-serif; color: #000000; font-weight: bold;">
-- Wpleć zdjęcia produktów używając układu pół-na-pół (klasy iai-section). 
-Dane produktów (JSON): ${JSON.stringify(prods)}. Zwróć tylko czysty kod HTML.
-Artykuł: ${text}`;
+@app.route('/api/collage', methods=['POST'])
+def api_collage():
+    data = request.json
+    lista_url = data.get('urls', [])
+    doc_w = data.get('width', 1200)
+    doc_h = data.get('height', 630)
 
-            const res = await fetch('/api/generate', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({prompt}) });
-            const data = await res.json();
-            document.getElementById('loader-html').style.display = 'none';
-            
-            let htmlCode = data.result.trim();
-            if(htmlCode.startsWith("```html")) htmlCode = htmlCode.substring(7);
-            if(htmlCode.startsWith("```")) htmlCode = htmlCode.substring(3);
-            if(htmlCode.endsWith("```")) htmlCode = htmlCode.substring(0, htmlCode.length-3);
-            
-            document.getElementById('html-result').value = htmlCode.trim();
-            document.getElementById('html-section').style.display = 'block';
-            saveDraft();
-        }
+    try:
+        obrazy = []
+        for u in lista_url:
+            res = requests.get(u, stream=True, timeout=10)
+            if res.status_code == 200:
+                obrazy.append(Image.open(res.raw).convert("RGB"))
+        if not obrazy: return jsonify({"error": "Nie udało się pobrać obrazów"})
 
-        async function publishToIdosell() {
-            const title = document.getElementById('pub-title').value;
-            const lead = document.getElementById('pub-lead').value;
-            const htmlCode = document.getElementById('html-result').value;
-            const recIdsStr = document.getElementById('pub-rec-ids').value;
-            
-            if(!title || !htmlCode) { alert("Uzupełnij tytuł i wygeneruj HTML!"); return; }
-            
-            const payload = {
-                params: {
-                    shopId: 1,
-                    visible: "n",
-                    langs: [{ langId: "pol", title: title, shortDescription: lead, longDescription: htmlCode }]
-                }
-            };
-            
-            if(collageBase64) {
-                payload.params.pictureData = {
-                    pictureBase64: collageBase64.split(",")[1],
-                    pictureFormat: "jpg"
-                };
-            }
-            
-            if(recIdsStr) {
-                const arr = recIdsStr.split(",").map(x => x.trim()).filter(x => !isNaN(x) && x!=="");
-                if(arr.length > 0) {
-                    payload.params.products = arr.map(id => ({productId: parseInt(id)}));
-                }
-            }
-            
-            document.getElementById('loader-publish').style.display = 'block';
-            const res = await fetch('/api/idosell/publish', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({payload}) });
-            const data = await res.json();
-            document.getElementById('loader-publish').style.display = 'none';
-            
-            if(data.status === 200 && data.response && !data.response.errors) {
-                alert("🎉 SUKCES! Wpis wysłany do IdoSell jako szkic.");
-                localStorage.removeItem('idosell_draft');
-                location.reload();
-            } else {
-                alert("❌ Błąd wysyłki: " + JSON.stringify(data));
-            }
-        }
-    </script>
-</body>
-</html>
+        kolaz = Image.new("RGB", (doc_w, doc_h), (255, 255, 255))
+        szer_poj = doc_w // len(obrazy)
+
+        for i, img in enumerate(obrazy):
+            img_ratio = img.width / img.height
+            target_ratio = szer_poj / doc_h
+            if img_ratio > target_ratio:
+                new_h = doc_h
+                new_w = int(new_h * img_ratio)
+                img = img.resize((new_w, new_h), Image.LANCZOS)
+                img = img.crop(((new_w - szer_poj)/2, 0, (new_w + szer_poj)/2, doc_h))
+            else:
+                new_w = szer_poj
+                new_h = int(new_w / img_ratio)
+                img = img.resize((new_w, new_h), Image.LANCZOS)
+                img = img.crop((0, (new_h - doc_h)/2, szer_poj, (new_h + doc_h)/2))
+            kolaz.paste(img, (i * szer_poj, 0))
+
+        buffered = io.BytesIO()
+        kolaz.save(buffered, format="JPEG", quality=85)
+        b64 = base64.b64encode(buffered.getvalue()).decode()
+        return jsonify({"collage": f"data:image/jpeg;base64,{b64}"})
+    except Exception as e:
+        return jsonify({"error": str(e)})
+
+@app.route('/api/idosell/publish', methods=['POST'])
+def api_publish():
+    payload = request.json.get("payload")
+    url = f"https://{IDOSELL_DOMAIN}/api/admin/v7/entries/entries"
+    headers = {"X-API-KEY": IDOSELL_KEY, "Content-Type": "application/json"}
+    try:
+        res = requests.post(url, headers=headers, json=payload, timeout=30)
+        return jsonify({"status": res.status_code, "response": res.json()})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+if __name__ == '__main__':
+    app.run(debug=True, port=5000)
