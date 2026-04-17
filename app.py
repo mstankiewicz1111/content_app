@@ -72,6 +72,7 @@ def api_generate():
     wynik = generuj_tekst_ai(prompt, search=search_mode)
     return jsonify({"result": wynik})
 
+# POPRAWIONY CZAT: Usunięto problematyczny argument timeout z send_message
 @app.route('/api/chat', methods=['POST'])
 def api_chat():
     data = request.json
@@ -98,12 +99,12 @@ def api_chat():
             except Exception as e:
                 return jsonify({"error": "Nie udało się przetworzyć załączonego obrazka."}), 400
 
-        response = chat.send_message(contents, request_options={"timeout": 120})
+        # ZMIANA TUTAJ: Zwykłe wywołanie, bez request_options
+        response = chat.send_message(contents)
         return jsonify({"result": response.text})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# NOWOŚĆ: Eksport do Google Docs
 @app.route('/api/export_drive', methods=['POST'])
 def api_export_drive():
     if not GOOGLE_API_AVAILABLE:
