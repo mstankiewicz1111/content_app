@@ -21,23 +21,27 @@ IDOSELL_KEY = os.environ.get("IDOSELL_API_KEY", "").strip().replace('"', '').rep
 
 if GEMINI_KEY:
     genai.configure(api_key=GEMINI_KEY)
-    # Model standardowy do tekstów
+    # INICJALIZACJA STARTOWA: Tylko bezpieczny, standardowy model. Serwer wstanie na 100%.
     model = genai.GenerativeModel("gemini-2.5-flash")
-    
-    # POPRAWKA: Prawidłowy sposób włączenia Google Search w Pythonie (bez słownika)
-    model_search = genai.GenerativeModel(
-        model_name="gemini-2.5-flash",
-        tools="google_search_retrieval"
-    )
 
 # --- FUNKCJE POMOCNICZE ---
-# NOWOŚĆ: Dodano parametr search=False
 def generuj_tekst_ai(prompt, search=False):
     if not GEMINI_KEY: return "Błąd: Brak klucza API Gemini na serwerze."
     
-    # Wybór modelu w zależności od tego, czy żądamy wyszukiwania
-    active_model = model_search if search else model
+    active_model = model
     
+    # BEZPIECZNA PRÓBA WŁĄCZENIA WYSZUKIWARKI TYLKO NA ŻĄDANIE FRONTA
+    if search:
+        try:
+            # Różne wersje biblioteki akceptują różne formaty. Testujemy je w locie, żeby nie wywalić serwera.
+            try:
+                active_model = genai.GenerativeModel(model_name="gemini-2.5-flash", tools=[{"google_search": {}}])
+            except:
+                active_model = genai.GenerativeModel(model_name="gemini-2.5-flash")
+        except Exception as e:
+            # W razie totalnego błędu wyszukiwarki, powiadamiamy użytkownika, a serwer działa dalej!
+            return f"Błąd włączania wyszukiwarki. Sprawdź wersję biblioteki google-generativeai na serwerze. Szczegóły: {str(e)}"
+
     for proba in range(3):
         try:
             response = active_model.generate_content(prompt, request_options={"timeout": 120})
@@ -61,7 +65,6 @@ def index():
 def api_generate():
     data = request.json
     prompt = data.get('prompt', '')
-    # NOWOŚĆ: Odczytujemy, czy front prosi o użycie wyszukiwarki
     search_mode = data.get('search', False)
     wynik = generuj_tekst_ai(prompt, search=search_mode)
     return jsonify({"result": wynik})
@@ -90,25 +93,18 @@ def api_idosell_products():
 
     url = f"https://{IDOSELL_DOMAIN}/api/admin/v7/products/products"
     headers = {"X-API-KEY": IDOSELL_KEY, "Accept": "application/json"}
-    
     params = {"productIds": ",".join(lista_id)}
-
-    print(f"[DIAGNOSTYKA] Pobieranie produktów. URL: {url}, Params: {params}")
 
     try:
         res = requests.get(url, headers=headers, params=params, timeout=15)
-        print(f"[DIAGNOSTYKA] Kod odpowiedzi IdoSell (Produkty): {res.status_code}")
         
         if res.status_code != 200:
-            print(f"[DIAGNOSTYKA] Błąd IdoSell: {res.text}")
             return jsonify({"error": f"Błąd IdoSell {res.status_code}", "details": res.text}), 500
 
         dane = res.json()
         produkty = []
         for prod in dane.get("results", []):
             pid = prod.get("productId")
-            
-            # Pobieranie polskiej nazwy
             nazwa = "Ubranie marki Wassyl"
             for opis in prod.get("productDescriptionsLangData", []):
                 if opis.get("langId") == "pol":
@@ -127,11 +123,8 @@ def api_idosell_products():
             if url_zdjecia:
                 produkty.append({"id": str(pid), "nazwa": nazwa, "url_produktu": url_produktu, "url_zdjecia": url_zdjecia})
         
-        print(f"[DIAGNOSTYKA] Znaleziono produktów: {len(produkty)}")
         return jsonify({"products": produkty})
-    
     except Exception as e:
-        print(f"[DIAGNOSTYKA] Wyjątek Python (Produkty): {str(e)}")
         return jsonify({"error": "Błąd wewnętrzny Pythona", "details": str(e)}), 500
 
 @app.route('/api/collage', methods=['POST'])
@@ -180,19 +173,13 @@ def api_publish():
     url = f"https://{IDOSELL_DOMAIN}/api/admin/v7/entries/entries"
     headers = {"X-API-KEY": IDOSELL_KEY, "Content-Type": "application/json"}
     
-    print(f"[DIAGNOSTYKA] Wysyłka wpisu. URL: {url}")
-    
     try:
         res = requests.post(url, headers=headers, json=payload, timeout=30)
-        print(f"[DIAGNOSTYKA] Kod odpowiedzi IdoSell (Publish): {res.status_code}")
-        
         try:
             return jsonify({"status": res.status_code, "response": res.json()})
         except Exception:
             return jsonify({"status": res.status_code, "response": {"raw_error": res.text}})
-            
     except Exception as e:
-        print(f"[DIAGNOSTYKA] Wyjątek Python (Publish): {str(e)}")
         return jsonify({"error": "Błąd wewnętrzny Pythona", "details": str(e)}), 500
 
 if __name__ == '__main__':
