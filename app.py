@@ -21,14 +21,25 @@ IDOSELL_KEY = os.environ.get("IDOSELL_API_KEY", "").strip().replace('"', '').rep
 
 if GEMINI_KEY:
     genai.configure(api_key=GEMINI_KEY)
+    # Model standardowy do tekstów
     model = genai.GenerativeModel("gemini-2.5-flash")
+    # NOWOŚĆ: Model ze specjalnym uprawnieniem do szukania w Google (Trendomierz)
+    model_search = genai.GenerativeModel(
+        model_name="gemini-2.5-flash",
+        tools=[{"google_search_retrieval": {}}]
+    )
 
 # --- FUNKCJE POMOCNICZE ---
-def generuj_tekst_ai(prompt):
+# NOWOŚĆ: Dodano parametr search=False
+def generuj_tekst_ai(prompt, search=False):
     if not GEMINI_KEY: return "Błąd: Brak klucza API Gemini na serwerze."
+    
+    # Wybór modelu w zależności od tego, czy żądamy wyszukiwania
+    active_model = model_search if search else model
+    
     for proba in range(3):
         try:
-            response = model.generate_content(prompt, request_options={"timeout": 120})
+            response = active_model.generate_content(prompt, request_options={"timeout": 120})
             return response.text
         except Exception as e:
             error_msg = str(e).lower()
@@ -49,7 +60,9 @@ def index():
 def api_generate():
     data = request.json
     prompt = data.get('prompt', '')
-    wynik = generuj_tekst_ai(prompt)
+    # NOWOŚĆ: Odczytujemy, czy front prosi o użycie wyszukiwarki
+    search_mode = data.get('search', False)
+    wynik = generuj_tekst_ai(prompt, search=search_mode)
     return jsonify({"result": wynik})
 
 @app.route('/api/fetch_url', methods=['POST'])
@@ -76,11 +89,17 @@ def api_idosell_products():
 
     url = f"https://{IDOSELL_DOMAIN}/api/admin/v7/products/products"
     headers = {"X-API-KEY": IDOSELL_KEY, "Accept": "application/json"}
+    
     params = {"productIds": ",".join(lista_id)}
+
+    print(f"[DIAGNOSTYKA] Pobieranie produktów. URL: {url}, Params: {params}")
 
     try:
         res = requests.get(url, headers=headers, params=params, timeout=15)
+        print(f"[DIAGNOSTYKA] Kod odpowiedzi IdoSell (Produkty): {res.status_code}")
+        
         if res.status_code != 200:
+            print(f"[DIAGNOSTYKA] Błąd IdoSell: {res.text}")
             return jsonify({"error": f"Błąd IdoSell {res.status_code}", "details": res.text}), 500
 
         dane = res.json()
@@ -88,7 +107,7 @@ def api_idosell_products():
         for prod in dane.get("results", []):
             pid = prod.get("productId")
             
-            # NOWOŚĆ: Pobieramy polską nazwę produktu, żeby nakarmić nią AI!
+            # Pobieranie polskiej nazwy
             nazwa = "Ubranie marki Wassyl"
             for opis in prod.get("productDescriptionsLangData", []):
                 if opis.get("langId") == "pol":
@@ -105,15 +124,13 @@ def api_idosell_products():
             url_produktu = urls_data[0].get("url", "") if urls_data else f"https://wassyl.pl/product-pol-{pid}.html"
             
             if url_zdjecia:
-                produkty.append({
-                    "id": str(pid), 
-                    "nazwa": nazwa, 
-                    "url_produktu": url_produktu, 
-                    "url_zdjecia": url_zdjecia
-                })
+                produkty.append({"id": str(pid), "nazwa": nazwa, "url_produktu": url_produktu, "url_zdjecia": url_zdjecia})
         
+        print(f"[DIAGNOSTYKA] Znaleziono produktów: {len(produkty)}")
         return jsonify({"products": produkty})
+    
     except Exception as e:
+        print(f"[DIAGNOSTYKA] Wyjątek Python (Produkty): {str(e)}")
         return jsonify({"error": "Błąd wewnętrzny Pythona", "details": str(e)}), 500
 
 @app.route('/api/collage', methods=['POST'])
@@ -161,14 +178,20 @@ def api_publish():
     payload = request.json.get("payload")
     url = f"https://{IDOSELL_DOMAIN}/api/admin/v7/entries/entries"
     headers = {"X-API-KEY": IDOSELL_KEY, "Content-Type": "application/json"}
+    
+    print(f"[DIAGNOSTYKA] Wysyłka wpisu. URL: {url}")
+    
     try:
         res = requests.post(url, headers=headers, json=payload, timeout=30)
+        print(f"[DIAGNOSTYKA] Kod odpowiedzi IdoSell (Publish): {res.status_code}")
+        
         try:
             return jsonify({"status": res.status_code, "response": res.json()})
         except Exception:
             return jsonify({"status": res.status_code, "response": {"raw_error": res.text}})
             
     except Exception as e:
+        print(f"[DIAGNOSTYKA] Wyjątek Python (Publish): {str(e)}")
         return jsonify({"error": "Błąd wewnętrzny Pythona", "details": str(e)}), 500
 
 if __name__ == '__main__':
