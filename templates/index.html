@@ -19,12 +19,10 @@
         .menu-card:hover { transform: translateY(-10px); box-shadow: 0 10px 30px rgba(0,0,0,0.1); background: #000; color: #fff; border-color: #000; }
         .menu-card i { font-size: 40px; margin-bottom: 15px; }
         .menu-card span { font-size: 20px; font-weight: 700; font-family: 'Outfit', sans-serif; }
-        .menu-card.disabled { opacity: 0.5; cursor: not-allowed; }
-        .menu-card.disabled:hover { transform: none; background: #f8f9fa; color: #000; box-shadow: none; }
 
         /* --- APP VIEW --- */
         #view-app { display: none; width: 100%; height: 100vh; flex-direction: row; }
-        .sidebar { width: 300px; background: #fff; border-right: 1px solid var(--border); padding: 20px; display: flex; flex-direction: column; gap: 20px; overflow-y: auto; z-index: 1000; }
+        .sidebar { width: 300px; background: #fff; border-right: 1px solid var(--border); padding: 20px; display: flex; flex-direction: column; gap: 20px; overflow-y: auto; z-index: 1000;}
         .sidebar-menu button { background: none; border: none; text-align: left; padding: 10px; width: 100%; cursor: pointer; font-family: 'Manrope', sans-serif; font-size: 15px; border-radius: 4px; color: #555; transition: 0.2s;}
         .sidebar-menu button:hover { background: #f1f3f5; }
         .sidebar-menu button.active { background: #eee; font-weight: 600; color: #000;}
@@ -46,12 +44,14 @@
         input[type="text"], textarea, select { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 4px; font-family: 'Manrope', sans-serif; margin-top: 5px; margin-bottom: 15px; box-sizing: border-box;}
         button.btn-primary { background: var(--btn-bg); color: var(--btn-text); border: 1px solid var(--btn-bg); padding: 10px 20px; border-radius: 3px; font-weight: 600; font-family: 'Manrope', sans-serif; cursor: pointer; transition: all 0.2s; }
         button.btn-primary:hover { background: var(--btn-hover); transform: translateY(-2px); }
+        button.btn-drive { background: #34a853; color: white; border: 1px solid #34a853; margin-top: 10px; width: 100%; font-size: 15px;}
+        button.btn-drive:hover { background: #28803d; }
         
         .btn-quick { background: #f8f9fa !important; color: #333 !important; border: 1px solid #ddd !important; font-size: 13px !important; padding: 8px 15px !important; border-radius: 20px !important;}
         .btn-quick:hover { background: #e9ecef !important; transform: translateY(-1px) !important;}
 
         .loader { display: none; font-weight: 600; color: #0066cc; margin: 10px 0; }
-        .result-box { background: #fcfcfc; padding: 20px; border-radius: 5px; border: 1px solid #eee; margin-bottom: 20px; white-space: pre-wrap; font-size: 15px; line-height: 1.6;}
+        .result-box { background: #fcfcfc; padding: 20px; border-radius: 5px; border: 1px solid #eee; margin-bottom: 5px; white-space: pre-wrap; font-size: 15px; line-height: 1.6;}
         .result-box:focus { outline: 2px solid #000; background: #fff;}
         .row { display: flex; gap: 20px; }
         .col { flex: 1; }
@@ -110,9 +110,9 @@
                 <i>📱</i>
                 <span>SOCIAL MEDIA</span>
             </div>
-            <div class="menu-card disabled" title="Wkrótce!">
-                <i>🛒</i>
-                <span>PRODUKTY</span>
+            <div class="menu-card" onclick="openModule('chat')">
+                <i>🤖</i>
+                <span>KONSULTANT AI</span>
             </div>
         </div>
     </div>
@@ -149,6 +149,16 @@
                     <button onclick="switchSocialTab('sm-hooks')" id="btn-sm-hooks">🪝 Generator Hooków</button>
                     <button onclick="switchSocialTab('sm-scripts')" id="btn-sm-scripts">🎬 Scenariusze Wideo</button>
                 </div>
+            </div>
+
+            <div id="sidebar-chat" class="module-sidebar" style="display:none;">
+                <h3>Konsultant AI</h3>
+                <div class="sidebar-menu">
+                    <button class="active">💬 Burza Mózgów</button>
+                </div>
+                <hr>
+                <p style="font-size: 13px; color: #555; line-height: 1.5;">Bot pamięta całą konwersację z obecnej sesji i zna specyfikę marki Wassyl. Możesz przesyłać mu pomysły, teksty i <strong>zdjęcia grafik do oceny</strong>.</p>
+                <button class="btn-primary" onclick="clearChat()" style="background: #dc3545; border:none; width:100%; margin-top: 10px;">🗑️ Wyczyść historię</button>
             </div>
         </div>
 
@@ -274,10 +284,14 @@
             <div id="module-social" class="module-content">
                 <div id="sm-trend" class="tab-content active">
                     <h2>🔥 Trendomierz Fashion (TikTok Live)</h2>
-                    <p>AI przeszuka teraz Google Search w poszukiwaniu najnowszych viralowych trendów z TikToka z tego tygodnia i zaproponuje, jak marka Wassyl może je wykorzystać.</p>
-                    <button class="btn-primary" onclick="analyzeTrends()">⚡ Sprawdź co teraz żre</button>
+                    <p>AI przeszuka Google Search w poszukiwaniu najnowszych viralowych trendów z TikToka i zaproponuje, jak Wassyl może je wykorzystać.</p>
+                    <button class="btn-primary" onclick="analyzeTrends()" style="width: 100%;">⚡ Sprawdź co teraz żre</button>
                     <div id="loader-trend" class="loader">⏳ Przeszukuję internet i analizuję trendy... To może potrwać do 30 sekund.</div>
-                    <div id="trend-result" class="result-box" style="margin-top:20px; display:none;"></div>
+                    
+                    <div style="display: none;" id="trend-wrapper">
+                        <div id="trend-result" class="result-box"></div>
+                        <button class="btn-primary btn-drive" onclick="exportToDrive('trend-result', 'Raport Trendów', this)">💾 Zapisz w Google Drive</button>
+                    </div>
                 </div>
 
                 <div id="sm-hooks" class="tab-content">
@@ -293,9 +307,13 @@
                         <p style="font-size: 12px; color: #555; margin-top: -10px; margin-bottom: 0;">Pobiorę jego dokładną nazwę ze sklepu do hooków.</p>
                     </div>
 
-                    <button class="btn-primary" onclick="generateHooks()">🎯 Generuj 10 Haczyków</button>
+                    <button class="btn-primary" onclick="generateHooks()" style="width: 100%;">🎯 Generuj 10 Haczyków</button>
                     <div id="loader-hooks" class="loader">⏳ Tworzę viralowe hooki...</div>
-                    <div id="hooks-result" class="result-box" style="margin-top:20px; display:none;"></div>
+                    
+                    <div style="display: none;" id="hooks-wrapper">
+                        <div id="hooks-result" class="result-box"></div>
+                        <button class="btn-primary btn-drive" onclick="exportToDrive('hooks-result', 'Hooki Social Media', this)">💾 Zapisz w Google Drive</button>
+                    </div>
                 </div>
 
                 <div id="sm-scripts" class="tab-content">
@@ -325,15 +343,42 @@
                         <button class="btn-primary" style="background:#555; border-color:#555; flex:1;" onclick="repurposeFromBlog()">♻️ Zrób skrypt z artykułu na blogu</button>
                     </div>
                     <div id="loader-script" class="loader">⏳ Reżyseruję wideo...</div>
-                    <div id="script-result" class="result-box" style="margin-top:20px; display:none;"></div>
+                    
+                    <div style="display: none;" id="script-wrapper">
+                        <div id="script-result" class="result-box"></div>
+                        <button class="btn-primary btn-drive" onclick="exportToDrive('script-result', 'Scenariusz Wideo', this)">💾 Zapisz w Google Drive</button>
+                    </div>
                 </div>
             </div>
+
+            <div id="module-chat" class="module-content" style="height: calc(100vh - 150px); display: flex; flex-direction: column;">
+                <div id="chat-box" style="flex: 1; overflow-y: auto; background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 20px; display: flex; flex-direction: column;">
+                    <div style="text-align: center; color: #888; font-size: 13px; margin-bottom: 20px;">Początek rozmowy z Konsultantem AI Wassyl. Prześlij pomysł lub załącz grafikę do oceny.</div>
+                </div>
+                
+                <div style="margin-top: 15px; background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 15px; box-shadow: 0 -2px 10px rgba(0,0,0,0.05);">
+                    <div id="chat-image-preview-container" style="display:none; margin-bottom: 10px; position: relative; display: inline-block;">
+                        <img id="chat-image-preview" src="" style="max-height: 100px; border-radius: 5px; border: 1px solid #ddd;">
+                        <button onclick="removeChatImage()" style="position: absolute; top: -10px; right: -10px; background: #dc3545; color: white; border: none; border-radius: 50%; width: 22px; height: 22px; cursor: pointer; font-size: 12px; font-weight: bold; line-height: 1;">✖</button>
+                    </div>
+                    
+                    <div style="display: flex; gap: 10px; align-items: stretch;">
+                        <label class="btn-primary" style="cursor: pointer; background: #f8f9fa; color: #333; border: 1px solid #ddd; display: flex; align-items: center; justify-content: center; padding: 0 15px; margin: 0; font-size: 20px;" title="Załącz grafikę do oceny">
+                            📎
+                            <input type="file" id="chat-file-input" accept="image/*" style="display: none;" onchange="handleChatImageUpload(event)">
+                        </label>
+                        <input type="text" id="chat-input" placeholder="Zadaj pytanie lub wrzuć projekt grafiki..." style="margin: 0; flex: 1;" onkeypress="if(event.key === 'Enter') sendChatMessage()">
+                        <button class="btn-primary" style="margin: 0;" onclick="sendChatMessage()">Wyślij</button>
+                    </div>
+                </div>
+            </div>
+
         </div>
     </div>
 
     <script>
         const SHOP_CONTEXT = `
-Jesteś topowym ekspertem od content marketing i copywriterem dla polskiej marki modowej WASSYL.
+Jesteś topowym ekspertem od content marketingu i copywriterem dla polskiej marki modowej WASSYL.
 Specyfika marki: własna polska szwalnia, fajne, proste i stylowe ubrania na co dzień z bawełny i wiskozy, świetny stosunek jakości do ceny.
 
 WIODĄCE KATEGORIE PRODUKTÓW (Skupiaj się na nich, od najważniejszych):
@@ -365,6 +410,46 @@ Zawsze pisz w nienagannym języku polskim.
         let scrapedContext = "";
         let collageBase64 = "";
 
+        // --- GOOGLE DRIVE EXPORT LOGIC ---
+        async function exportToDrive(elementId, titlePrefix, btnElement) {
+            const contentHTML = document.getElementById(elementId).innerHTML;
+            // Bardzo prosta konwersja HTML z powrotem na w miarę czysty tekst do Google Docs
+            const cleanText = contentHTML
+                .replace(/<h[2-4][^>]*>/g, '\n\n')
+                .replace(/<\/h[2-4]>/g, '\n')
+                .replace(/<br>/g, '\n')
+                .replace(/<\/p>/g, '\n\n')
+                .replace(/<[^>]+>/g, '') 
+                .trim();
+
+            if(!cleanText) { alert("Brak treści do eksportu!"); return; }
+            
+            const originalText = btnElement.innerText;
+            btnElement.innerText = "⏳ Zapisuję w Google Drive...";
+            btnElement.disabled = true;
+            
+            try {
+                const res = await fetch('/api/export_drive', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({title: titlePrefix + " - Wassyl AI", content: cleanText})
+                });
+                const data = await res.json();
+                
+                if(data.success) {
+                    btnElement.innerHTML = `✅ Gotowe! <a href="${data.link}" target="_blank" style="color:white; text-decoration:underline;">Otwórz Dokument</a>`;
+                } else {
+                    alert("Błąd: " + data.error);
+                    btnElement.innerText = originalText;
+                    btnElement.disabled = false;
+                }
+            } catch(e) {
+                alert("Błąd sieci: " + e);
+                btnElement.innerText = originalText;
+                btnElement.disabled = false;
+            }
+        }
+
         // --- MOBILE MENU LOGIC ---
         function toggleMobileMenu() {
             const sidebar = document.getElementById('app-sidebar');
@@ -373,7 +458,7 @@ Zawsze pisz w nienagannym języku polskim.
             overlay.classList.toggle('active');
         }
 
-        // --- FORMAT MARKDOWN (DLA WYNIKÓW SOCIAL MEDIA) ---
+        // --- FORMAT MARKDOWN ---
         function formatMarkdown(text) {
             if(!text) return "";
             return text
@@ -401,6 +486,9 @@ Zawsze pisz w nienagannym języku polskim.
                 document.getElementById('module-social').classList.add('active');
                 document.getElementById('sidebar-social').style.display = 'block';
                 switchSocialTab('sm-trend');
+            } else if(module === 'chat') {
+                document.getElementById('module-chat').classList.add('active');
+                document.getElementById('sidebar-chat').style.display = 'block';
             }
         }
 
@@ -410,6 +498,107 @@ Zawsze pisz w nienagannym języku polskim.
             if(window.innerWidth <= 768) {
                 document.getElementById('app-sidebar').classList.remove('open');
                 document.getElementById('sidebar-overlay').classList.remove('active');
+            }
+        }
+
+        // --- LOGIKA CZATBOTA (NOWOŚĆ) ---
+        let chatHistory = [];
+        let chatImageBase64 = null;
+
+        function handleChatImageUpload(event) {
+            const file = event.target.files[0];
+            if(!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                chatImageBase64 = e.target.result;
+                document.getElementById('chat-image-preview').src = chatImageBase64;
+                document.getElementById('chat-image-preview-container').style.display = 'inline-block';
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function removeChatImage() {
+            chatImageBase64 = null;
+            document.getElementById('chat-image-preview-container').style.display = 'none';
+            document.getElementById('chat-file-input').value = '';
+        }
+
+        function clearChat() {
+            if(confirm("Czy na pewno chcesz wyczyścić historię rozmowy?")) {
+                chatHistory = [];
+                document.getElementById('chat-box').innerHTML = '<div style="text-align: center; color: #888; font-size: 13px; margin-bottom: 20px;">Początek nowej rozmowy z Konsultantem AI Wassyl. Prześlij pomysł lub załącz grafikę do oceny.</div>';
+            }
+        }
+
+        function appendChatBubble(role, text, imgSrc=null, id=null) {
+            const box = document.getElementById('chat-box');
+            const div = document.createElement('div');
+            if(id) div.id = id;
+            div.style.marginBottom = "15px";
+            div.style.display = "flex";
+            div.style.flexDirection = "column";
+            div.style.alignItems = role === 'user' ? 'flex-end' : 'flex-start';
+
+            let innerHTML = `<div style="max-width: 85%; padding: 12px 18px; border-radius: 15px; font-size: 15px; line-height: 1.5; ${role === 'user' ? 'background: #000; color: #fff; border-bottom-right-radius: 2px;' : 'background: #f4f9ff; color: #333; border-bottom-left-radius: 2px; border: 1px solid #cce0ff; box-shadow: 0 1px 3px rgba(0,0,0,0.05);'}">`;
+            
+            if(imgSrc) {
+                innerHTML += `<img src="${imgSrc}" style="max-width: 200px; border-radius: 8px; margin-bottom: 10px; display: block;">`;
+            }
+            if(text) {
+                innerHTML += `<div>${text}</div>`;
+            }
+            innerHTML += `</div>`;
+            
+            div.innerHTML = innerHTML;
+            box.appendChild(div);
+            box.scrollTop = box.scrollHeight;
+        }
+
+        async function sendChatMessage() {
+            const inputEl = document.getElementById('chat-input');
+            let text = inputEl.value.trim();
+            if(!text && !chatImageBase64) return;
+
+            // Pokaż wiadomość użytkownika w UI
+            appendChatBubble('user', text, chatImageBase64);
+
+            // Wstrzyknięcie SHOP_CONTEXT do pierwszej wiadomości
+            let backendMessage = text;
+            if (chatHistory.length === 0) {
+                backendMessage = `PONIŻEJ ZNAJDUJE SIĘ BARDZO WAŻNY KONTEKST MARKI WASSYL (przestrzegaj go rygorystycznie w całej naszej rozmowie, działaj jako nasz asystent i konsultant, oceniaj nasze pomysły przez ten pryzmat):\n\n${SHOP_CONTEXT}\n\n---\nKoniec kontekstu. Oto pierwsze pytanie/wiadomość użytkownika:\n${text}`;
+            }
+
+            const payload = {
+                history: chatHistory,
+                message: backendMessage,
+                image_b64: chatImageBase64
+            };
+
+            const historyTextToSave = chatHistory.length === 0 ? backendMessage : text;
+
+            inputEl.value = '';
+            const tempImage = chatImageBase64;
+            removeChatImage();
+
+            const loaderId = 'loader-' + Date.now();
+            appendChatBubble('model', '<span class="loader" style="display:inline-block; margin:0; color:#555;">⏳ Analizuję...</span>', null, loaderId);
+
+            try {
+                const res = await fetch('/api/chat', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) });
+                const data = await res.json();
+                
+                document.getElementById(loaderId).remove();
+                
+                if(data.error) {
+                    appendChatBubble('model', `❌ Wystąpił błąd: ${data.error}`);
+                } else {
+                    appendChatBubble('model', formatMarkdown(data.result));
+                    chatHistory.push({role: 'user', text: historyTextToSave});
+                    chatHistory.push({role: 'model', text: data.result});
+                }
+            } catch (e) {
+                document.getElementById(loaderId).remove();
+                appendChatBubble('model', `❌ Błąd sieci lub serwera: ${e}`);
             }
         }
 
@@ -492,7 +681,6 @@ Zawsze pisz w nienagannym języku polskim.
             if(window.innerWidth <= 768) toggleMobileMenu();
         }
 
-        // Pomocnicza funkcja do pobierania nazw produktów (Social & Blog)
         async function getProductContextText(inputId) {
             const ids = document.getElementById(inputId).value;
             if(!ids) return "";
@@ -510,7 +698,7 @@ Zawsze pisz w nienagannym języku polskim.
         async function analyzeTrends() {
             const resBox = document.getElementById('trend-result');
             document.getElementById('loader-trend').style.display = 'block';
-            resBox.style.display = 'none';
+            document.getElementById('trend-wrapper').style.display = 'none';
             
             const prompt = `Twoje zadanie to przeprowadzić research na żywo (Google Search).
 Znajdź aktualne trendy modowe i ubraniowe na TikToku (szukaj np. "current TikTok fashion trends this week", "viral clothing TikTok").
@@ -527,7 +715,7 @@ Zwróć estetyczny raport w formacie Markdown. Zadbaj o to, by linki były sform
             
             document.getElementById('loader-trend').style.display = 'none';
             resBox.innerHTML = formatMarkdown(data.result);
-            resBox.style.display = 'block';
+            document.getElementById('trend-wrapper').style.display = 'block';
         }
 
         async function generateHooks() {
@@ -536,7 +724,7 @@ Zwróć estetyczny raport w formacie Markdown. Zadbaj o to, by linki były sform
             
             const resBox = document.getElementById('hooks-result');
             document.getElementById('loader-hooks').style.display = 'block';
-            resBox.style.display = 'none';
+            document.getElementById('hooks-wrapper').style.display = 'none';
             
             const extraProductData = await getProductContextText('hook-product-ids');
             
@@ -549,14 +737,14 @@ Podziel hooki wyraźnie na 3 kategorie, stosując psychologię:
 2. Tajemnica (Coś ukrytego, ciekawostka, "nie uwierzysz")
 3. Ból/Rozwiązanie (Masz ten problem? Oto lekarstwo)
 
-Każdy hook ma być krótki, zwięzły, dynamiczny i brzmieć naturalnie mówiony do kamery. Format Markdown.`;
+Każdy hook ma być krótki, zwięzły, dynamiczny i brzmieć naturalnie. Format Markdown.`;
 
             const res = await fetch('/api/generate', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({prompt: prompt}) });
             const data = await res.json();
             
             document.getElementById('loader-hooks').style.display = 'none';
             resBox.innerHTML = formatMarkdown(data.result);
-            resBox.style.display = 'block';
+            document.getElementById('hooks-wrapper').style.display = 'block';
         }
 
         async function generateScript() {
@@ -566,7 +754,7 @@ Każdy hook ma być krótki, zwięzły, dynamiczny i brzmieć naturalnie mówion
             
             const resBox = document.getElementById('script-result');
             document.getElementById('loader-script').style.display = 'block';
-            resBox.style.display = 'none';
+            document.getElementById('script-wrapper').style.display = 'none';
             
             const extraProductData = await getProductContextText('script-product-ids');
             
@@ -588,7 +776,7 @@ WYTYCZNE (Format Markdown):
             
             document.getElementById('loader-script').style.display = 'none';
             resBox.innerHTML = formatMarkdown(data.result);
-            resBox.style.display = 'block';
+            document.getElementById('script-wrapper').style.display = 'block';
         }
 
         function repurposeFromBlog() {
