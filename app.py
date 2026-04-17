@@ -5,12 +5,13 @@ import time
 import re
 import requests
 import json
+import tempfile
 from flask import Flask, render_template, request, jsonify
 import google.generativeai as genai
 from bs4 import BeautifulSoup
 from PIL import Image
 
-# Importy dla Google Drive (w bloku try, by nie wywalić serwera przy braku bibliotek)
+# Importy dla Google Drive
 try:
     from google.oauth2 import service_account
     from googleapiclient.discovery import build
@@ -72,37 +73,74 @@ def api_generate():
     wynik = generuj_tekst_ai(prompt, search=search_mode)
     return jsonify({"result": wynik})
 
-# POPRAWIONY CZAT: Usunięto problematyczny argument timeout z send_message
+# --- POPRAWIONY CZAT Z OBSŁUGĄ WIDEO I ZDJĘĆ ---
 @app.route('/api/chat', methods=['POST'])
 def api_chat():
-    data = request.json
-    history = data.get('history', [])
-    message = data.get('message', '')
-    image_b64 = data.get('image_b64', None)
-
     if not GEMINI_KEY: return jsonify({"error": "Brak klucza API Gemini na serwerze."}), 500
 
+    # Odbieranie danych z formularza (FormData)
+    message = request.form.get('message', '')
+    history_json = request.form.get('history', '[]')
+    
     try:
+        # 1. Odtwarzanie historii czatu (z uwzględnieniem poprzednio przesłanych plików)
+        history = json.loads(history_json)
         formatted_history = []
         for h in history:
-            formatted_history.append({"role": h["role"], "parts": [h["text"]]})
+            parts = []
+            if 'file_uri' in h and 'mime_type' in h:
+                parts.append({
+                    "file_data": {
+                        "mime_type": h['mime_type'],
+                        "file_uri": h['file_uri']
+                    }
+                })
+            if h.get('text'):
+                parts.append({"text": h['text']})
+            formatted_history.append({"role": h["role"], "parts": parts})
 
         chat = model.start_chat(history=formatted_history)
-        contents = [message]
+        contents = [message] if message else []
         
-        if image_b64:
-            try:
-                b64_str = image_b64.split(",")[1] if "," in image_b64 else image_b64
-                img_data = base64.b64decode(b64_str)
-                img = Image.open(io.BytesIO(img_data))
-                contents.append(img)
-            except Exception as e:
-                return jsonify({"error": "Nie udało się przetworzyć załączonego obrazka."}), 400
+        # 2. Obsługa nowego pliku (Zdjęcie lub Wideo)
+        uploaded_genai_file = None
+        if 'file' in request.files:
+            file = request.files['file']
+            if file.filename != '':
+                # Zapisujemy plik tymczasowo na serwerze
+                temp_path = os.path.join(tempfile.gettempdir(), file.filename)
+                file.save(temp_path)
+                
+                # Wysyłamy plik bezpiecznie do API Gemini
+                uploaded_genai_file = genai.upload_file(path=temp_path)
+                
+                # BARDZO WAŻNE: Jeśli to wideo, musimy poczekać aż Google je przetworzy
+                if uploaded_genai_file.mime_type.startswith('video/'):
+                    while uploaded_genai_file.state.name == 'PROCESSING':
+                        time.sleep(2)
+                        uploaded_genai_file = genai.get_file(uploaded_genai_file.name)
+                    if uploaded_genai_file.state.name == 'FAILED':
+                        os.remove(temp_path)
+                        return jsonify({"error": "Błąd przetwarzania wideo na serwerach Google."}), 500
+                        
+                contents.append(uploaded_genai_file)
+                # Usuwamy plik tymczasowy z serwera
+                os.remove(temp_path)
 
-        # ZMIANA TUTAJ: Zwykłe wywołanie, bez request_options
+        # 3. Wysłanie zapytania do czatu
         response = chat.send_message(contents)
-        return jsonify({"result": response.text})
+        
+        # 4. Zwracamy URI pliku do frontendu, by przeglądarka zapamiętała go w historii rozmowy
+        new_file_info = None
+        if uploaded_genai_file:
+            new_file_info = {
+                "file_uri": uploaded_genai_file.uri,
+                "mime_type": uploaded_genai_file.mime_type
+            }
+            
+        return jsonify({"result": response.text, "new_file": new_file_info})
     except Exception as e:
+        print(f"[DIAGNOSTYKA] Wyjątek w czacie: {e}")
         return jsonify({"error": str(e)}), 500
 
 @app.route('/api/export_drive', methods=['POST'])
@@ -124,16 +162,13 @@ def api_export_drive():
             creds_dict, scopes=['https://www.googleapis.com/auth/drive', 'https://www.googleapis.com/auth/documents']
         )
         
-        # Tworzenie czystego dokumentu
         docs_service = build('docs', 'v1', credentials=creds)
         doc = docs_service.documents().create(body={'title': title}).execute()
         document_id = doc.get('documentId')
         
-        # Wrzucanie treści AI do dokumentu
         requests_body = [{'insertText': {'location': {'index': 1},'text': content}}]
         docs_service.documents().batchUpdate(documentId=document_id, body={'requests': requests_body}).execute()
             
-        # Nadawanie uprawnień do edycji dla każdego, kto ma link
         drive_service = build('drive', 'v3', credentials=creds)
         drive_service.permissions().create(fileId=document_id, body={'type': 'anyone', 'role': 'writer'}).execute()
         
