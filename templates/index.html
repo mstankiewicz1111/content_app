@@ -36,8 +36,12 @@
         .logo-container { text-align: center; margin-bottom: 20px; }
         .header-title { text-align: center; margin-bottom: 40px; }
         
+        /* POPRAWKA: Prawidłowe chowanie i pokazywanie modułów */
         .module-content { display: none; }
         .module-content.active { display: block; }
+        /* Specjalna klasa dla czatu, aby używał Flexboxa TYLKO gdy jest aktywny */
+        #module-chat.active { display: flex; flex-direction: column; }
+
         .tab-content { display: none; max-width: 900px; margin: 0 auto; background: #fff; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
         .tab-content.active { display: block; }
         
@@ -351,7 +355,7 @@
                 </div>
             </div>
 
-            <div id="module-chat" class="module-content" style="height: calc(100vh - 150px); display: flex; flex-direction: column;">
+            <div id="module-chat" class="module-content" style="height: calc(100vh - 150px);">
                 <div id="chat-box" style="flex: 1; overflow-y: auto; background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 20px; display: flex; flex-direction: column;">
                     <div style="text-align: center; color: #888; font-size: 13px; margin-bottom: 20px;">Początek rozmowy z Konsultantem AI Wassyl. Prześlij pomysł lub załącz grafikę do oceny.</div>
                 </div>
