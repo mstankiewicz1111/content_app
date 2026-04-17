@@ -111,20 +111,29 @@ def api_chat():
                 temp_path = os.path.join(tempfile.gettempdir(), file.filename)
                 file.save(temp_path)
                 
-                # Wysyłamy plik bezpiecznie do API Gemini
-                uploaded_genai_file = genai.upload_file(path=temp_path)
-                
-                # BARDZO WAŻNE: Jeśli to wideo, musimy poczekać aż Google je przetworzy
-                if uploaded_genai_file.mime_type.startswith('video/'):
-                    while uploaded_genai_file.state.name == 'PROCESSING':
-                        time.sleep(2)
-                        uploaded_genai_file = genai.get_file(uploaded_genai_file.name)
-                    if uploaded_genai_file.state.name == 'FAILED':
-                        os.remove(temp_path)
-                        return jsonify({"error": "Błąd przetwarzania wideo na serwerach Google."}), 500
-                        
-                contents.append(uploaded_genai_file)
-                # Usuwamy plik tymczasowy z serwera
+                try:
+                    # Wysyłamy plik bezpiecznie do API Gemini
+                    # Jeśli ten krok się nie powiedzie (stara biblioteka), przechwycimy błąd!
+                    uploaded_genai_file = genai.upload_file(path=temp_path)
+                    
+                    # BARDZO WAŻNE: Jeśli to wideo, musimy poczekać aż Google je przetworzy
+                    if uploaded_genai_file.mime_type.startswith('video/'):
+                        while uploaded_genai_file.state.name == 'PROCESSING':
+                            time.sleep(2)
+                            uploaded_genai_file = genai.get_file(uploaded_genai_file.name)
+                        if uploaded_genai_file.state.name == 'FAILED':
+                            os.remove(temp_path)
+                            return jsonify({"error": "Błąd przetwarzania wideo na serwerach Google."}), 500
+                            
+                    contents.append(uploaded_genai_file)
+                except AttributeError:
+                    os.remove(temp_path)
+                    return jsonify({"error": "Serwer korzysta ze starej wersji biblioteki Google. Wymuś nowszą wersję w requirements.txt (google-generativeai>=0.8.0)."}), 500
+                except Exception as upload_err:
+                    os.remove(temp_path)
+                    return jsonify({"error": f"Nie udało się przesłać pliku do Google: {str(upload_err)}"}), 500
+                    
+                # Usuwamy plik tymczasowy z serwera po udanej wysyłce
                 os.remove(temp_path)
 
         # 3. Wysłanie zapytania do czatu
