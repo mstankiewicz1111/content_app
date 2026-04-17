@@ -10,6 +10,14 @@ import google.generativeai as genai
 from bs4 import BeautifulSoup
 from PIL import Image
 
+# Importy dla Google Drive (w bloku try, by nie wywalić serwera przy braku bibliotek)
+try:
+    from google.oauth2 import service_account
+    from googleapiclient.discovery import build
+    GOOGLE_API_AVAILABLE = True
+except ImportError:
+    GOOGLE_API_AVAILABLE = False
+
 app = Flask(__name__)
 
 # --- KONFIGURACJA ZMIENNYCH ŚRODOWISKOWYCH ---
@@ -21,26 +29,21 @@ IDOSELL_KEY = os.environ.get("IDOSELL_API_KEY", "").strip().replace('"', '').rep
 
 if GEMINI_KEY:
     genai.configure(api_key=GEMINI_KEY)
-    # INICJALIZACJA STARTOWA: Tylko bezpieczny, standardowy model. Serwer wstanie na 100%.
     model = genai.GenerativeModel("gemini-2.5-flash")
 
 # --- FUNKCJE POMOCNICZE ---
 def generuj_tekst_ai(prompt, search=False):
     if not GEMINI_KEY: return "Błąd: Brak klucza API Gemini na serwerze."
-    
     active_model = model
     
-    # BEZPIECZNA PRÓBA WŁĄCZENIA WYSZUKIWARKI TYLKO NA ŻĄDANIE FRONTA
     if search:
         try:
-            # Różne wersje biblioteki akceptują różne formaty. Testujemy je w locie, żeby nie wywalić serwera.
             try:
                 active_model = genai.GenerativeModel(model_name="gemini-2.5-flash", tools=[{"google_search": {}}])
             except:
                 active_model = genai.GenerativeModel(model_name="gemini-2.5-flash")
         except Exception as e:
-            # W razie totalnego błędu wyszukiwarki, powiadamiamy użytkownika, a serwer działa dalej!
-            return f"Błąd włączania wyszukiwarki. Sprawdź wersję biblioteki google-generativeai na serwerze. Szczegóły: {str(e)}"
+            return f"Błąd włączania wyszukiwarki. Szczegóły: {str(e)}"
 
     for proba in range(3):
         try:
@@ -68,6 +71,76 @@ def api_generate():
     search_mode = data.get('search', False)
     wynik = generuj_tekst_ai(prompt, search=search_mode)
     return jsonify({"result": wynik})
+
+@app.route('/api/chat', methods=['POST'])
+def api_chat():
+    data = request.json
+    history = data.get('history', [])
+    message = data.get('message', '')
+    image_b64 = data.get('image_b64', None)
+
+    if not GEMINI_KEY: return jsonify({"error": "Brak klucza API Gemini na serwerze."}), 500
+
+    try:
+        formatted_history = []
+        for h in history:
+            formatted_history.append({"role": h["role"], "parts": [h["text"]]})
+
+        chat = model.start_chat(history=formatted_history)
+        contents = [message]
+        
+        if image_b64:
+            try:
+                b64_str = image_b64.split(",")[1] if "," in image_b64 else image_b64
+                img_data = base64.b64decode(b64_str)
+                img = Image.open(io.BytesIO(img_data))
+                contents.append(img)
+            except Exception as e:
+                return jsonify({"error": "Nie udało się przetworzyć załączonego obrazka."}), 400
+
+        response = chat.send_message(contents, request_options={"timeout": 120})
+        return jsonify({"result": response.text})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+# NOWOŚĆ: Eksport do Google Docs
+@app.route('/api/export_drive', methods=['POST'])
+def api_export_drive():
+    if not GOOGLE_API_AVAILABLE:
+        return jsonify({"error": "Biblioteki Google (google-api-python-client) nie są zainstalowane na serwerze."}), 500
+        
+    data = request.json
+    title = data.get('title', 'Eksport z AI Wassyl')
+    content = data.get('content', '')
+    
+    creds_json = os.environ.get("GOOGLE_CREDENTIALS_JSON")
+    if not creds_json:
+        return jsonify({"error": "Brak zmiennej GOOGLE_CREDENTIALS_JSON na platformie Render."}), 500
+        
+    try:
+        creds_dict = json.loads(creds_json)
+        creds = service_account.Credentials.from_service_account_info(
+            creds_dict, scopes=['https://www.googleapis.com/auth/drive', 'https://www.googleapis.com/auth/documents']
+        )
+        
+        # Tworzenie czystego dokumentu
+        docs_service = build('docs', 'v1', credentials=creds)
+        doc = docs_service.documents().create(body={'title': title}).execute()
+        document_id = doc.get('documentId')
+        
+        # Wrzucanie treści AI do dokumentu
+        requests_body = [{'insertText': {'location': {'index': 1},'text': content}}]
+        docs_service.documents().batchUpdate(documentId=document_id, body={'requests': requests_body}).execute()
+            
+        # Nadawanie uprawnień do edycji dla każdego, kto ma link
+        drive_service = build('drive', 'v3', credentials=creds)
+        drive_service.permissions().create(fileId=document_id, body={'type': 'anyone', 'role': 'writer'}).execute()
+        
+        link = f"https://docs.google.com/document/d/{document_id}/edit"
+        return jsonify({"success": True, "link": link})
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 @app.route('/api/fetch_url', methods=['POST'])
 def api_fetch_url():
@@ -97,7 +170,6 @@ def api_idosell_products():
 
     try:
         res = requests.get(url, headers=headers, params=params, timeout=15)
-        
         if res.status_code != 200:
             return jsonify({"error": f"Błąd IdoSell {res.status_code}", "details": res.text}), 500
 
@@ -179,6 +251,7 @@ def api_publish():
             return jsonify({"status": res.status_code, "response": res.json()})
         except Exception:
             return jsonify({"status": res.status_code, "response": {"raw_error": res.text}})
+            
     except Exception as e:
         return jsonify({"error": "Błąd wewnętrzny Pythona", "details": str(e)}), 500
 
