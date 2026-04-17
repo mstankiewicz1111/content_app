@@ -23,10 +23,11 @@ if GEMINI_KEY:
     genai.configure(api_key=GEMINI_KEY)
     # Model standardowy do tekstów
     model = genai.GenerativeModel("gemini-2.5-flash")
-    # NOWOŚĆ: Model ze specjalnym uprawnieniem do szukania w Google (Trendomierz)
+    
+    # POPRAWKA: Prawidłowy sposób włączenia Google Search w Pythonie (bez słownika)
     model_search = genai.GenerativeModel(
         model_name="gemini-2.5-flash",
-        tools=[{"google_search_retrieval": {}}]
+        tools="google_search_retrieval"
     )
 
 # --- FUNKCJE POMOCNICZE ---
