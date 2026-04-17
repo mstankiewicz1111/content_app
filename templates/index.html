@@ -24,7 +24,7 @@
 
         /* --- APP VIEW --- */
         #view-app { display: none; width: 100%; height: 100vh; flex-direction: row; }
-        .sidebar { width: 300px; background: #fff; border-right: 1px solid var(--border); padding: 20px; display: flex; flex-direction: column; gap: 20px; overflow-y: auto;}
+        .sidebar { width: 300px; background: #fff; border-right: 1px solid var(--border); padding: 20px; display: flex; flex-direction: column; gap: 20px; overflow-y: auto; z-index: 1000; }
         .sidebar-menu button { background: none; border: none; text-align: left; padding: 10px; width: 100%; cursor: pointer; font-family: 'Manrope', sans-serif; font-size: 15px; border-radius: 4px; color: #555; transition: 0.2s;}
         .sidebar-menu button:hover { background: #f1f3f5; }
         .sidebar-menu button.active { background: #eee; font-weight: 600; color: #000;}
@@ -34,7 +34,7 @@
         .status-ok { background: #d4edda; color: #155724; border-left: 4px solid #28a745; }
         .status-error { background: #f8d7da; color: #721c24; border-left: 4px solid #dc3545; }
         
-        .main-content { flex: 1; overflow-y: auto; padding: 40px; }
+        .main-content { flex: 1; overflow-y: auto; padding: 40px; position: relative; }
         .logo-container { text-align: center; margin-bottom: 20px; }
         .header-title { text-align: center; margin-bottom: 40px; }
         
@@ -60,9 +60,42 @@
         .counter-badge { font-size: 13px; float: right; padding: 4px 10px; border-radius: 12px; background: #e9ecef; color: #555; font-family: monospace; font-weight: bold;}
         .counter-good { background: #d4edda; color: #155724; }
         .counter-warn { background: #fff3cd; color: #856404; }
+
+        /* --- MOBILE UI ELEMENTS --- */
+        .sidebar-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 999; }
+        .sidebar-overlay.active { display: block; }
+        .mobile-menu-toggle { display: none; background: #000; color: #fff; border: none; padding: 12px; border-radius: 5px; font-weight: bold; cursor: pointer; margin-bottom: 20px; width: 100%; font-family: 'Manrope', sans-serif; font-size: 16px; box-shadow: 0 4px 10px rgba(0,0,0,0.1);}
+        .mobile-close-btn { display: none; background: #dc3545; color: #fff; border: none; padding: 10px; border-radius: 4px; width: 100%; margin-bottom: 15px; cursor: pointer; font-weight: bold; font-family: 'Manrope', sans-serif;}
+
+        /* --- RESPONSIVE DESIGN (MOBILE) --- */
+        @media (max-width: 768px) {
+            #view-home .logo { width: 200px; }
+            #view-home h1 { font-size: 28px; padding: 0 20px; margin-bottom: 30px;}
+            .menu-grid { flex-direction: column; gap: 15px; width: 100%; padding: 0 20px; box-sizing: border-box;}
+            .menu-card { width: 100%; height: auto; padding: 20px; flex-direction: row; justify-content: flex-start; box-sizing: border-box;}
+            .menu-card i { margin-bottom: 0; margin-right: 20px; font-size: 30px; }
+
+            #view-app { flex-direction: column; }
+            .main-content { padding: 15px; position: relative; }
+            .logo-container img { width: 150px; }
+            .header-title { font-size: 24px; margin-bottom: 20px; }
+            .tab-content { padding: 20px 15px; }
+            .row { flex-direction: column; gap: 0px; }
+            
+            .sidebar { position: fixed; left: -320px; top: 0; height: 100%; box-shadow: 2px 0 15px rgba(0,0,0,0.2); transition: left 0.3s ease; width: 280px; box-sizing: border-box;}
+            .sidebar.open { left: 0; }
+            .mobile-menu-toggle { display: block; }
+            .mobile-close-btn { display: block; }
+            
+            .btn-quick { width: 100%; margin-bottom: 8px; text-align: left; }
+            .box-option { padding: 15px; }
+            button.btn-primary { width: 100%; margin-bottom: 10px; }
+        }
     </style>
 </head>
 <body>
+
+    <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleMobileMenu()"></div>
 
     <div id="view-home">
         <img src="https://wassyl.pl/data/gfx/mask/pol/logo_1_big.svg" class="logo" alt="Wassyl Logo">
@@ -85,7 +118,8 @@
     </div>
 
     <div id="view-app">
-        <div class="sidebar">
+        <div class="sidebar" id="app-sidebar">
+            <button class="mobile-close-btn" onclick="toggleMobileMenu()">✖ Zamknij menu</button>
             <button class="btn-back" onclick="goHome()">⬅ Wróć do menu głównego</button>
             
             <div id="sidebar-blog" class="module-sidebar">
@@ -119,6 +153,8 @@
         </div>
 
         <div class="main-content">
+            <button class="mobile-menu-toggle" onclick="toggleMobileMenu()">☰ Menu Nawigacyjne</button>
+
             <div class="logo-container">
                 <img src="https://wassyl.pl/data/gfx/mask/pol/logo_1_big.svg" width="220" alt="Wassyl Logo">
             </div>
@@ -284,9 +320,9 @@
                         </div>
                     </div>
                     
-                    <div style="display:flex; gap:10px; margin-top: 15px;">
-                        <button class="btn-primary" onclick="generateScript()">📝 Stwórz Scenariusz</button>
-                        <button class="btn-primary" style="background:#555; border-color:#555;" onclick="repurposeFromBlog()">♻️ Zrób skrypt z artykułu na blogu</button>
+                    <div style="display:flex; gap:10px; margin-top: 15px; flex-wrap: wrap;">
+                        <button class="btn-primary" onclick="generateScript()" style="flex:1;">📝 Stwórz Scenariusz</button>
+                        <button class="btn-primary" style="background:#555; border-color:#555; flex:1;" onclick="repurposeFromBlog()">♻️ Zrób skrypt z artykułu na blogu</button>
                     </div>
                     <div id="loader-script" class="loader">⏳ Reżyseruję wideo...</div>
                     <div id="script-result" class="result-box" style="margin-top:20px; display:none;"></div>
@@ -297,7 +333,7 @@
 
     <script>
         const SHOP_CONTEXT = `
-Jesteś topowym ekspertem od content marketingu i copywriterem dla polskiej marki modowej WASSYL.
+Jesteś topowym ekspertem od content marketing i copywriterem dla polskiej marki modowej WASSYL.
 Specyfika marki: własna polska szwalnia, fajne, proste i stylowe ubrania na co dzień z bawełny i wiskozy, świetny stosunek jakości do ceny.
 
 WIODĄCE KATEGORIE PRODUKTÓW (Skupiaj się na nich, od najważniejszych):
@@ -329,6 +365,26 @@ Zawsze pisz w nienagannym języku polskim.
         let scrapedContext = "";
         let collageBase64 = "";
 
+        // --- MOBILE MENU LOGIC ---
+        function toggleMobileMenu() {
+            const sidebar = document.getElementById('app-sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            sidebar.classList.toggle('open');
+            overlay.classList.toggle('active');
+        }
+
+        // --- FORMAT MARKDOWN (DLA WYNIKÓW SOCIAL MEDIA) ---
+        function formatMarkdown(text) {
+            if(!text) return "";
+            return text
+                .replace(/^### (.*$)/gim, '<h4 style="margin-top:20px; margin-bottom:5px; font-size:16px; color:#333;">$1</h4>')
+                .replace(/^## (.*$)/gim, '<h3 style="margin-top:25px; margin-bottom:10px; font-size:18px; color:#111;">$1</h3>')
+                .replace(/^# (.*$)/gim, '<h2 style="margin-top:30px; margin-bottom:10px; font-size:22px; color:#000;">$1</h2>')
+                .replace(/\*\*(.*?)\*\*/gim, '<strong>$1</strong>')
+                .replace(/\*(.*?)\*/gim, '<em>$1</em>')
+                .replace(/\[([^\]]+)\]\((https?:\/\/[^\s]+)\)/g, '<a href="$2" target="_blank" style="color: #0066cc; text-decoration: underline; font-weight:600;">$1</a>');
+        }
+
         // --- NAWIGACJA GŁÓWNA ---
         function openModule(module) {
             document.getElementById('view-home').style.display = 'none';
@@ -351,6 +407,10 @@ Zawsze pisz w nienagannym języku polskim.
         function goHome() {
             document.getElementById('view-app').style.display = 'none';
             document.getElementById('view-home').style.display = 'flex';
+            if(window.innerWidth <= 768) {
+                document.getElementById('app-sidebar').classList.remove('open');
+                document.getElementById('sidebar-overlay').classList.remove('active');
+            }
         }
 
         // --- BLOG LOGIC ---
@@ -366,6 +426,7 @@ Zawsze pisz w nienagannym języku polskim.
             document.getElementById(tabId).classList.add('active');
             document.getElementById('btn-' + tabId).classList.add('active');
             if(tabId === 'tab2') updateCounter();
+            if(window.innerWidth <= 768) toggleMobileMenu();
         }
 
         function updateCounter() {
@@ -428,6 +489,7 @@ Zawsze pisz w nienagannym języku polskim.
             document.querySelectorAll('#sidebar-social button').forEach(el => el.classList.remove('active'));
             document.getElementById(tabId).classList.add('active');
             document.getElementById('btn-' + tabId).classList.add('active');
+            if(window.innerWidth <= 768) toggleMobileMenu();
         }
 
         // Pomocnicza funkcja do pobierania nazw produktów (Social & Blog)
@@ -451,16 +513,20 @@ Zawsze pisz w nienagannym języku polskim.
             resBox.style.display = 'none';
             
             const prompt = `Twoje zadanie to przeprowadzić research na żywo (Google Search).
-Znajdź aktualne trendy modowe i ubraniowe na TikToku (wpisz np. "current TikTok fashion trends this week", "viral clothing TikTok").
+Znajdź aktualne trendy modowe i ubraniowe na TikToku (szukaj np. "current TikTok fashion trends this week", "viral clothing TikTok").
+
+WYTYCZNE DO RAPORTU:
 1. Wymień 3 najgorętsze trendy z ostatnich dni.
-2. Napisz bardzo konkretnie i lifestylowo (w stylu marki Wassyl - Gen Z/Millenialsi), jak możemy wykorzystać te trendy w naszych rolkach (bazując na dresach, wiskozie, bluzkach, codziennych stylizacjach).
-Nie lej wody. Zwróć estetyczny raport w Markdown.`;
+2. 🔗 PRZYKŁADY: Do każdego trendu BEZWZGLĘDNIE dodaj działający link (np. do hashtagu na TikToku w formacie https://www.tiktok.com/tag/nazwatrendu, artykułu branżowego lub wideo z przykładem).
+3. WDROŻENIE WASSYL: Napisz konkretnie i lifestylowo (styl Gen Z/Millenialsi), jak możemy wykorzystać te trendy w naszych rolkach (bazując na dresach, wiskozie, codziennych stylizacjach).
+
+Zwróć estetyczny raport w formacie Markdown. Zadbaj o to, by linki były sformatowane poprawnie [Tekst](URL).`;
 
             const res = await fetch('/api/generate', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({prompt: prompt, search: true}) });
             const data = await res.json();
             
             document.getElementById('loader-trend').style.display = 'none';
-            resBox.innerText = data.result;
+            resBox.innerHTML = formatMarkdown(data.result);
             resBox.style.display = 'block';
         }
 
@@ -489,7 +555,7 @@ Każdy hook ma być krótki, zwięzły, dynamiczny i brzmieć naturalnie mówion
             const data = await res.json();
             
             document.getElementById('loader-hooks').style.display = 'none';
-            resBox.innerText = data.result;
+            resBox.innerHTML = formatMarkdown(data.result);
             resBox.style.display = 'block';
         }
 
@@ -510,17 +576,18 @@ Czas trwania: ${dur}
 Temat wideo: "${topic}"
 ${extraProductData}
 
-WYTYCZNE:
-1. Zrób tabelę lub wyraźną listę: [SEKUNDY] | [WIZJA - Co nagrywamy/Co widać] | [FONIA - Lektor i Napisy].
+WYTYCZNE (Format Markdown):
+1. Zrób wyraźną listę używając pogrubień. Schemat na każdą scenę:
+**[SEKUNDA]** | **WIZJA:** (Co nagrywamy/Co widać) | **FONIA:** (Lektor i Napisy).
 2. Zacznij od bardzo mocnego Hooka.
 3. Wideo musi być dynamiczne (dużo cięć).
-4. Na koniec wygeneruj angażujący opis posta z wezwaniem do akcji (CTA) i 5 optymalnymi hashtagami (bez shadowbanowych słów).`;
+4. Na koniec wygeneruj angażujący opis posta z wezwaniem do akcji (CTA) i 5 optymalnymi hashtagami.`;
 
             const res = await fetch('/api/generate', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({prompt: prompt}) });
             const data = await res.json();
             
             document.getElementById('loader-script').style.display = 'none';
-            resBox.innerText = data.result;
+            resBox.innerHTML = formatMarkdown(data.result);
             resBox.style.display = 'block';
         }
 
@@ -550,7 +617,7 @@ WYTYCZNE:
             document.getElementById('loader-1').style.display = 'block';
             document.getElementById('ideas-result').innerHTML = '';
             
-            let prompt_baza = ideaStr ? `Bazuj ściśle na tym koncepcie: "${ideaStr}".` : `Przeanalizuj obecny sezon i zaproponuj tematy bazujące na wiodących kategoriach i codziennych sytuacjach.`;
+            let prompt_baza = ideaStr ? `Bazuj ściśle na tym koncepcie: "${ideaStr}".` : `Przeanalizuj obecny sezon i zaproponuj tematy bazujące na wiodących categories i codziennych sytuacjach.`;
             
             const prompt = `${SHOP_CONTEXT} ${scrapedContext}
 Zadanie: Jako mistrz SEO pod Google Discover, wymyśl 3 ultra-chwytliwe tematy na wpis blogowy.
