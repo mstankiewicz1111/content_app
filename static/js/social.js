@@ -1,115 +1,58 @@
-/**
- * SOCIAL.JS - WASSYL CONTENT INTELLIGENCE
- */
+// social.js - CZYSZCZENIE TOTALNE
 
-// 1. Logika przełączania zakładek wewnątrz modułu
 function switchSocialTab(tabId) { 
     document.querySelectorAll('#module-social .tab-content').forEach(el => el.classList.remove('active')); 
     document.querySelectorAll('#sidebar-social button').forEach(el => el.classList.remove('active')); 
-    
     const targetTab = document.getElementById(tabId);
     if(targetTab) targetTab.classList.add('active'); 
-    
     const targetBtn = document.getElementById('btn-' + tabId);
     if(targetBtn) targetBtn.classList.add('active'); 
-
     if(window.innerWidth <= 768 && typeof toggleMobileMenu === 'function') toggleMobileMenu(); 
 }
 
-// 2. Funkcja pomocnicza do bezpiecznego renderowania Markdown
-function safeMarkdown(text) {
-    if (typeof formatMarkdown === 'function') return formatMarkdown(text);
-    return text; // Fallback jeśli core.js jeszcze nie gotowy
-}
-
-// 3. Pobieranie danych z zewnętrznych portali
-async function getExternalInspirations() {
-    const urls = [
-        "https://www.ramd.am/blog/trends-instagram",
-        "https://www.ramd.am/blog/trends-tiktok",
-        "https://later.com/blog/tiktok-trends/"
-    ];
-    try {
-        const contents = await Promise.all(urls.map(url => 
-            fetch('/api/fetch_url', {
-                method: 'POST', 
-                headers: {'Content-Type': 'application/json'}, 
-                body: JSON.stringify({ url: url })
-            }).then(res => res.json()).catch(() => ({text: ""}))
-        ));
-        const fullContext = contents.map(c => c.text).filter(t => t).join("\n\n").substring(0, 3000);
-        
-        const aiRes = await fetch('/api/generate', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({
-                prompt: `Na podstawie trendów: ${fullContext} wybierz 2 dla marki WASSYL.`,
-                search: false
-            })
-        });
-        const data = await aiRes.json();
-        return data.result || "Brak danych.";
-    } catch (e) { return "Nie udało się pobrać danych z blogów."; }
-}
-
-// 4. GŁÓWNA FUNKCJA DASHBOARDU
 async function initSocialDashboard() {
+    console.log("LOG: Próba inicjalizacji dashboardu...");
     const container = document.getElementById('social-dashboard');
     if (!container) return;
 
-    container.innerHTML = `<div style="grid-column: 1/-1; text-align:center; padding:30px; background:#f0f0f0; border-radius:15px;">
-        <p>🚀 Generuję inspiracje na dzisiaj (${new Date().toLocaleDateString()})...</p>
-    </div>`;
+    container.innerHTML = `<div style="text-align:center; padding:20px;">🚀 Ładowanie planu na dziś...</div>`;
 
     try {
-        const [eventRes, aiInspo, tiktokTrend, externalInspo] = await Promise.all([
+        const [eventRes, aiInspo] = await Promise.all([
             fetch('/api/get_upcoming_events').then(r => r.json()),
-            fetch('/api/generate', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({prompt: "Krótka inspiracja modowa na dziś dla marki Wassyl (1-2 zdania).", search: false})
-            }).then(r => r.json()),
-            fetch('/api/generate', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({prompt: "Jaki jest teraz trend na TikTok fashion?", search: true})
-            }).then(r => r.json()),
-            getExternalInspirations()
+            fetch('/api/generate', { 
+                method: 'POST', 
+                headers: {'Content-Type': 'application/json'}, 
+                body: JSON.stringify({prompt: "Podaj 1 krótką inspirację na dziś dla marki odzieżowej Wassyl.", search: false})
+            }).then(r => r.json())
         ]);
 
-        // Renderowanie kalendarza [cite: 1, 2, 3, 4]
-        const eventsHtml = eventRes.events && eventRes.events.length > 0 
-            ? eventRes.events.map(ev => `<div class="event-card"><strong>${ev.date}</strong><br>${ev.name}</div>`).join('')
-            : '<p>Brak wydarzeń w najbliższych dniach.</p>';
+        const eventsHtml = eventRes.events.map(ev => `
+            <div class="event-card" style="background:#fff; padding:10px; border-left:4px solid #000; margin-bottom:5px;">
+                <strong>${ev.date}</strong> - ${ev.name}
+            </div>`).join('');
 
         container.innerHTML = `
-            <div class="dashboard-wrapper">
-                <div class="dashboard-block events-block">
-                    <h3>📅 Kalendarz Marketingowy</h3>
-                    <div class="event-grid">${eventsHtml}</div>
+            <div class="dashboard-wrapper" style="background:#f9f9f9; padding:20px; border-radius:15px; margin-top:20px; border: 1px solid #eee;">
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
+                    <div>
+                        <h3 style="margin-top:0;">📅 Nadchodzące okazje</h3>
+                        ${eventsHtml}
+                    </div>
+                    <div>
+                        <h3 style="margin-top:0;">💡 Pomysł na dziś</h3>
+                        <div style="font-size:0.9rem;">${typeof formatMarkdown === 'function' ? formatMarkdown(aiInspo.result) : aiInspo.result}</div>
+                    </div>
                 </div>
-                <div class="dashboard-block">
-                    <h3>💡 Szybka Inspiracja</h3>
-                    <div class="ai-content">${safeMarkdown(aiInspo.result)}</div>
-                </div>
-                <div class="dashboard-block trend-live">
-                    <h3>🔥 TikTok Trend (Live)</h3>
-                    <div class="trend-content">${safeMarkdown(tiktokTrend.result)}</div>
-                </div>
-                <div class="dashboard-block external-trends">
-                    <h3>🌐 Z blogów branżowych</h3>
-                    <div class="ai-content">${safeMarkdown(externalInspo)}</div>
-                </div>
-            </div>
-        `;
-    } catch (e) { 
-        console.error("Dashboard error:", e);
-        container.innerHTML = "<p>Błąd ładowania dashboardu. Sprawdź konsolę.</p>";
+            </div>`;
+        console.log("LOG: Dashboard gotowy!");
+    } catch (e) {
+        container.innerHTML = "<p>Błąd dashboardu. Sprawdź połączenie.</p>";
+        console.error(e);
     }
 }
 
-// Pozostałe funkcje modułu
-async function analyzeTrends() { /* Twój oryginalny kod analyzeTrends */ }
-async function generateHooks() { /* Twój oryginalny kod generateHooks */ }
-async function generateScript() { /* Twój oryginalny kod generateScript */ }
-function repurposeFromBlog() { /* Twój oryginalny kod repurposeFromBlog */ }
+// DOPISZ RESZTĘ FUNKCJI (TYLKO RAZ!)
+async function analyzeTrends() { /* Twój kod analyzeTrends */ }
+async function generateHooks() { /* Twój kod generateHooks */ }
+async function generateScript() { /* Twój kod generateScript */ }
