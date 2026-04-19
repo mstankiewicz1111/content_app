@@ -76,3 +76,68 @@ function repurposeFromBlog() {
     document.getElementById('script-topic').value = "Recykling na podstawie artykułu. BAZA WIEDZY: \n" + blogText.substring(0, 500) + "..."; 
     generateScript();
 }
+
+async function initSocialDashboard() {
+    const dashboardContainer = document.getElementById('social-dashboard');
+    if (!dashboardContainer) return;
+
+    // Loader na starcie
+    dashboardContainer.innerHTML = `
+        <div style="text-align:center; padding: 20px;">
+            <p>🚀 Przygotowuję Twój plan na dziś...</p>
+        </div>`;
+
+    try {
+        // Wykonujemy zapytania równolegle, aby nie czekać jedno po drugim
+        const [eventRes, aiInspoRes, tiktokTrendRes] = await Promise.all([
+            fetch('/api/get_upcoming_events'),
+            fetch('/api/generate', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    prompt: "Jesteś ekspertem social media Wassyl. Podaj 1 konkretny, kreatywny pomysł na post/rolkę na dziś. Bądź zwięzły (max 3 zdania).",
+                    search: false
+                })
+            }),
+            fetch('/api/generate', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    prompt: "Znajdź 1 aktualny, gorący trend modowy/lifestyle na TikToku z ostatnich 48h. Podaj nazwę trendu i krótką wskazówkę jak Wassyl może go wykorzystać.",
+                    search: true // Używamy Google Search z ai.py
+                })
+            })
+        ]);
+
+        const eventData = await eventRes.json();
+        const aiData = await aiInspoRes.json();
+        const tiktokData = await tiktokTrendRes.json();
+
+        // Renderowanie 3-kolumnowego układu
+        dashboardContainer.innerHTML = `
+            <div class="dashboard-wrapper">
+                <div class="dashboard-block">
+                    <h3>📅 Nadchodzące Okazje</h3>
+                    <div class="event-grid">
+                        ${eventData.events.length > 0 
+                            ? eventData.events.map(ev => `<div class="event-card"><strong>${ev.date}</strong><br>${ev.name}</div>`).join('')
+                            : '<p>Brak wydarzeń w najbliższych dniach.</p>'}
+                    </div>
+                </div>
+
+                <div class="dashboard-block">
+                    <h3>💡 Szybka Inspiracja</h3>
+                    <div class="ai-content">${formatMarkdown(aiData.result)}</div>
+                </div>
+
+                <div class="dashboard-block trend-live">
+                    <h3>🔥 TikTok Trend (Live)</h3>
+                    <div class="trend-content">${formatMarkdown(tiktokData.result)}</div>
+                </div>
+            </div>
+        `;
+    } catch (e) {
+        console.error(e);
+        dashboardContainer.innerHTML = '<p>Błąd ładowania inspiracji. Sprawdź połączenie z API.</p>';
+    }
+}
