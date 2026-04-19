@@ -225,25 +225,3 @@ async function initSocialDashboard() {
         dashboardContainer.innerHTML = '<p style="text-align:center; color:red;">Wystąpił błąd podczas ładowania dashboardu.</p>';
     }
 }
-
-// --- INTEGRACJA Z SYSTEMEM ---
-
-// Przechwycenie oryginalnej funkcji otwierania modułów
-if (typeof window.openModule !== 'undefined') {
-    const originalOpenModule = window.openModule;
-    window.openModule = function(moduleName) {
-        originalOpenModule(moduleName);
-        if (moduleName === 'social') {
-            console.log("Inicjalizacja Dashboardu Social Media...");
-            setTimeout(initSocialDashboard, 200);
-        }
-    };
-}
-
-// Rezerwowy wyzwalacz przy starcie strony
-document.addEventListener('DOMContentLoaded', () => {
-    if (document.getElementById('social-dashboard') && 
-       (document.getElementById('module-social').classList.contains('active'))) {
-        initSocialDashboard();
-    }
-});
