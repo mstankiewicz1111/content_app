@@ -183,3 +183,10 @@ async function initSocialDashboard() {
         dashboardContainer.innerHTML = '<p>Błąd ładowania dashboardu.</p>';
     }
 }
+// Ten kod odpali się samoczynnie po wczytaniu pliku JS
+document.addEventListener('DOMContentLoaded', () => {
+    // Jeśli kontener istnieje, odpalamy dashboard
+    if (document.getElementById('social-dashboard')) {
+        initSocialDashboard();
+    }
+});
