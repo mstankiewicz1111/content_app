@@ -34,5 +34,11 @@
             <button class="btn-primary btn-drive" onclick="exportToDrive('script-result', 'Scenariusz Wideo', this)">💾 Zapisz w Google Drive</button>
         </div>
     </div>
+    <div id="social-dashboard"></div>
 </div>
-<div id="social-dashboard"></div>
+<script>
+    // Sprawdzamy, czy dashboard jest pusty i inicjujemy go przy ładowaniu strony
+    if (typeof initSocialDashboard === "function") {
+        initSocialDashboard();
+    }
+</script>
