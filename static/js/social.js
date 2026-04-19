@@ -11,44 +11,68 @@ function switchSocialTab(tabId) {
 }
 
 async function initSocialDashboard() {
-    console.log("LOG: Próba inicjalizacji dashboardu...");
     const container = document.getElementById('social-dashboard');
     if (!container) return;
 
-    container.innerHTML = `<div style="text-align:center; padding:20px;">🚀 Ładowanie planu na dziś...</div>`;
+    // Wymuszamy widoczność kontenera i dodajemy loader
+    container.style.display = "block";
+    container.innerHTML = `
+        <div style="padding: 20px; background: #f8f9fa; border-radius: 10px; border: 1px solid #ddd; text-align: center; margin-top: 20px;">
+            <p style="margin: 0; font-weight: bold;">⏳ Generuję Twój plan na dziś...</p>
+            <small style="color: #666;">(Pobieram trendy live i kalendarz 2026)</small>
+        </div>`;
 
     try {
-        const [eventRes, aiInspo] = await Promise.all([
-            fetch('/api/get_upcoming_events').then(r => r.json()),
-            fetch('/api/generate', { 
-                method: 'POST', 
-                headers: {'Content-Type': 'application/json'}, 
-                body: JSON.stringify({prompt: "Podaj 1 krótką inspirację na dziś dla marki odzieżowej Wassyl.", search: false})
+        // Pobieramy dane
+        const eventRes = await fetch('/api/get_upcoming_events').then(r => r.json());
+        
+        // Generujemy inspirację i trendy równolegle
+        const [aiInspoRes, tiktokTrendRes] = await Promise.all([
+            fetch('/api/generate', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    prompt: "Jesteś ekspertem social media Wassyl. Podaj 1 kreatywny pomysł na post na dziś (max 3 zdania).",
+                    search: false
+                })
+            }).then(r => r.json()),
+            fetch('/api/generate', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    prompt: "Znajdź 1 gorący trend modowy na TikToku z ostatnich 48h.",
+                    search: true
+                })
             }).then(r => r.json())
         ]);
 
-        const eventsHtml = eventRes.events.map(ev => `
-            <div class="event-card" style="background:#fff; padding:10px; border-left:4px solid #000; margin-bottom:5px;">
-                <strong>${ev.date}</strong> - ${ev.name}
-            </div>`).join('');
+        const eventsHtml = eventRes.events && eventRes.events.length > 0 
+            ? eventRes.events.map(ev => `<div class="event-card"><strong>${ev.date}</strong><br>${ev.name}</div>`).join('')
+            : '<p>Brak wydarzeń w najbliższych dniach.</p>';
 
+        const safeMd = (text) => typeof formatMarkdown === 'function' ? formatMarkdown(text) : text;
+
+        // FINALNE RENDEROWANIE
         container.innerHTML = `
-            <div class="dashboard-wrapper" style="background:#f9f9f9; padding:20px; border-radius:15px; margin-top:20px; border: 1px solid #eee;">
-                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
-                    <div>
-                        <h3 style="margin-top:0;">📅 Nadchodzące okazje</h3>
-                        ${eventsHtml}
-                    </div>
-                    <div>
-                        <h3 style="margin-top:0;">💡 Pomysł na dziś</h3>
-                        <div style="font-size:0.9rem;">${typeof formatMarkdown === 'function' ? formatMarkdown(aiInspo.result) : aiInspo.result}</div>
-                    </div>
+            <div class="dashboard-wrapper">
+                <div class="dashboard-block">
+                    <h3>📅 Nadchodzące Okazje</h3>
+                    <div class="event-grid">${eventsHtml}</div>
                 </div>
-            </div>`;
-        console.log("LOG: Dashboard gotowy!");
+                <div class="dashboard-block">
+                    <h3>💡 Szybka Inspiracja</h3>
+                    <div class="ai-content">${safeMd(aiInspoRes.result)}</div>
+                </div>
+                <div class="dashboard-block trend-live">
+                    <h3>🔥 TikTok Trend</h3>
+                    <div class="trend-content">${safeMd(tiktokTrendRes.result)}</div>
+                </div>
+            </div>
+        `;
+        console.log("✅ Dashboard wyrenderowany!");
     } catch (e) {
-        container.innerHTML = "<p>Błąd dashboardu. Sprawdź połączenie.</p>";
-        console.error(e);
+        console.error("❌ Błąd Dashboardu:", e);
+        container.innerHTML = `<div style="color: red; padding: 20px;">Nie udało się załadować inspiracji: ${e.message}</div>`;
     }
 }
 
