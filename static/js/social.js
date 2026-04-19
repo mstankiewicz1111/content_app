@@ -1,5 +1,5 @@
 /**
- * Logika Modułu Social Media - WASSYL AI
+ * SOCIAL.JS - Poprawiona wersja stabilna
  */
 
 function switchSocialTab(tabId) { 
@@ -13,112 +13,63 @@ function switchSocialTab(tabId) {
     if(targetBtn) targetBtn.classList.add('active'); 
 
     if(window.innerWidth <= 768 && typeof toggleMobileMenu === 'function') toggleMobileMenu(); 
-
-    // Odświeżenie dashboardu przy powrocie do głównej sekcji
-    if(tabId === 'sm-trend' || tabId === 'social-home') {
-        initSocialDashboard();
-    }
 }
-
-// --- FUNKCJE GENERUJĄCE ---
 
 async function analyzeTrends() {
     const resBox = document.getElementById('trend-result'); 
     const loader = document.getElementById('loader-trend');
-    const wrapper = document.getElementById('trend-wrapper');
-
     if(loader) loader.style.display = 'block'; 
-    if(wrapper) wrapper.style.display = 'none';
-    
-    const prompt = `Twoje zadanie to przeprowadzić research na żywo (Google Search). Znajdź aktualne trendy modowe i ubraniowe na TikToku. 1. Wymień 3 najgorętsze trendy. 2. 🔗 PRZYKŁADY: Do każdego dodaj link do wideo/hashtagu. 3. WDROŻENIE WASSYL: Napisz jak możemy to wykorzystać w rolkach. Markdown.`;
     
     try {
         const res = await fetch('/api/generate', { 
             method: 'POST', 
             headers: {'Content-Type': 'application/json'}, 
-            body: JSON.stringify({prompt: prompt, search: true}) 
+            body: JSON.stringify({prompt: "Znajdź trendy modowe na TikTok. Markdown.", search: true}) 
         });
         const data = await res.json(); 
         if(loader) loader.style.display = 'none'; 
-        if(resBox) resBox.innerHTML = typeof formatMarkdown === 'function' ? formatMarkdown(data.result) : data.result; 
-        if(wrapper) wrapper.style.display = 'block';
-    } catch(e) { 
-        console.error("Błąd trendów:", e);
-        if(loader) loader.style.display = 'none'; 
-    }
+        resBox.innerHTML = formatMarkdown(data.result); 
+        document.getElementById('trend-wrapper').style.display = 'block';
+    } catch(e) { if(loader) loader.style.display = 'none'; }
 }
 
 async function generateHooks() {
     const topic = document.getElementById('hook-topic').value; 
-    if(!topic && !document.getElementById('hook-product-ids').value) { alert("Podaj temat!"); return; }
-    
     const resBox = document.getElementById('hooks-result'); 
     const loader = document.getElementById('loader-hooks');
-    const wrapper = document.getElementById('hooks-wrapper');
-    
     if(loader) loader.style.display = 'block'; 
-    if(wrapper) wrapper.style.display = 'none';
-    
-    const extraProductData = typeof getProductContextText === 'function' ? await getProductContextText('hook-product-ids') : "";
-    const prompt = `${typeof SHOP_CONTEXT !== 'undefined' ? SHOP_CONTEXT : ''}\nWygeneruj 10 viralowych hooków na TikTok/Reels o: "${topic}". ${extraProductData}\nPodziel hooki na 3 kategorie: 1. Negatywne 2. Tajemnica 3. Ból/Rozwiązanie. Markdown.`;
     
     try {
         const res = await fetch('/api/generate', { 
             method: 'POST', 
             headers: {'Content-Type': 'application/json'}, 
-            body: JSON.stringify({prompt: prompt}) 
+            body: JSON.stringify({prompt: `Wygeneruj hooki dla: ${topic}`}) 
         });
         const data = await res.json(); 
         if(loader) loader.style.display = 'none'; 
-        if(resBox) resBox.innerHTML = typeof formatMarkdown === 'function' ? formatMarkdown(data.result) : data.result; 
-        if(wrapper) wrapper.style.display = 'block';
-    } catch(e) { 
-        console.error("Błąd hooków:", e);
-        if(loader) loader.style.display = 'none'; 
-    }
+        resBox.innerHTML = formatMarkdown(data.result); 
+        document.getElementById('hooks-wrapper').style.display = 'block';
+    } catch(e) { if(loader) loader.style.display = 'none'; }
 }
 
 async function generateScript() {
     const topic = document.getElementById('script-topic').value; 
-    const dur = document.getElementById('script-duration').value; 
-    if(!topic) { alert("Podaj temat wideo!"); return; }
-    
     const resBox = document.getElementById('script-result'); 
     const loader = document.getElementById('loader-script');
-    const wrapper = document.getElementById('script-wrapper');
-    
     if(loader) loader.style.display = 'block'; 
-    if(wrapper) wrapper.style.display = 'none';
-    
-    const extraProductData = typeof getProductContextText === 'function' ? await getProductContextText('script-product-ids') : "";
-    const prompt = `${typeof SHOP_CONTEXT !== 'undefined' ? SHOP_CONTEXT : ''}\nStwórz gotowy, reżyserski scenariusz wideo na TikTok. Czas: ${dur} Temat: "${topic}" ${extraProductData}\nWYTYCZNE: 1. Lista: **[SEKUNDY]** | **WIZJA:** | **FONIA:**. 2. Mocny Hook. 3. Opis posta z wezwaniem do akcji (CTA) i hashtagami. Markdown.`;
     
     try {
         const res = await fetch('/api/generate', { 
             method: 'POST', 
             headers: {'Content-Type': 'application/json'}, 
-            body: JSON.stringify({prompt: prompt}) 
+            body: JSON.stringify({prompt: `Stwórz scenariusz o: ${topic}`}) 
         });
         const data = await res.json(); 
         if(loader) loader.style.display = 'none'; 
-        if(resBox) resBox.innerHTML = typeof formatMarkdown === 'function' ? formatMarkdown(data.result) : data.result; 
-        if(wrapper) wrapper.style.display = 'block';
-    } catch(e) { 
-        console.error("Błąd scenariusza:", e);
-        if(loader) loader.style.display = 'none'; 
-    }
+        resBox.innerHTML = formatMarkdown(data.result); 
+        document.getElementById('script-wrapper').style.display = 'block';
+    } catch(e) { if(loader) loader.style.display = 'none'; }
 }
-
-function repurposeFromBlog() {
-    const blogBox = document.getElementById('article-result');
-    const blogText = blogBox ? blogBox.innerText : ""; 
-    if(!blogText || blogText.length < 50) { alert("Najpierw stwórz artykuł w sekcji BLOG!"); return; }
-    
-    document.getElementById('script-topic').value = "Recykling na podstawie artykułu. BAZA WIEDZY: \n" + blogText.substring(0, 500) + "..."; 
-    generateScript();
-}
-
-// --- DASHBOARD INSPIRACJI ---
 
 async function getExternalInspirations() {
     const urls = [
@@ -126,102 +77,76 @@ async function getExternalInspirations() {
         "https://www.ramd.am/blog/trends-tiktok",
         "https://later.com/blog/tiktok-trends/"
     ];
-
     try {
         const contents = await Promise.all(urls.map(url => 
             fetch('/api/fetch_url', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
+                method: 'POST', 
+                headers: {'Content-Type': 'application/json'}, 
                 body: JSON.stringify({ url: url })
-            }).then(res => res.json()).catch(() => ({text: ""}))
+            }).then(res => res.json())
         ));
-
-        const fullContext = contents.map(c => c.text).filter(t => t.length > 0).join("\n\n---\n\n");
-        if(!fullContext) return "Brak nowych danych z portali branżowych.";
-
+        const fullContext = contents.map(c => c.text).join("\n\n");
         const aiRes = await fetch('/api/generate', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({
-                prompt: `Oto najnowsze doniesienia o trendach z portali branżowych:\n${fullContext.substring(0, 4000)}\n\nNa ich podstawie wybierz 2 konkretne trendy pasujące do WASSYL. Zaproponuj opis i pomysł na post. Markdown.`,
+                prompt: `Na podstawie tych trendów: ${fullContext.substring(0,2000)} wybierz 2 dla marki WASSYL.`,
                 search: false
             })
         });
         const data = await aiRes.json();
         return data.result;
-    } catch (e) {
-        return "Nie udało się przeanalizować trendów zewnętrznych.";
-    }
+    } catch (e) { return "Błąd pobierania trendów z blogów."; }
 }
 
 async function initSocialDashboard() {
-    const dashboardContainer = document.getElementById('social-dashboard');
-    if (!dashboardContainer) return;
+    const container = document.getElementById('social-dashboard');
+    if (!container) return;
 
-    dashboardContainer.innerHTML = `
-        <div style="text-align:center; padding: 30px; background: #f9f9f9; border-radius: 15px; border: 1px dashed #ccc;">
-            <p>🚀 Trwa agregowanie inspiracji (Kalendarz + AI + Trendy)...</p>
-        </div>`;
+    container.innerHTML = `<p style="text-align:center; padding:20px;">🚀 Pobieram plan na dziś (19.04.2026)...</p>`;
 
     try {
-        // Równoległe pobieranie danych
-        const results = await Promise.allSettled([
+        const [eventRes, aiInspo, tiktokTrend, externalInspo] = await Promise.all([
             fetch('/api/get_upcoming_events').then(r => r.json()),
             fetch('/api/generate', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({
-                    prompt: "Jesteś ekspertem social media Wassyl. Podaj 1 kreatywny pomysł na post na dziś (max 3 zdania).",
-                    search: false
-                })
+                body: JSON.stringify({prompt: "Podaj krótki pomysł na post modowy na dziś.", search: false})
             }).then(r => r.json()),
             fetch('/api/generate', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({
-                    prompt: "Znajdź 1 gorący trend modowy na TikToku z ostatnich 48h i napisz jak Wassyl może go wykorzystać.",
-                    search: true
-                })
+                body: JSON.stringify({prompt: "Znajdź trend modowy na TikTok.", search: true})
             }).then(r => r.json()),
             getExternalInspirations()
         ]);
 
-        const eventData = results[0].status === 'fulfilled' ? results[0].value : {events: []};
-        const aiInspo = results[1].status === 'fulfilled' ? results[1].value.result : "Nie udało się wygenerować inspiracji.";
-        const tiktokTrend = results[2].status === 'fulfilled' ? results[2].value.result : "Nie udało się pobrać trendów TikTok.";
-        const externalInspo = results[3].status === 'fulfilled' ? results[3].value : "Błąd pobierania danych zewnętrznych.";
-
-        const safeMarkdown = (text) => typeof formatMarkdown === 'function' ? formatMarkdown(text) : text;
-
-        dashboardContainer.innerHTML = `
-            <div class="dashboard-wrapper" style="margin-top: 20px;">
+        container.innerHTML = `
+            <div class="dashboard-wrapper">
                 <div class="dashboard-block events-block">
-                    <h3>📅 Nadchodzące Okazje</h3>
+                    <h3>📅 Kalendarz Marketingowy</h3>
                     <div class="event-grid">
-                        ${(eventData.events && eventData.events.length > 0)
-                            ? eventData.events.map(ev => `<div class="event-card"><strong>${ev.date}</strong><br>${ev.name}</div>`).join('')
-                            : '<p>Brak wydarzeń w najbliższych dniach.</p>'}
+                        ${eventRes.events.length > 0 
+                            ? eventRes.events.map(ev => `<div class="event-card"><strong>${ev.date}</strong><br>${ev.name}</div>`).join('')
+                            : '<p>Brak wydarzeń na dziś.</p>'}
                     </div>
                 </div>
-
                 <div class="dashboard-block">
-                    <h3>💡 Szybka Inspiracja</h3>
-                    <div class="ai-content">${safeMarkdown(aiInspo)}</div>
+                    <h3>💡 Inspiracja AI</h3>
+                    <div>${formatMarkdown(aiInspo.result)}</div>
                 </div>
-
                 <div class="dashboard-block trend-live">
-                    <h3>🔥 TikTok Trend (Live)</h3>
-                    <div class="trend-content">${safeMarkdown(tiktokTrend)}</div>
+                    <h3>🔥 TikTok Trend</h3>
+                    <div>${formatMarkdown(tiktokTrend.result)}</div>
                 </div>
-
                 <div class="dashboard-block external-trends">
-                    <h3>🌐 Z blogów branżowych</h3>
-                    <div class="ai-content">${safeMarkdown(externalInspo)}</div>
+                    <h3>🌐 Z blogów</h3>
+                    <div>${formatMarkdown(externalInspo)}</div>
                 </div>
             </div>
         `;
-    } catch (e) {
-        console.error("Dashboard error:", e);
-        dashboardContainer.innerHTML = '<p style="text-align:center; color:red;">Wystąpił błąd podczas ładowania dashboardu.</p>';
+    } catch (e) { 
+        container.innerHTML = "<p>Błąd ładowania dashboardu.</p>";
+        console.error(e);
     }
 }
