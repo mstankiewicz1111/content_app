@@ -4,7 +4,14 @@ function switchSocialTab(tabId) {
     document.getElementById(tabId).classList.add('active'); 
     document.getElementById('btn-' + tabId).classList.add('active'); 
     if(window.innerWidth <= 768) toggleMobileMenu(); 
+
+    // Automatyczne odświeżenie dashboardu przy wejściu w główną zakładkę social media
+    if(tabId === 'social-home' || tabId === 'tab-social-home') {
+        initSocialDashboard();
+    }
 }
+
+// --- FUNKCJE GENERUJĄCE ---
 
 async function analyzeTrends() {
     const resBox = document.getElementById('trend-result'); 
@@ -77,67 +84,102 @@ function repurposeFromBlog() {
     generateScript();
 }
 
+// --- DASHBOARD INSPIRACJI ---
+
+async function getExternalInspirations() {
+    const urls = [
+        "https://www.ramd.am/blog/trends-instagram",
+        "https://www.ramd.am/blog/trends-tiktok",
+        "https://later.com/blog/tiktok-trends/"
+    ];
+
+    try {
+        const contents = await Promise.all(urls.map(url => 
+            fetch('/api/fetch_url', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ url: url })
+            }).then(res => res.json())
+        ));
+
+        const fullContext = contents.map(c => c.text).join("\n\n---\n\n");
+
+        const aiRes = await fetch('/api/generate', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                prompt: `Oto najnowsze doniesienia o trendach z portali branżowych:\n${fullContext}\n\nNa ich podstawie wybierz 2 konkretne trendy pasujące do WASSYL. Zaproponuj opis i pomysł na post. Markdown.`,
+                search: false
+            })
+        });
+        const data = await aiRes.json();
+        return data.result;
+    } catch (e) {
+        return "Nie udało się pobrać danych z portali zewnętrznych.";
+    }
+}
+
 async function initSocialDashboard() {
     const dashboardContainer = document.getElementById('social-dashboard');
     if (!dashboardContainer) return;
 
-    // Loader na starcie
     dashboardContainer.innerHTML = `
-        <div style="text-align:center; padding: 20px;">
-            <p>🚀 Przygotowuję Twój plan na dziś...</p>
+        <div style="text-align:center; padding: 30px;">
+            <p>🚀 Agreguję inspiracje z kalendarza, TikToka i blogów branżowych...</p>
         </div>`;
 
     try {
-        // Wykonujemy zapytania równolegle, aby nie czekać jedno po drugim
-        const [eventRes, aiInspoRes, tiktokTrendRes] = await Promise.all([
-            fetch('/api/get_upcoming_events'),
+        // Pobieramy wszystko równolegle (4 źródła)
+        const [eventRes, aiInspoRes, tiktokTrendRes, externalInspoText] = await Promise.all([
+            fetch('/api/get_upcoming_events').then(r => r.json()),
             fetch('/api/generate', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({
-                    prompt: "Jesteś ekspertem social media Wassyl. Podaj 1 konkretny, kreatywny pomysł na post/rolkę na dziś. Bądź zwięzły (max 3 zdania).",
+                    prompt: "Jesteś ekspertem social media Wassyl. Podaj 1 kreatywny pomysł na post na dziś (max 3 zdania).",
                     search: false
                 })
-            }),
+            }).then(r => r.json()),
             fetch('/api/generate', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({
-                    prompt: "Znajdź 1 aktualny, gorący trend modowy/lifestyle na TikToku z ostatnich 48h. Podaj nazwę trendu i krótką wskazówkę jak Wassyl może go wykorzystać.",
-                    search: true // Używamy Google Search z ai.py
+                    prompt: "Znajdź 1 gorący trend modowy na TikToku z ostatnich 48h i napisz jak Wassyl może go wykorzystać.",
+                    search: true
                 })
-            })
+            }).then(r => r.json()),
+            getExternalInspirations() // Nasza nowa funkcja
         ]);
 
-        const eventData = await eventRes.json();
-        const aiData = await aiInspoRes.json();
-        const tiktokData = await tiktokTrendRes.json();
-
-        // Renderowanie 3-kolumnowego układu
         dashboardContainer.innerHTML = `
             <div class="dashboard-wrapper">
                 <div class="dashboard-block">
                     <h3>📅 Nadchodzące Okazje</h3>
                     <div class="event-grid">
-                        ${eventData.events.length > 0 
-                            ? eventData.events.map(ev => `<div class="event-card"><strong>${ev.date}</strong><br>${ev.name}</div>`).join('')
+                        ${eventRes.events.length > 0 
+                            ? eventRes.events.map(ev => `<div class="event-card"><strong>${ev.date}</strong><br>${ev.name}</div>`).join('')
                             : '<p>Brak wydarzeń w najbliższych dniach.</p>'}
                     </div>
                 </div>
 
                 <div class="dashboard-block">
                     <h3>💡 Szybka Inspiracja</h3>
-                    <div class="ai-content">${formatMarkdown(aiData.result)}</div>
+                    <div class="ai-content">${formatMarkdown(aiInspoRes.result)}</div>
                 </div>
 
                 <div class="dashboard-block trend-live">
                     <h3>🔥 TikTok Trend (Live)</h3>
-                    <div class="trend-content">${formatMarkdown(tiktokData.result)}</div>
+                    <div class="trend-content">${formatMarkdown(tiktokTrendRes.result)}</div>
+                </div>
+
+                <div class="dashboard-block external-trends">
+                    <h3>🌐 Z blogów branżowych</h3>
+                    <div class="ai-content">${formatMarkdown(externalInspoText)}</div>
                 </div>
             </div>
         `;
     } catch (e) {
         console.error(e);
-        dashboardContainer.innerHTML = '<p>Błąd ładowania inspiracji. Sprawdź połączenie z API.</p>';
+        dashboardContainer.innerHTML = '<p>Błąd ładowania dashboardu.</p>';
     }
 }
