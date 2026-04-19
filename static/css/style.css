@@ -117,28 +117,6 @@ button.btn-drive:hover { background: #28803d; }
 .trend-live {
     border-top: 4px solid #ff0050; /* Kolor TikToka dla wyróżnienia */
 }
-/* Kontener główny Dashboardu */
-.dashboard-wrapper {
-    display: grid;
-    /* Automatyczne kolumny: minimum 280px, maksimum zajmują resztę wolnego miejsca */
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 20px;
-    margin-top: 30px;
-    padding: 20px;
-    background-color: #ffffff;
-    border-radius: 15px;
-}
-
-/* Styl pojedynczego bloku */
-.dashboard-block {
-    background: #fdfdfd;
-    padding: 20px;
-    border: 1px solid #eee;
-    border-radius: 12px;
-    display: flex;
-    flex-direction: column;
-    transition: transform 0.2s, box-shadow 0.2s;
-}
 
 /* Efekt najechania myszką (tylko na desktopie) */
 @media (hover: hover) {
