@@ -183,6 +183,30 @@ async function initSocialDashboard() {
         dashboardContainer.innerHTML = '<p>Błąd ładowania dashboardu.</p>';
     }
 }
+
+// 1. Zachowujemy oryginalną funkcję openModule, żeby jej nie zepsuć
+const originalOpenModule = window.openModule;
+
+// 2. Nadpisujemy ją naszą wersją z "bonusem"
+window.openModule = function(moduleName) {
+    // Wywołujemy standardowe działanie (przełączenie widoku)
+    if (typeof originalOpenModule === 'function') {
+        originalOpenModule(moduleName);
+    }
+
+    // Jeśli użytkownik wybrał social media, odpalamy nasz dashboard
+    if (moduleName === 'social') {
+        console.log("Inicjalizacja Dashboardu Social Media...");
+        
+        // Dajemy przeglądarce 100ms na wyrenderowanie HTML zanim zaczniemy wstrzykiwać dane
+        setTimeout(() => {
+            if (typeof initSocialDashboard === 'function') {
+                initSocialDashboard();
+            }
+        }, 100);
+    }
+};
+
 // Ten kod odpali się samoczynnie po wczytaniu pliku JS
 document.addEventListener('DOMContentLoaded', () => {
     // Jeśli kontener istnieje, odpalamy dashboard
