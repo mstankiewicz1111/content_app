@@ -5,96 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Wassyl Content Intelligence</title>
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600&family=Outfit:wght@600;700&display=swap" rel="stylesheet">
-    <style>
-        :root { --bg: #f8f9fa; --text: #333; --border: #ddd; --btn-bg: #000; --btn-text: #fff; --btn-hover: #333; --accent: #0066cc; }
-        body { font-family: 'Manrope', sans-serif; background-color: var(--bg); color: var(--text); margin: 0; display: flex; height: 100vh; overflow: hidden; }
-        h1, h2, h3, h4 { font-family: 'Outfit', sans-serif; }
-        
-        #view-home { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; width: 100%; background: #fff; text-align: center; }
-        #view-home .logo { width: 300px; margin-bottom: 20px; }
-        #view-home h1 { font-size: 48px; margin-bottom: 50px; color: #000; }
-        .menu-grid { display: flex; gap: 30px; max-width: 1000px; }
-        .menu-card { width: 250px; height: 250px; background: #f8f9fa; border: 1px solid #eee; border-radius: 15px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: all 0.3s; text-decoration: none; color: #000; }
-        .menu-card:hover { transform: translateY(-10px); box-shadow: 0 10px 30px rgba(0,0,0,0.1); background: #000; color: #fff; border-color: #000; }
-        .menu-card i { font-size: 40px; margin-bottom: 15px; }
-        .menu-card span { font-size: 20px; font-weight: 700; font-family: 'Outfit', sans-serif; }
-
-        #view-app { display: none; width: 100%; height: 100vh; flex-direction: row; }
-        .sidebar { width: 300px; background: #fff; border-right: 1px solid var(--border); padding: 20px; display: flex; flex-direction: column; gap: 20px; overflow-y: auto; z-index: 1000;}
-        .sidebar-menu button { background: none; border: none; text-align: left; padding: 10px; width: 100%; cursor: pointer; font-family: 'Manrope', sans-serif; font-size: 15px; border-radius: 4px; color: #555; transition: 0.2s;}
-        .sidebar-menu button:hover { background: #f1f3f5; }
-        .sidebar-menu button.active { background: #eee; font-weight: 600; color: #000;}
-        .btn-back { background: none; border: 1px solid #eee; padding: 8px; border-radius: 5px; cursor: pointer; font-size: 12px; margin-bottom: 10px; transition: 0.2s; }
-        .btn-back:hover { background: #000; color: #fff; }
-        .status-box { padding: 10px; border-radius: 5px; font-size: 14px; }
-        .status-ok { background: #d4edda; color: #155724; border-left: 4px solid #28a745; }
-        .status-error { background: #f8d7da; color: #721c24; border-left: 4px solid #dc3545; }
-        
-        .main-content { flex: 1; overflow-y: auto; padding: 40px; position: relative; }
-        .logo-container { text-align: center; margin-bottom: 20px; }
-        .header-title { text-align: center; margin-bottom: 40px; }
-        
-        .module-content { display: none; }
-        .module-content.active { display: block; }
-        
-        #module-chat.active { display: flex; flex-direction: column; height: calc(100vh - 250px); min-height: 400px; }
-
-        .tab-content { display: none; max-width: 900px; margin: 0 auto; background: #fff; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
-        .tab-content.active { display: block; }
-        
-        input[type="text"], textarea, select { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 4px; font-family: 'Manrope', sans-serif; margin-top: 5px; margin-bottom: 15px; box-sizing: border-box;}
-        button.btn-primary { background: var(--btn-bg); color: var(--btn-text); border: 1px solid var(--btn-bg); padding: 10px 20px; border-radius: 3px; font-weight: 600; font-family: 'Manrope', sans-serif; cursor: pointer; transition: all 0.2s; }
-        button.btn-primary:hover { background: var(--btn-hover); transform: translateY(-2px); }
-        button.btn-drive { background: #34a853; color: white; border: 1px solid #34a853; margin-top: 10px; width: 100%; font-size: 15px;}
-        button.btn-drive:hover { background: #28803d; }
-        
-        .btn-quick { background: #f8f9fa !important; color: #333 !important; border: 1px solid #ddd !important; font-size: 13px !important; padding: 8px 15px !important; border-radius: 20px !important;}
-        .loader { display: none; font-weight: 600; color: #0066cc; margin: 10px 0; }
-        .result-box { background: #fcfcfc; padding: 20px; border-radius: 5px; border: 1px solid #eee; margin-bottom: 5px; white-space: pre-wrap; font-size: 15px; line-height: 1.6;}
-        .result-box:focus { outline: 2px solid #000; background: #fff;}
-        .row { display: flex; gap: 20px; }
-        .col { flex: 1; }
-        .box-option { background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #eee;}
-        
-        .counter-badge { font-size: 13px; float: right; padding: 4px 10px; border-radius: 12px; background: #e9ecef; color: #555; font-family: monospace; font-weight: bold;}
-        .counter-good { background: #d4edda; color: #155724; }
-        .counter-warn { background: #fff3cd; color: #856404; }
-
-        .sidebar-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 999; }
-        .sidebar-overlay.active { display: block; }
-        .mobile-menu-toggle { display: none; background: #000; color: #fff; border: none; padding: 12px; border-radius: 5px; font-weight: bold; cursor: pointer; margin-bottom: 20px; width: 100%; font-family: 'Manrope', sans-serif; font-size: 16px; box-shadow: 0 4px 10px rgba(0,0,0,0.1);}
-        .mobile-close-btn { display: none; background: #dc3545; color: #fff; border: none; padding: 10px; border-radius: 4px; width: 100%; margin-bottom: 15px; cursor: pointer; font-weight: bold; font-family: 'Manrope', sans-serif;}
-
-        @media (max-width: 768px) {
-            #view-home .logo { width: 200px; }
-            #view-home h1 { font-size: 28px; padding: 0 20px; margin-bottom: 30px;}
-            .menu-grid { flex-direction: column; gap: 15px; width: 100%; padding: 0 20px; box-sizing: border-box;}
-            .menu-card { width: 100%; height: auto; padding: 20px; flex-direction: row; justify-content: flex-start; box-sizing: border-box;}
-            .menu-card i { margin-bottom: 0; margin-right: 20px; font-size: 30px; }
-
-            #view-app { flex-direction: column; }
-            .main-content { padding: 15px; position: relative; }
-            .logo-container img { width: 150px; }
-            .header-title { font-size: 24px; margin-bottom: 20px; }
-            .tab-content { padding: 20px 15px; }
-            .row { flex-direction: column; gap: 0px; }
-            
-            .sidebar { position: fixed; left: -320px; top: 0; height: 100%; box-shadow: 2px 0 15px rgba(0,0,0,0.2); transition: left 0.3s ease; width: 280px; box-sizing: border-box;}
-            .sidebar.open { left: 0; }
-            .mobile-menu-toggle { display: block; }
-            .mobile-close-btn { display: block; }
-            
-            .btn-quick { width: 100%; margin-bottom: 8px; text-align: left; }
-            .box-option { padding: 15px; }
-            button.btn-primary { width: 100%; margin-bottom: 10px; }
-            #module-chat.active { height: calc(100vh - 150px); }
-        }
-    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
 
     <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleMobileMenu()"></div>
 
+    <!-- WIDOK STARTOWY -->
     <div id="view-home">
         <img src="https://wassyl.pl/data/gfx/mask/pol/logo_1_big.svg" class="logo" alt="Wassyl Logo">
         <h1>cześć! co dziś szponcimy?</h1>
@@ -105,12 +22,13 @@
         </div>
     </div>
 
+    <!-- APLIKACJA -->
     <div id="view-app">
+        <!-- BOCZNE MENU -->
         <div class="sidebar" id="app-sidebar">
             <button class="mobile-close-btn" onclick="toggleMobileMenu()">✖ Zamknij menu</button>
             <button class="btn-back" onclick="goHome()">⬅ Wróć do menu głównego</button>
             
-            <!-- BLOG SIDEBAR -->
             <div id="sidebar-blog" class="module-sidebar">
                 <h3>Asystent Bloga</h3>
                 <div class="sidebar-menu">
@@ -124,12 +42,13 @@
                 <p id="url-status" style="font-size: 12px; color: green;"></p>
                 <button class="btn-primary" onclick="fetchUrlContext()" style="width: 100%;">Pobierz dane ze strony</button>
                 <hr>
-                <div class="status-box status-ok" id="idosell-status-indicator">API IdoSell OK</div>
+                <div class="status-box {% if status_idosell %}status-ok{% else %}status-error{% endif %}">
+                    {% if status_idosell %} API IdoSell OK ({{ domena }}) {% else %} Brak kluczy IdoSell! {% endif %}
+                </div>
                 <br>
                 <button class="btn-primary" onclick="resetDraft()" style="background: #dc3545; border:none; width:100%;">🗑️ Resetuj projekt</button>
             </div>
 
-            <!-- SOCIAL SIDEBAR -->
             <div id="sidebar-social" class="module-sidebar" style="display:none;">
                 <h3>Social Media AI</h3>
                 <div class="sidebar-menu">
@@ -139,14 +58,13 @@
                 </div>
             </div>
 
-            <!-- CHAT SIDEBAR -->
             <div id="sidebar-chat" class="module-sidebar" style="display:none;">
                 <h3>Konsultant AI</h3>
                 <div class="sidebar-menu">
                     <button class="active">💬 Burza Mózgów</button>
                 </div>
                 <hr>
-                <p style="font-size: 13px; color: #555; line-height: 1.5;">Bot pamięta całą konwersację i zna markę Wassyl. Możesz przesyłać mu <strong>zdjęcia lub krótkie wideo</strong> do oceny (np. hooków w MP4).</p>
+                <p style="font-size: 13px; color: #555; line-height: 1.5;">Bot pamięta całą konwersację. Możesz przesyłać mu <strong>zdjęcia lub krótkie wideo</strong> do oceny (MP4/MOV).</p>
                 <button class="btn-primary" onclick="clearChat()" style="background: #dc3545; border:none; width:100%; margin-top: 10px;">🗑️ Wyczyść historię</button>
             </div>
         </div>
@@ -156,19 +74,16 @@
             <div class="logo-container"><img src="https://wassyl.pl/data/gfx/mask/pol/logo_1_big.svg" width="220" alt="Wassyl Logo"></div>
             <h1 class="header-title">Asystent Content Marketingu</h1>
 
-            <!-- MODUŁ BLOG -->
+            <!-- WIDOKI GŁÓWNE -->
             <div id="module-blog" class="module-content">
                 <div id="tab1" class="tab-content active">
                     <h2>💡 Propozycje tematów na bloga</h2>
                     <div class="box-option">
                         <h3 style="margin-top: 0;">Opcja A: Automatyczne Trendy</h3>
-                        <p style="font-size: 14px; color: #555;">Zdamy się na AI i aktualne trendy sezonowe pod Google Discover (lifestylowy vibe).</p>
                         <button class="btn-primary" onclick="generateIdeas('')">🔥 Generuj z trendów</button>
                     </div>
                     <div class="box-option">
                         <h3 style="margin-top: 0;">Opcja B: Twój konkretny pomysł</h3>
-                        <p style="font-size: 14px; color: #555;">Wpisz krótkie hasło (np. spacer z psem, kino, kawa), a my ubierzemy to w chwytliwe tematy.</p>
-                        <label>Twój pomysł:</label>
                         <input type="text" id="idea-input" placeholder="np. sukienka na szybką kawę">
                         <button class="btn-primary" onclick="generateIdeas(document.getElementById('idea-input').value)">💡 Generuj z pomysłu</button>
                     </div>
@@ -178,34 +93,21 @@
 
                 <div id="tab2" class="tab-content">
                     <h2>✍️ Dwustopniowy Kreator Treści</h2>
-                    <p style="font-size: 13px; color: #666;">Zapisujemy Twoją pracę w tle. Nic nie zginie przy odświeżeniu!</p>
-                    
-                    <label style="font-weight: 600;">Wybrany temat artykułu:</label>
                     <input type="text" id="topic-input" oninput="saveDraft()" placeholder="Wybrany temat artykułu">
-                    
-                    <label style="font-weight: 600;">Dodatkowe wytyczne (opcjonalnie):</label>
                     <textarea id="guidelines-input" rows="2" placeholder="Dodatkowe wytyczne (opcjonalnie)" oninput="saveDraft()"></textarea>
-                    
                     <div style="background: #eef2f5; padding: 15px; border-radius: 5px; margin-bottom: 15px; border-left: 4px solid #0066cc;">
-                        <label style="font-weight: 600; margin-top:0;">ID produktów do opisania w tekście (opcjonalnie):</label>
                         <input type="text" id="context-product-ids" placeholder="ID produktów do opisu (np. 16216, 16357)" oninput="syncProductIds()">
-                        <p style="font-size: 12px; color: #555; margin-top: -10px; margin-bottom: 0;">AI pobierze ich nazwy ze sklepu, by merytorycznie opisać je w artykule. ID skopiują się też do publikacji HTML.</p>
                     </div>
-
-                    <button class="btn-primary" onclick="generatePlan()">📋 KROK 1: Wygeneruj Szkielet (Plan wpisu)</button>
+                    <button class="btn-primary" onclick="generatePlan()">📋 KROK 1: Wygeneruj Szkielet</button>
                     <div id="loader-plan" class="loader">⏳ Tworzę strukturę wpisu...</div>
                     
                     <div id="plan-section" style="display: none; margin-top: 25px; padding: 20px; border-left: 4px solid #0066cc; background: #f4f9ff;">
-                        <h3 style="margin-top: 0;">🛠️ Edytor Szkieletu</h3>
-                        <p style="font-size: 13px; color: #555;">Możesz tu dopisać swoje punkty lub zmienić nagłówki H2.</p>
                         <textarea id="plan-result" rows="10" oninput="saveDraft()" style="font-family: monospace; font-size: 14px; background: #fff;"></textarea>
-                        <button class="btn-primary" onclick="generateArticleFromPlan()" style="background: #0066cc; margin-top: 10px;">🚀 KROK 2: Napisz Pełny Artykuł z Planu</button>
+                        <button class="btn-primary" onclick="generateArticleFromPlan()" style="background: #0066cc; margin-top: 10px;">🚀 KROK 2: Napisz Pełny Artykuł</button>
                     </div>
 
-                    <div id="loader-2" class="loader">⏳ Piszę obszerny artykuł... Cierpliwości.</div>
-                    
+                    <div id="loader-2" class="loader">⏳ Piszę obszerny artykuł...</div>
                     <div id="article-section" style="display: none; margin-top: 30px;">
-                        <hr style="border: 0; border-top: 1px solid #eee; margin-bottom: 20px;">
                         <h3 style="display: flex; justify-content: space-between;">📝 Twój Artykuł <span id="char-counter" class="counter-badge">0 znaków</span></h3>
                         <div id="article-result" class="result-box" contenteditable="true" oninput="handleArticleEdit()"></div>
                         <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
@@ -231,7 +133,7 @@
                             <label>ID produktów do HTML:</label><input type="text" id="pub-html-ids" oninput="saveDraft()">
                         </div>
                         <div class="col">
-                            <label>ID produktów na Kolaż:</label><input type="text" id="pub-collage-ids">
+                            <label>ID na Kolaż:</label><input type="text" id="pub-collage-ids">
                             <button class="btn-primary" onclick="generateCollage()">🖼️ Generuj Kolaż</button>
                             <div id="loader-collage" class="loader">⏳ Pobieram zdjęcia...</div>
                             <img id="collage-preview" src="" style="width: 100%; margin-top: 15px; display:none;">
@@ -247,7 +149,6 @@
                 </div>
             </div>
 
-            <!-- MODUŁ SOCIAL MEDIA -->
             <div id="module-social" class="module-content">
                 <div id="sm-trend" class="tab-content active">
                     <h2>🔥 Trendomierz Fashion</h2>
@@ -286,22 +187,19 @@
                 </div>
             </div>
 
-            <!-- MODUŁ CZATBOT Z OBSŁUGĄ WIDEO -->
             <div id="module-chat" class="module-content">
                 <div id="chat-box" style="flex: 1; overflow-y: auto; background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 20px; display: flex; flex-direction: column;">
                     <div style="text-align: center; color: #888; font-size: 13px; margin-bottom: 20px;">Początek rozmowy z Konsultantem AI Wassyl. Prześlij pomysł, grafikę lub <strong>plik wideo (MP4/MOV)</strong> do oceny.</div>
                 </div>
                 
                 <div style="margin-top: 15px; background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 15px; box-shadow: 0 -2px 10px rgba(0,0,0,0.05);">
-                    <div id="chat-image-preview-container" style="display:none; margin-bottom: 10px; position: relative; display: inline-block;">
-                    </div>
-                    
+                    <div id="chat-image-preview-container" style="display:none; margin-bottom: 10px; position: relative; display: inline-block;"></div>
                     <div style="display: flex; gap: 10px; align-items: stretch;">
                         <label class="btn-primary" style="cursor: pointer; background: #f8f9fa; color: #333; border: 1px solid #ddd; display: flex; align-items: center; justify-content: center; padding: 0 15px; margin: 0; font-size: 20px;" title="Załącz zdjęcie lub wideo do oceny">
                             🎞️
                             <input type="file" id="chat-file-input" accept="image/*,video/*" style="display: none;" onchange="handleChatFileUpload(event)">
                         </label>
-                        <input type="text" id="chat-input" placeholder="Oceń pierwsze 3 sekundy tego wideo..." style="margin: 0; flex: 1;" onkeypress="if(event.key === 'Enter') sendChatMessage()">
+                        <input type="text" id="chat-input" placeholder="Wiadomość do AI..." style="margin: 0; flex: 1;" onkeypress="if(event.key === 'Enter') sendChatMessage()">
                         <button class="btn-primary" style="margin: 0;" onclick="sendChatMessage()">Wyślij</button>
                     </div>
                 </div>
@@ -310,628 +208,10 @@
         </div>
     </div>
 
-    <script>
-        const SHOP_CONTEXT = `
-Jesteś ekspertem od content marketingu dla marki WASSYL (ubrania na co dzień: bluzy, dresy, sukienki).
-Grupa docelowa: Gen Z i Millenialsi. Styl: edgy, luz, "vibe". Zakaz: słowa premium/luksus, adresy, miasta.
-Zawsze pisz lifestylowo (spacer z psem, kawa, uczelnia).
-`;
-        let scrapedContext = "";
-        let collageBase64 = "";
+    <script src="{{ url_for('static', filename='js/core.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/blog.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/social.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/chat.js') }}"></script>
 
-        // --- ZMIANA: Wykorzystano obiekty RegExp zamiast literałów z ukośnikami
-        async function exportToDrive(elementId, titlePrefix, btnElement) {
-            const contentHTML = document.getElementById(elementId).innerHTML;
-            
-            const hReg = new RegExp('<h[2-4][^>]*>', 'g');
-            const hCloseReg = new RegExp('</h[2-4]>', 'g');
-            const brReg = new RegExp('<br>', 'gi');
-            const pCloseReg = new RegExp('</p>', 'gi');
-            const tagsReg = new RegExp('<[^>]+>', 'g');
-
-            const cleanText = contentHTML
-                .replace(hReg, '\n\n')
-                .replace(hCloseReg, '\n')
-                .replace(brReg, '\n')
-                .replace(pCloseReg, '\n\n')
-                .replace(tagsReg, '')
-                .trim();
-
-            if(!cleanText) { alert("Brak treści do eksportu!"); return; }
-            
-            const originalText = btnElement.innerText;
-            btnElement.innerText = "⏳ Zapisuję w Google Drive...";
-            btnElement.disabled = true;
-            
-            try {
-                const res = await fetch('/api/export_drive', { 
-                    method: 'POST', 
-                    headers: {'Content-Type': 'application/json'}, 
-                    body: JSON.stringify({title: titlePrefix + " - Wassyl AI", content: cleanText}) 
-                });
-                const data = await res.json();
-                
-                if(data.success) { 
-                    btnElement.innerHTML = `✅ Gotowe! <a href="${data.link}" target="_blank" style="color:white; text-decoration:underline;">Otwórz Dokument</a>`; 
-                } else { 
-                    alert("Błąd: " + data.error); 
-                    btnElement.innerText = originalText; 
-                    btnElement.disabled = false; 
-                }
-            } catch(e) { 
-                alert("Błąd sieci: " + e); 
-                btnElement.innerText = originalText; 
-                btnElement.disabled = false; 
-            }
-        }
-
-        function toggleMobileMenu() {
-            document.getElementById('app-sidebar').classList.toggle('open');
-            document.getElementById('sidebar-overlay').classList.toggle('active');
-        }
-
-        // --- ZMIANA: Usunięto niebezpieczne ukośniki z parsera Markdown ---
-        function formatMarkdown(text) {
-            if(!text) return "";
-            
-            const linkRegex = new RegExp('\\[(.*?)\\]\\((.*?)\\)', 'g');
-            
-            return text
-                .replace(/^### (.*$)/gim, '<h4 style="margin-top:20px; margin-bottom:5px; font-size:16px; color:#333;">$1</h4>')
-                .replace(/^## (.*$)/gim, '<h3 style="margin-top:25px; margin-bottom:10px; font-size:18px; color:#111;">$1</h3>')
-                .replace(/^# (.*$)/gim, '<h2 style="margin-top:30px; margin-bottom:10px; font-size:22px; color:#000;">$1</h2>')
-                .replace(/\*\*(.*?)\*\*/gim, '<strong>$1</strong>')
-                .replace(/\*(.*?)\*/gim, '<em>$1</em>')
-                .replace(linkRegex, '<a href="$2" target="_blank" style="color: #0066cc;">$1</a>');
-        }
-
-        function openModule(module) {
-            document.getElementById('view-home').style.display = 'none';
-            document.getElementById('view-app').style.display = 'flex';
-            
-            document.querySelectorAll('.module-content').forEach(el => el.classList.remove('active'));
-            document.querySelectorAll('.module-sidebar').forEach(el => el.style.display = 'none');
-            
-            if(module === 'blog') { 
-                document.getElementById('module-blog').classList.add('active'); 
-                document.getElementById('sidebar-blog').style.display = 'block'; 
-                switchTab('tab1'); 
-            } else if(module === 'social') { 
-                document.getElementById('module-social').classList.add('active'); 
-                document.getElementById('sidebar-social').style.display = 'block'; 
-                switchSocialTab('sm-trend'); 
-            } else if(module === 'chat') { 
-                document.getElementById('module-chat').classList.add('active'); 
-                document.getElementById('sidebar-chat').style.display = 'block'; 
-            }
-        }
-
-        function goHome() {
-            document.getElementById('view-app').style.display = 'none';
-            document.getElementById('view-home').style.display = 'flex';
-            if(window.innerWidth <= 768) { 
-                document.getElementById('app-sidebar').classList.remove('open'); 
-                document.getElementById('sidebar-overlay').classList.remove('active'); 
-            }
-        }
-
-        // --- ZAAWANSOWANA LOGIKA CZATBOTA Z WIDEO ---
-        let chatHistory = [];
-        let chatFileObj = null;
-        let chatFileType = null;
-        let chatFilePreviewUrl = null;
-
-        function handleChatFileUpload(event) {
-            const file = event.target.files[0];
-            if(!file) return;
-            
-            chatFileObj = file;
-            chatFileType = file.type;
-            chatFilePreviewUrl = URL.createObjectURL(file);
-            
-            const previewContainer = document.getElementById('chat-image-preview-container');
-            previewContainer.innerHTML = ''; 
-
-            const btnHTML = `<button onclick="removeChatFile()" style="position: absolute; top: -10px; right: -10px; background: #dc3545; color: white; border: none; border-radius: 50%; width: 22px; height: 22px; cursor: pointer; font-size: 12px; font-weight: bold; line-height: 1; z-index:10;">✖</button>`;
-
-            if (chatFileType.startsWith('video/')) {
-                previewContainer.innerHTML = `<video src="${chatFilePreviewUrl}" style="max-height: 100px; border-radius: 5px; border: 1px solid #ddd;" muted></video>` + btnHTML;
-            } else {
-                previewContainer.innerHTML = `<img src="${chatFilePreviewUrl}" style="max-height: 100px; border-radius: 5px; border: 1px solid #ddd;">` + btnHTML;
-            }
-            previewContainer.style.display = 'inline-block';
-        }
-
-        function removeChatFile() {
-            chatFileObj = null; 
-            chatFileType = null; 
-            chatFilePreviewUrl = null;
-            document.getElementById('chat-image-preview-container').style.display = 'none';
-            document.getElementById('chat-file-input').value = '';
-        }
-
-        function clearChat() {
-            if(confirm("Czy na pewno chcesz wyczyścić historię rozmowy?")) {
-                chatHistory = [];
-                document.getElementById('chat-box').innerHTML = '<div style="text-align: center; color: #888; font-size: 13px; margin-bottom: 20px;">Początek nowej rozmowy.</div>';
-            }
-        }
-
-        function appendChatBubble(role, text, fileSrc=null, fileType=null, id=null) {
-            const box = document.getElementById('chat-box');
-            const div = document.createElement('div');
-            if(id) div.id = id;
-            div.style.marginBottom = "15px"; 
-            div.style.display = "flex"; 
-            div.style.flexDirection = "column"; 
-            div.style.alignItems = role === 'user' ? 'flex-end' : 'flex-start';
-
-            let innerHTML = `<div style="max-width: 85%; padding: 12px 18px; border-radius: 15px; font-size: 15px; line-height: 1.5; ${role === 'user' ? 'background: #000; color: #fff; border-bottom-right-radius: 2px;' : 'background: #f4f9ff; color: #333; border-bottom-left-radius: 2px; border: 1px solid #cce0ff; box-shadow: 0 1px 3px rgba(0,0,0,0.05);'}">`;
-            
-            if(fileSrc) {
-                if(fileType && fileType.startsWith('video/')) {
-                    innerHTML += `<video src="${fileSrc}" style="max-width: 200px; border-radius: 8px; margin-bottom: 10px; display: block;" controls></video>`;
-                } else {
-                    innerHTML += `<img src="${fileSrc}" style="max-width: 200px; border-radius: 8px; margin-bottom: 10px; display: block;">`;
-                }
-            }
-            if(text) innerHTML += `<div>${text}</div>`;
-            innerHTML += `</div>`;
-            
-            div.innerHTML = innerHTML;
-            box.appendChild(div); 
-            box.scrollTop = box.scrollHeight;
-        }
-
-        async function sendChatMessage() {
-            const inputEl = document.getElementById('chat-input');
-            let text = inputEl.value.trim();
-            if(!text && !chatFileObj) return;
-
-            appendChatBubble('user', text, chatFilePreviewUrl, chatFileType);
-
-            let backendMessage = text;
-            if (chatHistory.length === 0) {
-                backendMessage = `KONTEKST MARKI WASSYL: \n${SHOP_CONTEXT}\n---\nPierwsza wiadomość:\n${text}`;
-            }
-
-            const formData = new FormData();
-            formData.append('message', backendMessage);
-            formData.append('history', JSON.stringify(chatHistory));
-            if (chatFileObj) formData.append('file', chatFileObj);
-
-            const historyTextToSave = chatHistory.length === 0 ? backendMessage : text;
-            inputEl.value = ''; 
-            removeChatFile();
-
-            const loaderId = 'loader-' + Date.now();
-            appendChatBubble('model', '<span class="loader" style="display:inline-block; margin:0; color:#555;">⏳ Analizuję (wideo potrwa do 30 sekund)...</span>', null, null, loaderId);
-
-            try {
-                const res = await fetch('/api/chat', { method: 'POST', body: formData });
-                const data = await res.json();
-                
-                document.getElementById(loaderId).remove();
-                
-                if(data.error) {
-                    appendChatBubble('model', `❌ Wystąpił błąd: ${data.error}`);
-                } else {
-                    appendChatBubble('model', formatMarkdown(data.result));
-                    let userEntry = { role: 'user', text: historyTextToSave };
-                    if(data.new_file) {
-                        userEntry.file_uri = data.new_file.file_uri;
-                        userEntry.mime_type = data.new_file.mime_type;
-                    }
-                    chatHistory.push(userEntry);
-                    chatHistory.push({ role: 'model', text: data.result });
-                }
-            } catch (e) {
-                document.getElementById(loaderId).remove();
-                appendChatBubble('model', `❌ Błąd sieci lub serwera: ${e}`);
-            }
-        }
-
-        // --- BLOG LOGIC ---
-        function syncProductIds() { 
-            document.getElementById('pub-html-ids').value = document.getElementById('context-product-ids').value; 
-            saveDraft(); 
-        }
-        
-        function switchTab(tabId) { 
-            document.querySelectorAll('#module-blog .tab-content').forEach(el => el.classList.remove('active')); 
-            document.querySelectorAll('#sidebar-blog button').forEach(el => el.classList.remove('active')); 
-            document.getElementById(tabId).classList.add('active'); 
-            document.getElementById('btn-' + tabId).classList.add('active'); 
-            if(tabId === 'tab2') updateCounter(); 
-            if(window.innerWidth <= 768) toggleMobileMenu(); 
-        }
-        
-        function updateCounter() { 
-            const text = document.getElementById('article-result').innerText || ""; 
-            const len = text.length; 
-            const badge = document.getElementById('char-counter'); 
-            badge.innerText = len + " znaków"; 
-            badge.classList.remove('counter-good', 'counter-warn'); 
-            if (len > 3800 && len < 5500) { badge.classList.add('counter-good'); } 
-            else if (len > 0) { badge.classList.add('counter-warn'); } 
-        }
-        
-        function handleArticleEdit() { 
-            updateCounter(); 
-            saveDraft(); 
-        }
-        
-        function saveDraft() { 
-            const draft = { 
-                topic: document.getElementById('topic-input').value, 
-                contextIds: document.getElementById('context-product-ids').value, 
-                plan: document.getElementById('plan-result').value, 
-                article: document.getElementById('article-result').innerText, 
-                title: document.getElementById('pub-title').value, 
-                lead: document.getElementById('pub-lead').value, 
-                recIds: document.getElementById('pub-rec-ids').value, 
-                htmlIds: document.getElementById('pub-html-ids').value, 
-                htmlCode: document.getElementById('html-result').value, 
-                collage: collageBase64 
-            }; 
-            localStorage.setItem('idosell_draft', JSON.stringify(draft)); 
-        }
-        
-        function loadDraft() { 
-            const draftStr = localStorage.getItem('idosell_draft'); 
-            if(draftStr) { 
-                const d = JSON.parse(draftStr); 
-                document.getElementById('topic-input').value = d.topic || ''; 
-                document.getElementById('context-product-ids').value = d.contextIds || ''; 
-                if(d.plan) { document.getElementById('plan-result').value = d.plan; document.getElementById('plan-section').style.display = 'block'; } 
-                if(d.article) { document.getElementById('article-result').innerText = d.article; document.getElementById('article-section').style.display = 'block'; updateCounter(); } 
-                document.getElementById('pub-title').value = d.title || ''; 
-                document.getElementById('pub-lead').value = d.lead || ''; 
-                document.getElementById('pub-rec-ids').value = d.recIds || ''; 
-                document.getElementById('pub-html-ids').value = d.htmlIds || ''; 
-                if(d.htmlCode) { document.getElementById('html-result').value = d.htmlCode; document.getElementById('html-section').style.display = 'block'; } 
-                if(d.collage) { collageBase64 = d.collage; document.getElementById('collage-preview').src = d.collage; document.getElementById('collage-preview').style.display = 'block'; } 
-            } 
-        }
-        
-        function resetDraft() { 
-            if(confirm("Zresetować pracę?")) { 
-                localStorage.removeItem('idosell_draft'); 
-                location.reload(); 
-            } 
-        }
-        
-        window.onload = loadDraft;
-
-        // --- SOCIAL MEDIA LOGIC ---
-        function switchSocialTab(tabId) { 
-            document.querySelectorAll('#module-social .tab-content').forEach(el => el.classList.remove('active')); 
-            document.querySelectorAll('#sidebar-social button').forEach(el => el.classList.remove('active')); 
-            document.getElementById(tabId).classList.add('active'); 
-            document.getElementById('btn-' + tabId).classList.add('active'); 
-            if(window.innerWidth <= 768) toggleMobileMenu(); 
-        }
-
-        async function getProductContextText(inputId) { 
-            const ids = document.getElementById(inputId).value; 
-            if(!ids) return ""; 
-            try { 
-                const resProd = await fetch('/api/idosell/products', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ids}) }); 
-                const dataProd = await resProd.json(); 
-                if(dataProd.products && dataProd.products.length > 0) { 
-                    return "\nUWZGLĘDNIJ:\n" + dataProd.products.map(p => `- "${p.nazwa}"`).join('\n'); 
-                } 
-            } catch (e) { 
-                console.error(e); 
-            } 
-            return ""; 
-        }
-        
-        async function analyzeTrends() {
-            const resBox = document.getElementById('trend-result'); 
-            document.getElementById('loader-trend').style.display = 'block'; 
-            document.getElementById('trend-wrapper').style.display = 'none';
-            
-            const prompt = `Twoje zadanie to przeprowadzić research na żywo (Google Search). Znajdź aktualne trendy modowe i ubraniowe na TikToku. 1. Wymień 3 najgorętsze trendy. 2. 🔗 PRZYKŁADY: Do każdego dodaj link do wideo/hashtagu. 3. WDROŻENIE WASSYL: Napisz jak możemy to wykorzystać w rolkach. Markdown.`;
-            
-            try {
-                const res = await fetch('/api/generate', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({prompt: prompt, search: true}) });
-                const data = await res.json(); 
-                document.getElementById('loader-trend').style.display = 'none'; 
-                resBox.innerHTML = formatMarkdown(data.result); 
-                document.getElementById('trend-wrapper').style.display = 'block';
-            } catch(e) {
-                document.getElementById('loader-trend').style.display = 'none'; 
-                resBox.innerHTML = "Błąd pobierania trendów.";
-            }
-        }
-
-        async function generateHooks() {
-            const topic = document.getElementById('hook-topic').value; 
-            if(!topic && !document.getElementById('hook-product-ids').value) { alert("Podaj temat!"); return; }
-            
-            const resBox = document.getElementById('hooks-result'); 
-            document.getElementById('loader-hooks').style.display = 'block'; 
-            document.getElementById('hooks-wrapper').style.display = 'none';
-            
-            const extraProductData = await getProductContextText('hook-product-ids');
-            const prompt = `${SHOP_CONTEXT}\nWygeneruj 10 viralowych hooków na TikTok/Reels o: "${topic}". ${extraProductData}\nPodziel hooki na 3 kategorie: 1. Negatywne 2. Tajemnica 3. Ból/Rozwiązanie. Markdown.`;
-            
-            try {
-                const res = await fetch('/api/generate', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({prompt: prompt}) });
-                const data = await res.json(); 
-                document.getElementById('loader-hooks').style.display = 'none'; 
-                resBox.innerHTML = formatMarkdown(data.result); 
-                document.getElementById('hooks-wrapper').style.display = 'block';
-            } catch(e) {
-                document.getElementById('loader-hooks').style.display = 'none'; 
-            }
-        }
-
-        async function generateScript() {
-            const topic = document.getElementById('script-topic').value; 
-            const dur = document.getElementById('script-duration').value; 
-            if(!topic) { alert("Podaj temat wideo!"); return; }
-            
-            const resBox = document.getElementById('script-result'); 
-            document.getElementById('loader-script').style.display = 'block'; 
-            document.getElementById('script-wrapper').style.display = 'none';
-            
-            const extraProductData = await getProductContextText('script-product-ids');
-            const prompt = `${SHOP_CONTEXT}\nStwórz gotowy, reżyserski scenariusz wideo na TikTok. Czas: ${dur} Temat: "${topic}" ${extraProductData}\nWYTYCZNE: 1. Lista: **[SEKUNDY]** | **WIZJA:** | **FONIA:**. 2. Mocny Hook. 3. Opis posta z wezwaniem do akcji (CTA) i hashtagami. Markdown.`;
-            
-            try {
-                const res = await fetch('/api/generate', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({prompt: prompt}) });
-                const data = await res.json(); 
-                document.getElementById('loader-script').style.display = 'none'; 
-                resBox.innerHTML = formatMarkdown(data.result); 
-                document.getElementById('script-wrapper').style.display = 'block';
-            } catch(e) {
-                document.getElementById('loader-script').style.display = 'none';
-            }
-        }
-
-        function repurposeFromBlog() {
-            const blogText = document.getElementById('article-result').innerText; 
-            if(!blogText || blogText.length < 50) { alert("Najpierw stwórz artykuł!"); return; }
-            
-            document.getElementById('script-topic').value = "Recykling na podstawie artykułu. BAZA WIEDZY: \n" + blogText.substring(0, 500) + "..."; 
-            generateScript();
-        }
-
-        // --- API CALLS ---
-        async function fetchUrlContext() { 
-            const url = document.getElementById('store-url').value; 
-            if(!url) return; 
-            try {
-                const res = await fetch('/api/fetch_url', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({url}) }); 
-                const data = await res.json(); 
-                if(data.text) { 
-                    scrapedContext = "DODATKOWY KONTEKST: " + data.text; 
-                    document.getElementById('url-status').innerText = "Kontekst pobrany!"; 
-                } 
-            } catch(e) {}
-        }
-        
-        // ZMIANA: Zastąpienie niebezpiecznych regexów metodą split().join()
-        async function generateIdeas(ideaStr) { 
-            document.getElementById('loader-1').style.display = 'block'; 
-            document.getElementById('ideas-result').innerHTML = ''; 
-            
-            let prompt_baza = ideaStr ? `Bazuj ściśle na tym koncepcie: "${ideaStr}".` : `Przeanalizuj sezon i zaproponuj tematy.`; 
-            const prompt = `${SHOP_CONTEXT} ${scrapedContext}\nJako mistrz SEO pod Google Discover, wymyśl 3 ultra-chwytliwe tematy na wpis blogowy. ${prompt_baza}\nZwróć BEZWZGLĘDNIE jako CZYSTĄ LISTĘ JSON: [{"tytul": "...", "uzasadnienie": "..."}]`; 
-            
-            try {
-                const res = await fetch('/api/generate', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({prompt: prompt}) }); 
-                const data = await res.json(); 
-                document.getElementById('loader-1').style.display = 'none'; 
-                
-                const rawText = data.result.trim().split('```json').join('').split('```').join('').trim();
-                const parsed = JSON.parse(rawText); 
-                let html = ""; 
-                
-                parsed.forEach(item => { 
-                    const safeTitle = item.tytul.split("'").join("\\'");
-                    html += `<div style="background:#fff; padding:15px; margin-bottom:10px; border-left:4px solid #000; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-                                <h4 style="margin-top:0; font-size: 18px;">${item.tytul}</h4>
-                                <p style="font-size: 14px; color: #555;">${item.uzasadnienie}</p>
-                                <button class="btn-primary" onclick="setTopicAndSwitch('${safeTitle}')">✍️ Przejdź</button>
-                             </div>`; 
-                }); 
-                document.getElementById('ideas-result').innerHTML = html; 
-            } catch(e) { 
-                document.getElementById('loader-1').style.display = 'none';
-                document.getElementById('ideas-result').innerHTML = `<p style="color:red; background:#fee; padding:10px;">Błąd formatu. Sprobuj ponownie.</p>`; 
-            } 
-        }
-        
-        function setTopicAndSwitch(topic) { 
-            document.getElementById('topic-input').value = topic; 
-            switchTab('tab2'); 
-            saveDraft(); 
-        }
-        
-        async function generatePlan() { 
-            const topic = document.getElementById('topic-input').value; 
-            const guidelines = document.getElementById('guidelines-input').value; 
-            if(!topic) { alert("Podaj temat!"); return; } 
-            
-            document.getElementById('loader-plan').style.display = 'block'; 
-            const extraProductData = await getProductContextText('context-product-ids'); 
-            const prompt = `${SHOP_CONTEXT} ${scrapedContext}\nSZKIELET artykułu: "${topic}". ${guidelines} ${extraProductData}\nZwróć TYLKO strukturę: H1, Lead, 3x H2.`; 
-            
-            try {
-                const res = await fetch('/api/generate', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({prompt: prompt}) }); 
-                const data = await res.json(); 
-                document.getElementById('loader-plan').style.display = 'none'; 
-                document.getElementById('plan-result').value = data.result.trim(); 
-                document.getElementById('plan-section').style.display = 'block'; 
-                saveDraft(); 
-            } catch(e) { document.getElementById('loader-plan').style.display = 'none'; }
-        }
-        
-        async function generateArticleFromPlan() { 
-            const planText = document.getElementById('plan-result').value; 
-            if(!planText) { alert("Wygeneruj plan!"); return; } 
-            
-            document.getElementById('loader-2').style.display = 'block'; 
-            const extraProductData = await getProductContextText('context-product-ids'); 
-            const prompt = `${SHOP_CONTEXT} ${scrapedContext}\nNapisz artykuł na bazie planu: \n${planText} \n${extraProductData}\n4000-5000 znaków. Pisz lifestylowo. Markdown.`; 
-            
-            try {
-                const res = await fetch('/api/generate', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({prompt: prompt}) }); 
-                const data = await res.json(); 
-                document.getElementById('loader-2').style.display = 'none'; 
-                document.getElementById('article-result').innerText = data.result; 
-                document.getElementById('article-section').style.display = 'block'; 
-                
-                const lines = data.result.split('\n'); 
-                let t = "", l = ""; 
-                for(let line of lines) { 
-                    if(line.startsWith('# ')) { 
-                        t = line.split('# ').join('').split('*').join(''); 
-                        break; 
-                    } 
-                } 
-                for(let line of lines) { 
-                    let cl = line.trim(); 
-                    if(cl && !cl.startsWith('#') && !cl.startsWith('!')) { 
-                        l = cl; 
-                        break; 
-                    } 
-                } 
-                document.getElementById('pub-title').value = t; 
-                document.getElementById('pub-lead').value = l; 
-                updateCounter(); 
-                saveDraft(); 
-            } catch(e) { document.getElementById('loader-2').style.display = 'none'; }
-        }
-        
-        async function quickRevise(instruction) { 
-            const curr = document.getElementById('article-result').innerText; 
-            if(!curr) return; 
-            document.getElementById('loader-2').style.display = 'block'; 
-            
-            const prompt = `${SHOP_CONTEXT} Popraw tekst: "${instruction}". TEKST: ${curr}`; 
-            try {
-                const res = await fetch('/api/generate', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({prompt: prompt}) }); 
-                const data = await res.json(); 
-                document.getElementById('loader-2').style.display = 'none'; 
-                document.getElementById('article-result').innerText = data.result; 
-                updateCounter(); 
-                saveDraft(); 
-            } catch(e) { document.getElementById('loader-2').style.display = 'none'; }
-        }
-        
-        async function reviseArticle() { 
-            const rev = document.getElementById('revision-input').value; 
-            if(!rev) return; 
-            quickRevise(rev); 
-            document.getElementById('revision-input').value = ""; 
-        }
-        
-        async function generateCollage() { 
-            const ids = document.getElementById('pub-collage-ids').value; 
-            if(!ids) { alert("Podaj ID!"); return; } 
-            
-            document.getElementById('loader-collage').style.display = 'block'; 
-            try {
-                const resProd = await fetch('/api/idosell/products', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ids}) }); 
-                const dataProd = await resProd.json(); 
-                if(dataProd.products && dataProd.products.length > 0) { 
-                    const urls = dataProd.products.map(p => p.url_zdjecia); 
-                    const resCol = await fetch('/api/collage', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({urls: urls}) }); 
-                    const dataCol = await resCol.json(); 
-                    if(dataCol.collage) { 
-                        collageBase64 = dataCol.collage; 
-                        document.getElementById('collage-preview').src = collageBase64; 
-                        document.getElementById('collage-preview').style.display = 'block'; 
-                        saveDraft(); 
-                    } 
-                } else { 
-                    alert("Nie znaleziono produktów."); 
-                } 
-            } catch(e) {}
-            document.getElementById('loader-collage').style.display = 'none'; 
-        }
-        
-        // ZMIANA: Zastąpienie niebezpiecznych regexów metodą split().join()
-        async function generateHtml() { 
-            const ids = document.getElementById('pub-html-ids').value; 
-            const text = document.getElementById('article-result').innerText; 
-            if(!text) return; 
-            
-            document.getElementById('loader-html').style.display = 'block'; 
-            let prods = []; 
-            if(ids) { 
-                try {
-                    const resProd = await fetch('/api/idosell/products', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ids}) }); 
-                    const dataProd = await resProd.json(); 
-                    prods = dataProd.products || []; 
-                } catch(e) {}
-            } 
-            
-            const prompt = `Zmień artykuł na HTML IdoSell. ZASADY: Akapity: <p style="text-align: justify;"><span style="font-size: 11pt; font-family: Arial,sans-serif; color: #000000;">. Nagłówki: <h3 style="font-size: 14pt; text-align: justify;"><span style="font-size: 12pt; font-family: Arial,sans-serif; color: #000000; font-weight: bold;">. Używaj klas iai-section. KRYTYCZNE: <img> musi mieć style="width: 45%; height: auto; max-width: 100%;". Produkty: ${JSON.stringify(prods)}. HTML. Tekst: ${text}`; 
-            
-            try {
-                const res = await fetch('/api/generate', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({prompt: prompt}) }); 
-                const data = await res.json(); 
-                document.getElementById('loader-html').style.display = 'none'; 
-                
-                const cleanHTML = data.result.trim().split('```html').join('').split('```').join('').trim();
-                document.getElementById('html-result').value = cleanHTML; 
-                document.getElementById('html-section').style.display = 'block'; 
-                saveDraft(); 
-            } catch(e) { document.getElementById('loader-html').style.display = 'none'; }
-        }
-        
-        async function publishToIdosell() { 
-            const title = document.getElementById('pub-title').value; 
-            const lead = document.getElementById('pub-lead').value; 
-            const htmlCode = document.getElementById('html-result').value; 
-            const recIdsStr = document.getElementById('pub-rec-ids').value; 
-            
-            if(!title || !htmlCode) return; 
-            
-            const now = new Date(); 
-            const formatDaty = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0'); 
-            
-            const payload = { 
-                params: { 
-                    shopId: 1, 
-                    visible: "n", 
-                    date: formatDaty, 
-                    titleLinkType: "fullContentLink", 
-                    visibleOnSitesList: [{ siteId: "display_on_blog" }, { siteId: "2_main" }], 
-                    langs: [{ langId: "pol", title: title, shortDescription: lead, longDescription: htmlCode }] 
-                } 
-            }; 
-            
-            if(collageBase64) {
-                payload.params.pictureData = { pictureBase64: collageBase64.split(",")[1], pictureFormat: "jpg" }; 
-            }
-            if(recIdsStr) { 
-                const arr = recIdsStr.split(",").map(x => x.trim()).filter(x => !isNaN(x) && x!==""); 
-                if(arr.length > 0) payload.params.products = arr.map(id => ({productId: parseInt(id)})); 
-            } 
-            
-            document.getElementById('loader-publish').style.display = 'block'; 
-            try {
-                const res = await fetch('/api/idosell/publish', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({payload}) }); 
-                const data = await res.json(); 
-                document.getElementById('loader-publish').style.display = 'none'; 
-                if(data.status === 200 && data.response && !data.response.errors) { 
-                    alert("SUKCES!"); 
-                    localStorage.removeItem('idosell_draft'); 
-                    location.reload(); 
-                } else {
-                    alert("BŁĄD!"); 
-                }
-            } catch(e) {
-                document.getElementById('loader-publish').style.display = 'none'; 
-                alert("Błąd wysyłki.");
-            }
-        }
-    </script>
 </body>
 </html>
