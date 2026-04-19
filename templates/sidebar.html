@@ -1,0 +1,46 @@
+<div class="sidebar" id="app-sidebar">
+    <button class="mobile-close-btn" onclick="toggleMobileMenu()">✖ Zamknij menu</button>
+    <button class="btn-back" onclick="goHome()">⬅ Wróć do menu głównego</button>
+    
+    <!-- BLOG SIDEBAR -->
+    <div id="sidebar-blog" class="module-sidebar">
+        <h3>Asystent Bloga</h3>
+        <div class="sidebar-menu">
+            <button onclick="switchTab('tab1')" id="btn-tab1" class="active">1. Propozycje tematów</button>
+            <button onclick="switchTab('tab2')" id="btn-tab2">2. Stwórz wpis</button>
+            <button onclick="switchTab('tab3')" id="btn-tab3">3. Publikacja IdoSell</button>
+        </div>
+        <hr>
+        <h4>Kontekst Sklepu na Żywo</h4>
+        <input type="text" id="store-url" placeholder="Wklej link (np. nowości)">
+        <p id="url-status" style="font-size: 12px; color: green;"></p>
+        <button class="btn-primary" onclick="fetchUrlContext()" style="width: 100%;">Pobierz dane ze strony</button>
+        <hr>
+        <div class="status-box {% if status_idosell %}status-ok{% else %}status-error{% endif %}">
+            {% if status_idosell %} API IdoSell OK ({{ domena }}) {% else %} Brak kluczy IdoSell! {% endif %}
+        </div>
+        <br>
+        <button class="btn-primary" onclick="resetDraft()" style="background: #dc3545; border:none; width:100%;">🗑️ Resetuj projekt</button>
+    </div>
+
+    <!-- SOCIAL SIDEBAR -->
+    <div id="sidebar-social" class="module-sidebar" style="display:none;">
+        <h3>Social Media AI</h3>
+        <div class="sidebar-menu">
+            <button onclick="switchSocialTab('sm-trend')" id="btn-sm-trend" class="active">🔥 Trendomierz Live</button>
+            <button onclick="switchSocialTab('sm-hooks')" id="btn-sm-hooks">🪝 Generator Hooków</button>
+            <button onclick="switchSocialTab('sm-scripts')" id="btn-sm-scripts">🎬 Scenariusze Wideo</button>
+        </div>
+    </div>
+
+    <!-- CHAT SIDEBAR -->
+    <div id="sidebar-chat" class="module-sidebar" style="display:none;">
+        <h3>Konsultant AI</h3>
+        <div class="sidebar-menu">
+            <button class="active">💬 Burza Mózgów</button>
+        </div>
+        <hr>
+        <p style="font-size: 13px; color: #555; line-height: 1.5;">Bot pamięta całą konwersację. Możesz przesyłać mu <strong>zdjęcia lub krótkie wideo</strong> do oceny (MP4/MOV).</p>
+        <button class="btn-primary" onclick="clearChat()" style="background: #dc3545; border:none; width:100%; margin-top: 10px;">🗑️ Wyczyść historię</button>
+    </div>
+</div>

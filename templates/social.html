@@ -1,0 +1,37 @@
+<div id="module-social" class="module-content">
+    <div id="sm-trend" class="tab-content active">
+        <h2>🔥 Trendomierz Fashion</h2>
+        <button class="btn-primary" onclick="analyzeTrends()" style="width: 100%;">⚡ Sprawdź co teraz żre</button>
+        <div id="loader-trend" class="loader">⏳ Przeszukuję internet...</div>
+        <div style="display: none;" id="trend-wrapper">
+            <div id="trend-result" class="result-box"></div>
+            <button class="btn-primary btn-drive" onclick="exportToDrive('trend-result', 'Raport Trendów', this)">💾 Zapisz w Google Drive</button>
+        </div>
+    </div>
+    <div id="sm-hooks" class="tab-content">
+        <h2>🪝 Generator Hooków</h2>
+        <input type="text" id="hook-topic" placeholder="Temat lub ID produktu">
+        <input type="text" id="hook-product-ids" placeholder="Opcjonalnie: ID produktu">
+        <button class="btn-primary" onclick="generateHooks()" style="width: 100%;">🎯 Generuj 10 Haczyków</button>
+        <div id="loader-hooks" class="loader">⏳ Tworzę hooki...</div>
+        <div style="display: none;" id="hooks-wrapper">
+            <div id="hooks-result" class="result-box"></div>
+            <button class="btn-primary btn-drive" onclick="exportToDrive('hooks-result', 'Hooki Social Media', this)">💾 Zapisz w Google Drive</button>
+        </div>
+    </div>
+    <div id="sm-scripts" class="tab-content">
+        <h2>🎬 Scenariusz TikTok / Reels</h2>
+        <input type="text" id="script-topic" placeholder="O czym ma być wideo?">
+        <div class="row">
+            <div class="col"><select id="script-duration"><option value="15s">15 sekund</option><option value="30s" selected>30 sekund</option><option value="60s">60 sekund</option></select></div>
+            <div class="col"><input type="text" id="script-product-ids" placeholder="Opcjonalnie: ID Produktu"></div>
+        </div>
+        <button class="btn-primary" onclick="generateScript()" style="width: 100%; margin-top: 10px;">📝 Stwórz Scenariusz</button>
+        <button class="btn-primary" style="background:#555; width: 100%; margin-top: 10px;" onclick="repurposeFromBlog()">♻️ Recykling artykułu z bloga</button>
+        <div id="loader-script" class="loader">⏳ Reżyseruję wideo...</div>
+        <div style="display: none;" id="script-wrapper">
+            <div id="script-result" class="result-box"></div>
+            <button class="btn-primary btn-drive" onclick="exportToDrive('script-result', 'Scenariusz Wideo', this)">💾 Zapisz w Google Drive</button>
+        </div>
+    </div>
+</div>
