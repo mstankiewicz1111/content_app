@@ -1,5 +1,5 @@
 /**
- * SOCIAL.JS - WERSJA FINALNA (Z OPÓŹNIENIEM RENDEROWANIA)
+ * SOCIAL.JS - WERSJA FINALNA (Z FUNKCJĄ ODŚWIEŻANIA INSPIRACJI)
  */
 
 // 1. ZARZĄDZANIE ZAKŁADKAMI
@@ -16,7 +16,6 @@ function switchSocialTab(tabId) {
 
     if(window.innerWidth <= 768 && typeof toggleMobileMenu === 'function') toggleMobileMenu(); 
     
-    // Odświeżenie dashboardu przy wejściu w główną kartę
     if(tabId === 'sm-trend') {
         initSocialDashboard();
     }
@@ -24,27 +23,18 @@ function switchSocialTab(tabId) {
 
 // 2. DASHBOARD INSPIRACJI (ZABEZPIECZONY)
 async function initSocialDashboard() {
-    console.log("LOG: Próba inicjalizacji dashboardu...");
-    
-    // Dodajemy małe opóźnienie, aby upewnić się, że DOM jest gotowy do renderowania
     setTimeout(async () => {
         let container = document.getElementById('social-dashboard');
         
-        // AUTOKOREKTA: Jeśli HTML jest stary i brakuje diva, stwórzmy go pod przyciskiem w sm-trend
         if (!container) {
-            console.warn("LOG: Brak kontenera w HTML. Tworzę go dynamicznie...");
             const parent = document.getElementById('sm-trend');
             if (parent) {
                 container = document.createElement('div');
                 container.id = 'social-dashboard';
                 parent.appendChild(container);
-            } else {
-                console.error("LOG: Nie znaleziono nawet sm-trend!");
-                return;
-            }
+            } else { return; }
         }
 
-        // Loader wizualny
         container.style.display = "block";
         container.innerHTML = `
             <div style="padding: 20px; background: #f8f9fa; border-radius: 10px; border: 1px dashed #000; text-align: center; margin-top: 20px;">
@@ -53,16 +43,14 @@ async function initSocialDashboard() {
             </div>`;
 
         try {
-            // Pobieranie danych (Kalendarz jest core, AI jest dodatkiem)
             const eventRes = await fetch('/api/get_upcoming_events').then(r => r.json());
             
-            // Pobieranie inspiracji i trendów (Równolegle)
             const [aiInspoRes, tiktokTrendRes] = await Promise.all([
                 fetch('/api/generate', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({
-                        prompt: "Jesteś ekspertem social media Wassyl. Podaj 1 kreatywny pomysł na post na dziś (max 3 zdania).",
+                        prompt: "Jesteś ekspertem social media Wassyl. Podaj 1 kreatywny pomysł na post na dziś. UNIKAJ stylu vintage/grandpa/retro. Skup się na streetstyle, dresach i lifestylu. Max 3 zdania.",
                         search: false
                     })
                 }).then(r => r.json()),
@@ -70,7 +58,7 @@ async function initSocialDashboard() {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({
-                        prompt: "Znajdź 1 gorący trend modowy na TikToku z ostatnich 48h.",
+                        prompt: "Znajdź 1 gorący trend modowy na TikToku z ostatnich 48h pasujący do marki dresowej/basic. NIE podawaj trendu 'Eclectic Grandpa'.",
                         search: true
                     })
                 }).then(r => r.json())
@@ -82,7 +70,6 @@ async function initSocialDashboard() {
 
             const safeMd = (text) => typeof formatMarkdown === 'function' ? formatMarkdown(text) : text;
 
-            // FINALNY RENDER
             container.innerHTML = `
                 <div class="dashboard-wrapper">
                     <div class="dashboard-block events-block">
@@ -92,19 +79,47 @@ async function initSocialDashboard() {
                     <div class="dashboard-block">
                         <h3>💡 Szybka Inspiracja</h3>
                         <div class="ai-content">${safeMd(aiInspoRes.result)}</div>
+                        <button class="btn-refresh-mini" onclick="refreshSingleInspiration('idea')">🔄 Inny pomysł</button>
                     </div>
                     <div class="dashboard-block trend-live">
                         <h3>🔥 TikTok Trend</h3>
                         <div class="trend-content">${safeMd(tiktokTrendRes.result)}</div>
+                        <button class="btn-refresh-mini" onclick="refreshSingleInspiration('trend')">🔄 Inny trend</button>
                     </div>
                 </div>
             `;
-            console.log("✅ Dashboard wyrenderowany!");
         } catch (e) {
-            console.error("❌ Błąd Dashboardu:", e);
             container.innerHTML = `<div style="color: red; padding: 20px; border: 1px solid red;">Błąd ładowania: ${e.message}</div>`;
         }
-    }, 200); // 200ms opóźnienia dla bezpieczeństwa
+    }, 200);
+}
+
+// 2A. FUNKCJA ODŚWIEŻANIA POJEDYNCZEGO BLOKU
+async function refreshSingleInspiration(type) {
+    const blockIndex = type === 'idea' ? 2 : 3;
+    const block = document.querySelector(`.dashboard-block:nth-child(${blockIndex})`);
+    if (!block) return;
+
+    const loaderHtml = `<p style="font-size:12px; color:#666;">🔄 Losuję coś nowego...</p>`;
+    const contentArea = block.querySelector('.ai-content') || block.querySelector('.trend-content');
+    contentArea.innerHTML = loaderHtml;
+
+    const prompt = type === 'idea' 
+        ? "Podaj NOWY, alternatywny pomysł na post dla Wassyl. Kategoryczny zakaz trendów vintage/grandpa. Skup się na dresach, oversize i vibe 'girl next door'. Max 2 zdania."
+        : "Znajdź INNY, świeży trend fashion z TikToka, który nie jest 'Eclectic Grandpa'. Szukaj trendów viralowych dla Gen Z.";
+
+    try {
+        const res = await fetch('/api/generate', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ prompt: prompt, search: (type === 'trend') })
+        }).then(r => r.json());
+
+        const safeMd = (text) => typeof formatMarkdown === 'function' ? formatMarkdown(text) : text;
+        contentArea.innerHTML = safeMd(res.result);
+    } catch (e) {
+        contentArea.innerHTML = "Błąd odświeżania.";
+    }
 }
 
 // 3. ANALIZA TRENDÓW
@@ -119,7 +134,7 @@ async function analyzeTrends() {
         const res = await fetch('/api/generate', { 
             method: 'POST', 
             headers: {'Content-Type': 'application/json'}, 
-            body: JSON.stringify({prompt: "Wymień 3 najgorętsze trendy fashion na TikToku z linkami. Markdown.", search: true}) 
+            body: JSON.stringify({prompt: "Wymień 3 najgorętsze trendy fashion na TikToku (nie grandpa style). Markdown.", search: true}) 
         });
         const data = await res.json(); 
         if(loader) loader.style.display = 'none'; 
@@ -134,7 +149,6 @@ async function generateHooks() {
     const resBox = document.getElementById('hooks-result'); 
     const loader = document.getElementById('loader-hooks');
     const wrapper = document.getElementById('hooks-wrapper');
-    
     if(loader) loader.style.display = 'block'; 
     if(wrapper) wrapper.style.display = 'none';
     
@@ -143,7 +157,7 @@ async function generateHooks() {
         const res = await fetch('/api/generate', { 
             method: 'POST', 
             headers: {'Content-Type': 'application/json'}, 
-            body: JSON.stringify({prompt: `Wygeneruj 10 viralowych hooków o: ${topic}. ${extraData}`}) 
+            body: JSON.stringify({prompt: `Wygeneruj 10 viralowych hooków o: ${topic}. Styl Wassyl. ${extraData}`}) 
         });
         const data = await res.json(); 
         if(loader) loader.style.display = 'none'; 
@@ -159,7 +173,6 @@ async function generateScript() {
     const resBox = document.getElementById('script-result'); 
     const loader = document.getElementById('loader-script');
     const wrapper = document.getElementById('script-wrapper');
-    
     if(loader) loader.style.display = 'block'; 
     if(wrapper) wrapper.style.display = 'none';
     
@@ -168,7 +181,7 @@ async function generateScript() {
         const res = await fetch('/api/generate', { 
             method: 'POST', 
             headers: {'Content-Type': 'application/json'}, 
-            body: JSON.stringify({prompt: `Stwórz scenariusz wideo (${dur}) o: ${topic}. ${extraData}. Markdown.`}) 
+            body: JSON.stringify({prompt: `Stwórz scenariusz wideo (${dur}) o: ${topic}. Styl Wassyl. ${extraData}. Markdown.`}) 
         });
         const data = await res.json(); 
         if(loader) loader.style.display = 'none'; 
@@ -182,7 +195,6 @@ function repurposeFromBlog() {
     const blogBox = document.getElementById('article-result');
     const blogText = blogBox ? blogBox.innerText : ""; 
     if(!blogText || blogText.length < 50) { alert("Najpierw stwórz artykuł w sekcji BLOG!"); return; }
-    
     document.getElementById('script-topic').value = "Recykling na podstawie artykułu: " + blogText.substring(0, 300); 
     switchSocialTab('sm-scripts');
 }
