@@ -8,6 +8,7 @@ import google.generativeai as genai
 from PIL import Image
 import io
 import base64
+import requests
 
 ai_bp = Blueprint('ai', __name__)
 
@@ -27,6 +28,9 @@ def api_generate():
     prompt = data.get('prompt', '')
     search_mode = data.get('search', False)
     
+    # NOWOŚĆ: Odbieramy URL zdjęcia z JS
+    image_url = data.get('image_url', None) 
+    
     active_model = model
     if search_mode:
         try:
@@ -37,9 +41,28 @@ def api_generate():
         except Exception as e:
             return jsonify({"result": f"Błąd włączania wyszukiwarki: {str(e)}"})
 
+    # NOWOŚĆ: Tworzymy listę (ładunek), do której trafi i tekst, i ewentualnie zdjęcie
+    contents = [prompt]
+    
+    if image_url:
+        try:
+            # Pobieramy zdjęcie ze sklepu IdoSell
+            img_res = requests.get(image_url, timeout=10)
+            if img_res.status_code == 200:
+                mime_type = img_res.headers.get('Content-Type', 'image/jpeg')
+                # Doklejamy binarne dane obrazu do ładunku dla Gemini
+                contents.append({
+                    "mime_type": mime_type,
+                    "data": img_res.content
+                })
+        except Exception as e:
+            print(f"Ostrzeżenie: Nie udało się pobrać zdjęcia do analizy ({str(e)})")
+            # W przypadku błędu Gemini i tak wygeneruje opis na podstawie samego tekstu
+
     for proba in range(3):
         try:
-            response = active_model.generate_content(prompt, request_options={"timeout": 120})
+            # Przekazujemy listę 'contents' zamiast samego stringa 'prompt'
+            response = active_model.generate_content(contents, request_options={"timeout": 120})
             return jsonify({"result": response.text})
         except Exception as e:
             error_msg = str(e).lower()
@@ -48,6 +71,7 @@ def api_generate():
                     time.sleep(15)
                     continue
             return jsonify({"result": f"Błąd API Gemini: {str(e)}"})
+            
     return jsonify({"result": "Błąd: Przekroczono limit prób API Gemini."})
 
 @ai_bp.route('/chat', methods=['POST'])
