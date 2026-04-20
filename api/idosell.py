@@ -29,28 +29,12 @@ def api_idosell_products():
             return jsonify({"error": f"Błąd IdoSell {res.status_code}", "details": res.text}), 500
 
         dane = res.json()
-        produkty = []
-        for prod in dane.get("results", []):
-            pid = prod.get("productId")
-            nazwa = "Ubranie marki Wassyl"
-            for opis in prod.get("productDescriptionsLangData", []):
-                if opis.get("langId") == "pol":
-                    nazwa = opis.get("productName", "")
-                    break
-
-            zdjecia = prod.get("productImages", [])
-            url_zdjecia = ""
-            if zdjecia:
-                url_zdjecia = zdjecia[0].get("productImageLargeUrl", "")
-                if url_zdjecia.startswith("//"): url_zdjecia = "https:" + url_zdjecia
-            
-            urls_data = prod.get("productUrl", {}).get("productUrlsLangData", [])
-            url_produktu = urls_data[0].get("url", "") if urls_data else f"https://wassyl.pl/product-pol-{pid}.html"
-            
-            if url_zdjecia:
-                produkty.append({"id": str(pid), "nazwa": nazwa, "url_produktu": url_produktu, "url_zdjecia": url_zdjecia})
         
-        return jsonify({"products": produkty})
+        # Zmiana: Przesyłamy surowy obiekt results bezpośrednio do JS
+        if "results" in dane:
+            return jsonify({"results": dane["results"]})
+            
+        return jsonify({"products": []})
     except Exception as e:
         return jsonify({"error": "Błąd wewnętrzny Pythona", "details": str(e)}), 500
 
@@ -69,3 +53,46 @@ def api_publish():
             return jsonify({"status": res.status_code, "response": {"raw_error": res.text}})
     except Exception as e:
         return jsonify({"error": "Błąd wewnętrzny Pythona", "details": str(e)}), 500
+
+# NOWY ENDPOINT: Aktualizacja nazwy i opisu bezpośrednio w IdoSell
+@idosell_bp.route('/update_product', methods=['POST'])
+def api_update_product():
+    domain, api_key = get_idosell_config()
+    if not domain or not api_key:
+        return jsonify({"success": False, "error": "Brak konfiguracji API"}), 400
+
+    data = request.json
+    prod_id = data.get("id")
+    new_name = data.get("name")
+    new_desc = data.get("long_description")
+
+    if not prod_id or not new_name or not new_desc:
+        return jsonify({"success": False, "error": "Brakujące dane do aktualizacji"}), 400
+
+    url = f"https://{domain}/api/admin/v7/products/products"
+    headers = {"X-API-KEY": api_key, "Content-Type": "application/json", "Accept": "application/json"}
+    
+    # Payload dla metody PUT w IdoSell
+    payload = {
+        "products": [
+            {
+                "productId": int(prod_id),
+                "productDescriptionsLangData": [
+                    {
+                        "langId": "pol",
+                        "productName": new_name,
+                        "productLongDescription": new_desc
+                    }
+                ]
+            }
+        ]
+    }
+
+    try:
+        res = requests.put(url, headers=headers, json=payload, timeout=20)
+        if res.status_code in [200, 204]:
+            return jsonify({"success": True, "response": res.json()})
+        else:
+            return jsonify({"success": False, "error": f"Błąd IdoSell: {res.status_code}", "details": res.text}), 500
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
