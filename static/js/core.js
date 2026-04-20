@@ -54,6 +54,13 @@ function openModule(module) {
         document.getElementById('module-chat').classList.add('active');
         document.getElementById('sidebar-chat').style.display = 'block';
     }
+    else if(module === 'products') {
+    document.getElementById('module-products').classList.add('active');
+    document.getElementById('sidebar-blog').style.display = 'none'; // Możesz stworzyć osobny sidebar dla produktów
+    // Resetuj widok do startowego
+    document.getElementById('prod-init').classList.add('active');
+    document.getElementById('prod-editor').classList.remove('active');
+    }
 }
 
 function goHome() {
