@@ -186,3 +186,10 @@ button.btn-drive:hover { background: #28803d; }
         padding: 15px;
     }
 }
+#social-dashboard {
+    display: block !important;
+    visibility: visible !important;
+    min-height: 100px !important;
+    width: 100% !important;
+    z-index: 9999;
+}
