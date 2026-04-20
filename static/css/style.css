@@ -193,3 +193,21 @@ button.btn-drive:hover { background: #28803d; }
     width: 100% !important;
     z-index: 9999;
 }
+.btn-refresh-mini {
+    background: none;
+    border: 1px solid #ddd;
+    color: #888;
+    font-size: 11px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-top: 10px;
+    align-self: flex-start;
+    transition: 0.2s;
+}
+
+.btn-refresh-mini:hover {
+    background: #000;
+    color: #fff;
+    border-color: #000;
+}
