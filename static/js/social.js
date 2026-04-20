@@ -1,5 +1,5 @@
 /**
- * SOCIAL.JS - WERSJA FINALNA (Z FUNKCJĄ ODŚWIEŻANIA INSPIRACJI)
+ * SOCIAL.JS - WERSJA ZOPTYMALIZOWANA (UKŁAD 2026 + FIXED PROMPTS)
  */
 
 // 1. ZARZĄDZANIE ZAKŁADKAMI
@@ -21,7 +21,7 @@ function switchSocialTab(tabId) {
     }
 }
 
-// 2. DASHBOARD INSPIRACJI (ZABEZPIECZONY)
+// 2. DASHBOARD INSPIRACJI (ZMODYFIKOWANY UKŁAD I PROMPTY)
 async function initSocialDashboard() {
     setTimeout(async () => {
         let container = document.getElementById('social-dashboard');
@@ -38,27 +38,28 @@ async function initSocialDashboard() {
         container.style.display = "block";
         container.innerHTML = `
             <div style="padding: 20px; background: #f8f9fa; border-radius: 10px; border: 1px dashed #000; text-align: center; margin-top: 20px;">
-                <p style="margin: 0; font-weight: bold;">🚀 Przygotowuję inspiracje na dziś...</p>
-                <small style="color: #666;">(Pobieram kalendarz i trendy live)</small>
+                <p style="margin: 0; font-weight: bold;">🚀 Pobieram trendy na KWIECIEŃ 2026...</p>
+                <small style="color: #666;">(Przeszukuję sieć pod kątem aktualnych viralów)</small>
             </div>`;
 
         try {
             const eventRes = await fetch('/api/get_upcoming_events').then(r => r.json());
             
+            // KRYTYCZNA ZMIANA PROMPTU: Wymuszamy rok 2026 i zakazujemy starych estetyk
             const [aiInspoRes, tiktokTrendRes] = await Promise.all([
                 fetch('/api/generate', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({
-                        prompt: "Jesteś ekspertem social media Wassyl. Podaj 1 kreatywny pomysł na post na dziś. UNIKAJ stylu vintage/grandpa/retro. Skup się na streetstyle, dresach i lifestylu. Max 3 zdania.",
-                        search: false
+                        prompt: "Jesteś ekspertem social media Wassyl. Dziś jest 20 kwietnia 2026. Podaj 1 kreatywny, lifestylowy pomysł na post. Skup się na bluzach/spodniach dresowych. ZAKAZ: trendów z 2024/2025 roku (żadnych Mob Wife, Clean Girl). Napisz to w 2 zdaniach.",
+                        search: true
                     })
                 }).then(r => r.json()),
                 fetch('/api/generate', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({
-                        prompt: "Znajdź 1 gorący trend modowy na TikToku z ostatnich 48h pasujący do marki dresowej/basic. NIE podawaj trendu 'Eclectic Grandpa'.",
+                        prompt: "Znajdź 1 NAJŚWIEŻSZY trend modowy na TikToku (stan na kwiecień 2026). Nie podawaj starych trendów jak Mob Wife, Eclectic Grandpa czy Quiet Luxury. Szukaj czegoś, co pasuje do ubrań basic i streetwear. Opisz krótko.",
                         search: true
                     })
                 }).then(r => r.json())
@@ -70,71 +71,71 @@ async function initSocialDashboard() {
 
             const safeMd = (text) => typeof formatMarkdown === 'function' ? formatMarkdown(text) : text;
 
+            // NOWA KOLEJNOŚĆ: Trend na górze, Kalendarz na dole po prawej
             container.innerHTML = `
-                <div class="dashboard-wrapper">
-                    <div class="dashboard-block events-block">
-                        <h3>📅 Nadchodzące Okazje</h3>
-                        <div class="event-grid">${eventsHtml}</div>
+                <div class="dashboard-wrapper" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                    <div class="dashboard-left-col">
+                        <div class="dashboard-block trend-live" style="margin-bottom: 20px;">
+                            <h3>🔥 TikTok Trend (LIVE 2026)</h3>
+                            <div class="trend-content">${safeMd(tiktokTrendRes.result)}</div>
+                            <button class="btn-refresh-mini" onclick="refreshSingleInspiration('trend')">🔄 Szukaj nowszego</button>
+                        </div>
+                        <div class="dashboard-block">
+                            <h3>💡 Szybka Inspiracja</h3>
+                            <div class="ai-content">${safeMd(aiInspoRes.result)}</div>
+                            <button class="btn-refresh-mini" onclick="refreshSingleInspiration('idea')">🔄 Inny pomysł</button>
+                        </div>
                     </div>
-                    <div class="dashboard-block">
-                        <h3>💡 Szybka Inspiracja</h3>
-                        <div class="ai-content">${safeMd(aiInspoRes.result)}</div>
-                        <button class="btn-refresh-mini" onclick="refreshSingleInspiration('idea')">🔄 Inny pomysł</button>
-                    </div>
-                    <div class="dashboard-block trend-live">
-                        <h3>🔥 TikTok Trend</h3>
-                        <div class="trend-content">${safeMd(tiktokTrendRes.result)}</div>
-                        <button class="btn-refresh-mini" onclick="refreshSingleInspiration('trend')">🔄 Inny trend</button>
+                    <div class="dashboard-right-col" style="display: flex; flex-direction: column; justify-content: flex-end;">
+                         <div class="dashboard-block events-block" style="margin-top: auto;">
+                            <h3>📅 Kalendarz Marketingowy</h3>
+                            <div class="event-grid">${eventsHtml}</div>
+                        </div>
                     </div>
                 </div>
             `;
         } catch (e) {
-            container.innerHTML = `<div style="color: red; padding: 20px; border: 1px solid red;">Błąd ładowania: ${e.message}</div>`;
+            container.innerHTML = `<div style="color: red; padding: 20px; border: 1px solid red;">Błąd synchronizacji 2026: ${e.message}</div>`;
         }
     }, 200);
 }
 
-// 2A. FUNKCJA ODŚWIEŻANIA POJEDYNCZEGO BLOKU
+// 2A. REFRESH Z WYMUSZENIEM AKTUALNOŚCI
 async function refreshSingleInspiration(type) {
-    const blockIndex = type === 'idea' ? 2 : 3;
-    const block = document.querySelector(`.dashboard-block:nth-child(${blockIndex})`);
-    if (!block) return;
-
-    const loaderHtml = `<p style="font-size:12px; color:#666;">🔄 Losuję coś nowego...</p>`;
+    const block = type === 'idea' ? document.querySelector('.dashboard-block:not(.trend-live):not(.events-block)') : document.querySelector('.trend-live');
     const contentArea = block.querySelector('.ai-content') || block.querySelector('.trend-content');
-    contentArea.innerHTML = loaderHtml;
+    contentArea.innerHTML = `<p style="font-size:12px; color:#666;">🔄 Przeszukuję trendy z kwietnia 2026...</p>`;
 
     const prompt = type === 'idea' 
-        ? "Podaj NOWY, alternatywny pomysł na post dla Wassyl. Kategoryczny zakaz trendów vintage/grandpa. Skup się na dresach, oversize i vibe 'girl next door'. Max 2 zdania."
-        : "Znajdź INNY, świeży trend fashion z TikToka, który nie jest 'Eclectic Grandpa'. Szukaj trendów viralowych dla Gen Z.";
+        ? "Daj inny pomysł na post Wassyl (20.04.2026). Tylko dresy i streetstyle. Absolutny zakaz trendów retro/vintage z lat 2024-2025."
+        : "Znajdź INNY trend z TikToka, który narodził się w marcu/kwietniu 2026. Skup się na Gen-Z i ubraniach baggy. Pomiń Mob Wife i Grandpa style.";
 
     try {
         const res = await fetch('/api/generate', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ prompt: prompt, search: (type === 'trend') })
+            body: JSON.stringify({ prompt: prompt, search: true })
         }).then(r => r.json());
 
         const safeMd = (text) => typeof formatMarkdown === 'function' ? formatMarkdown(text) : text;
         contentArea.innerHTML = safeMd(res.result);
     } catch (e) {
-        contentArea.innerHTML = "Błąd odświeżania.";
+        contentArea.innerHTML = "Błąd odświeżania danych.";
     }
 }
 
-// 3. ANALIZA TRENDÓW
+// RESZTA FUNKCJI (Analiza trendów, Hooki, Scenariusz) POZOSTAJE BEZ ZMIAN
 async function analyzeTrends() {
     const resBox = document.getElementById('trend-result'); 
     const loader = document.getElementById('loader-trend');
     const wrapper = document.getElementById('trend-wrapper');
     if(loader) loader.style.display = 'block'; 
     if(wrapper) wrapper.style.display = 'none';
-    
     try {
         const res = await fetch('/api/generate', { 
             method: 'POST', 
             headers: {'Content-Type': 'application/json'}, 
-            body: JSON.stringify({prompt: "Wymień 3 najgorętsze trendy fashion na TikToku (nie grandpa style). Markdown.", search: true}) 
+            body: JSON.stringify({prompt: "Wymień 3 najgorętsze trendy fashion na TikToku (AKTUALNE NA KWIECIEŃ 2026). Markdown.", search: true}) 
         });
         const data = await res.json(); 
         if(loader) loader.style.display = 'none'; 
@@ -143,7 +144,6 @@ async function analyzeTrends() {
     } catch(e) { if(loader) loader.style.display = 'none'; }
 }
 
-// 4. GENERATOR HOOKÓW
 async function generateHooks() {
     const topic = document.getElementById('hook-topic').value; 
     const resBox = document.getElementById('hooks-result'); 
@@ -151,7 +151,6 @@ async function generateHooks() {
     const wrapper = document.getElementById('hooks-wrapper');
     if(loader) loader.style.display = 'block'; 
     if(wrapper) wrapper.style.display = 'none';
-    
     try {
         const extraData = typeof getProductContextText === 'function' ? await getProductContextText('hook-product-ids') : "";
         const res = await fetch('/api/generate', { 
@@ -166,7 +165,6 @@ async function generateHooks() {
     } catch(e) { if(loader) loader.style.display = 'none'; }
 }
 
-// 5. GENERATOR SCENARIUSZA
 async function generateScript() {
     const topic = document.getElementById('script-topic').value; 
     const dur = document.getElementById('script-duration').value; 
@@ -175,7 +173,6 @@ async function generateScript() {
     const wrapper = document.getElementById('script-wrapper');
     if(loader) loader.style.display = 'block'; 
     if(wrapper) wrapper.style.display = 'none';
-    
     try {
         const extraData = typeof getProductContextText === 'function' ? await getProductContextText('script-product-ids') : "";
         const res = await fetch('/api/generate', { 
@@ -190,7 +187,6 @@ async function generateScript() {
     } catch(e) { if(loader) loader.style.display = 'none'; }
 }
 
-// 6. RECYKLING Z BLOGA
 function repurposeFromBlog() {
     const blogBox = document.getElementById('article-result');
     const blogText = blogBox ? blogBox.innerText : ""; 
