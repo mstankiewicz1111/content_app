@@ -1,5 +1,5 @@
 /**
- * PRODUCTS.JS - Optymalizacja pod Google Discover (Wersja z obsługą natywnego payloadu IdoSell)
+ * PRODUCTS.JS - Optymalizacja pod Google Discover (Zoptymalizowany Prompt + Aktualizacja)
  */
 
 function switchProdTab(tabId) { 
@@ -11,16 +11,11 @@ function switchProdTab(tabId) {
     
     const targetBtn = document.getElementById('btn-' + tabId);
     if(targetBtn) targetBtn.classList.add('active'); 
-
-    if(window.innerWidth <= 768 && typeof toggleMobileMenu === 'function') toggleMobileMenu(); 
 }
 
 async function loadProductToEdit() {
     const productId = document.getElementById('opt-product-id').value;
-    if (!productId) {
-        alert("Podaj ID produktu!");
-        return;
-    }
+    if (!productId) return alert("Podaj ID produktu!");
 
     const loader = document.getElementById('loader-prod-fetch');
     const statusBox = document.getElementById('fetch-status');
@@ -37,46 +32,33 @@ async function loadProductToEdit() {
         });
         const data = await res.json();
 
-        // Jeśli backend po prostu przepuszcza strukturę z IdoSell (co widać po Twoim payloadzie)
+        // Obsługa zarówno surowego payloadu (results) jak i zmapowanego (products)
         let product;
-        if (data.results && data.results.length > 0) {
-             // Struktura bezpośrednia z requesta, który przesłałeś
-            product = data.results[0]; 
-        } else if (data.products && data.products.length > 0) {
-            // Starsza wersja struktury backendu
-            product = data.products[0];
-        } else {
-             throw new Error("API IdoSell nie zwróciło żadnego produktu o tym ID.");
-        }
+        if (data.results && data.results.length > 0) product = data.results[0];
+        else if (data.products && data.products.length > 0) product = data.products[0];
+        else throw new Error("Brak produktu w odpowiedzi z API.");
 
-        // --- MAPOWANIE DANYCH Z PAYLOADU IDOSELL --- //
-        
-        // 1. Nazwa i opis (szukamy polskiego języka)
-        let nazwa = "Brak nazwy";
-        let opisDlugi = "Brak opisu";
+        // 1. NAZWA I OPIS
+        let nazwa = product.nazwa || "Brak nazwy";
+        let opisDlugi = product.opis || "Brak opisu";
         
         if (product.productDescriptionsLangData) {
             const polData = product.productDescriptionsLangData.find(d => d.langId === 'pol');
             if (polData) {
-                nazwa = polData.productName || polData.productName;
-                opisDlugi = polData.productLongDescription || polData.productDescription;
+                nazwa = polData.productName || nazwa;
+                opisDlugi = polData.productLongDescription || polData.productDescription || opisDlugi;
             }
-        } else if (product.nazwa) { // Fallback, jeśli Twój backend to formatuje
-            nazwa = product.nazwa;
-            opisDlugi = product.opis;
         }
 
-        // 2. Zdjęcia
+        // 2. ZDJĘCIA
         let zdjeciaUrls = [];
         if (product.productImages && Array.isArray(product.productImages)) {
-            // Wyciągamy małe obrazki (są lżejsze do ładowania w podglądzie)
             zdjeciaUrls = product.productImages.map(img => img.productImageSmallUrl || img.productImageLargeUrl);
         } else if (product.zdjecia && Array.isArray(product.zdjecia)) {
-             // Fallback
-             zdjeciaUrls = product.zdjecia;
+            zdjeciaUrls = product.zdjecia;
         }
-        
-        // 3. Parametry
+
+        // 3. PARAMETRY
         let parametryTekst = "Brak parametrów";
         if (product.productParameters && Array.isArray(product.productParameters)) {
              parametryTekst = product.productParameters.map(p => {
@@ -88,13 +70,7 @@ async function loadProductToEdit() {
              parametryTekst = product.parametry;
         }
 
-        // Normalizowany obiekt do dalszej pracy
-        const normalizedProduct = {
-            nazwa: nazwa,
-            opis: opisDlugi,
-            parametry: parametryTekst,
-            zdjeciaUrls: zdjeciaUrls
-        };
+        const normalizedProduct = { id: productId, nazwa, opis: opisDlugi, parametry: parametryTekst, zdjeciaUrls };
 
         loader.style.display = 'none';
         statusBox.style.display = 'block';
@@ -107,14 +83,11 @@ async function loadProductToEdit() {
             <li>${check(normalizedProduct.zdjeciaUrls.length > 0)} Zdjęcia (${normalizedProduct.zdjeciaUrls.length})</li>
         `;
 
-        setTimeout(() => {
-            showProductEditor(normalizedProduct);
-        }, 1500);
+        setTimeout(() => showProductEditor(normalizedProduct), 1500);
 
     } catch (e) {
         loader.style.display = 'none';
-        alert("Błąd połączenia: " + e.message);
-        console.error("Szczegóły błędu:", e);
+        alert("Błąd: " + e.message);
     }
 }
 
@@ -123,12 +96,11 @@ function showProductEditor(product) {
 
     document.getElementById('orig-name').innerText = product.nazwa;
     
-    // Renderowanie zdjęć z URL-i wyciągniętych z payloadu
     const imgContainer = document.getElementById('prod-images-preview');
     if (product.zdjeciaUrls && product.zdjeciaUrls.length > 0) {
-        imgContainer.innerHTML = product.zdjeciaUrls.map(src => `<img src="${src}" style="height: 100px; border-radius: 5px; border: 1px solid #ddd; object-fit: cover;">`).join('');
+        imgContainer.innerHTML = product.zdjeciaUrls.map(src => `<img src="${src}" style="height: 100px; border-radius: 5px; border: 1px solid #ddd;">`).join('');
     } else {
-        imgContainer.innerHTML = '<p style="color: #888; font-size: 13px; font-style: italic;">Brak zdjęć dla tego produktu.</p>';
+        imgContainer.innerHTML = '<p style="color: #888;">Brak zdjęć do wyświetlenia (Sprawdź endpoint w backendzie).</p>';
     }
 
     generateSEOContent(product);
@@ -136,35 +108,33 @@ function showProductEditor(product) {
 
 async function generateSEOContent(product) {
     const editor = document.getElementById('new-description-editor');
-    editor.innerHTML = "⏳ AI analizuje dane i generuje opis zgodny z Google Discover (min. 3000 znaków)...";
+    editor.innerHTML = "⏳ AI analizuje parametry i pisze opis (ok. 3000 znaków)...";
 
-    const safeDesc = product.opis || "Brak aktualnego opisu.";
-    const safeParams = product.parametry || "Brak parametrów.";
+    // Wyciągamy kod modelu, np. "E253 k01" z oryginalnej nazwy
+    const modelCodeMatch = product.nazwa.match(/([A-Z0-9]+\s*[a-z0-9]*)$/i);
+    const modelCode = modelCodeMatch ? modelCodeMatch[0] : "WASSYL";
 
     const prompt = `
-Zadanie: Optymalizacja SEO produktu modowego pod usługę Google Discover.
+Jesteś copywriterem e-commerce dla polskiej marki modowej WASSYL.
 
-DANE PRODUKTU BAZOWEGO:
-- Obecna Nazwa: ${product.nazwa}
-- Parametry: ${safeParams}
-- Obecny Opis: ${safeDesc}
+DANE:
+- Stara Nazwa: ${product.nazwa}
+- Parametry: ${product.parametry}
+- Stary Opis: ${product.opis}
 
-WYTYCZNE DLA NOWEJ NAZWY TOWARU:
-- Musi być podzielona na 2 części za pomocą tzw. długiego myślnika " – ".
-- Przykład formatu: [SEO-friendly nazwa i cechy] – [Lifestylowy benefit/Opis vibes + kod modelu].
-- Na samym końcu nazwy MUSI pozostać oznaczenie modelu z oryginalnej nazwy (zazwyczaj kod na końcu, np. X672 / X1).
+WYTYCZNE NAZWY (BARDZO WAŻNE):
+1. Podział na 2 części oddzielone myślnikiem: " – ". (np. Dopasowana sukienka mini w prążki – idealna na imprezę ${modelCode}).
+2. ZAKAZ UŻYWANIA WIELKICH LITER NA POCZĄTKU KAŻDEGO SŁOWA. Użyj standardowej wielkości liter (np. "Czarna dopasowana sukienka...").
+3. Na końcu musi zostać kod: ${modelCode}.
 
-WYTYCZNE DLA NOWEGO OPISU (KRYTYCZNE):
-1. Język i Styl: Piszemy do Gen Z i Millenialsów ("edgy", na luzie, "girl next door vibe").
-2. Długość: Bezwzględnie minimum 3000 znaków (jest to wymóg SEO).
-3. Zakazy: ZERO informacji o wariantach kolorystycznych, ZERO emoji.
-4. Merytoryka: Unikaj lania wody. Opieraj się na faktach (skład, krój) wyciągniętych z parametrów. Odnoś się do funkcji ubrania w różnych sytuacjach lifestylowych (spacer z psem, randka, szybka kawa, praca).
-5. Formatowanie HTML: 
-   - Całość musi być wyjustowana: użyj <div style="text-align: justify;"> na początku i zamknij na końcu.
-   - Używaj pogrubień <strong> do zaznaczania najważniejszych cech materiału lub kroju.
+WYTYCZNE OPISU:
+1. Długość: Ok. 3000 znaków (max 3200). Nie lej wody na 5000 znaków!
+2. Język: Zrozumiały, dla Gen-Z, bez formalnego slangu i ZERO emoji. ZERO informacji o wariantach kolorystycznych.
+3. Konstrukcja: Bierz fakty (np. materiał) z "Parametrów" i rozwijaj z nich lifestylowy opis (gdzie to ubrać: randka, uczelnia, praca).
+4. HTML: Wyjustuj całość <div style="text-align: justify;">. Kluczowe info pogrubiaj <strong>.
 
-Zwróć odpowiedź w czystym formacie JSON:
-{"name": "tutaj nowa nazwa", "description": "tutaj gotowy kod HTML opisu"}
+ZWRÓĆ CZYSTY JSON (bez bloków markdownowych \`\`\`json):
+{"name": "nazwa", "description": "html opisu"}
     `;
 
     try {
@@ -179,41 +149,64 @@ Zwróć odpowiedź w czystym formacie JSON:
         const result = JSON.parse(cleanJson);
 
         document.getElementById('new-name-input').value = result.name || "";
-        editor.innerHTML = result.description || "Nie udało się wygenerować opisu.";
+        editor.innerHTML = result.description || "Błąd generowania.";
         updateCharCounter();
-        
         editor.addEventListener('input', updateCharCounter);
         
     } catch (e) {
-        editor.innerHTML = `<span style="color:red;">Wystąpił błąd podczas generowania. Sprawdź format JSON z AI.</span>`;
-        console.error("Błąd AI:", e);
+        editor.innerHTML = `<span style="color:red;">Błąd generowania AI. Odśwież i spróbuj ponownie.</span>`;
     }
 }
 
 function updateCharCounter() {
     const editor = document.getElementById('new-description-editor');
     if(!editor) return;
-    
     const textLength = editor.innerText.length;
     const counter = document.getElementById('prod-char-counter');
-    
     counter.innerText = textLength + " znaków";
-    counter.className = textLength >= 3000 ? "counter-badge counter-good" : "counter-badge counter-warn";
+    counter.className = (textLength >= 2800 && textLength <= 3500) ? "counter-badge counter-good" : "counter-badge counter-warn";
 }
 
 function refreshProductSEO() {
     const origName = document.getElementById('orig-name').innerText;
-    generateSEOContent({
-        nazwa: origName,
-        opis: "Skup się na poprawie poprzedniego wyniku, zrób go dłuższym i bardziej lifestylowym. Zachowaj min. 3000 znaków.",
-        parametry: "Uwzględnij parametry, by opis był rzetelny."
-    });
+    generateSEOContent({ nazwa: origName, opis: "Generuj od nowa.", parametry: "Zachowaj parametry." });
 }
 
-function copyToClipboard(elementId) {
-    const el = document.getElementById(elementId);
-    const html = el.innerHTML;
-    navigator.clipboard.writeText(html).then(() => {
-        alert("Kod HTML opisu został skopiowany do schowka!");
-    });
+// NOWA FUNKCJA WYSYŁKI DO IDOSELL
+async function updateProductInIdosell() {
+    const productId = document.getElementById('opt-product-id').value;
+    const newName = document.getElementById('new-name-input').value;
+    const newDesc = document.getElementById('new-description-editor').innerHTML;
+    
+    if (!confirm("Czy na pewno chcesz nadpisać dane tego produktu w sklepie IdoSell?")) return;
+
+    const btn = document.getElementById('btn-prod-update');
+    const origText = btn.innerText;
+    btn.innerText = "⏳ Aktualizowanie w sklepie...";
+    btn.disabled = true;
+
+    try {
+        // Tu podpinamy endpoint z Twojego backendu (przygotujemy go za moment)
+        const res = await fetch('/api/idosell/update_product', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ 
+                id: productId, 
+                name: newName, 
+                long_description: newDesc 
+            })
+        });
+        const data = await res.json();
+        
+        if (data.success) {
+            alert("✅ Sukces! Produkt został zaktualizowany w IdoSell.");
+        } else {
+            alert("❌ Błąd z IdoSell: " + (data.error || "Nieznany błąd"));
+        }
+    } catch (e) {
+        alert("❌ Błąd sieci: " + e.message);
+    } finally {
+        btn.innerText = origText;
+        btn.disabled = false;
+    }
 }
