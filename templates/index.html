@@ -227,7 +227,7 @@
                         </div>
                         <div class="col">
                             <label style="font-size: 12px; font-weight: bold; color: #0066cc;">PROPOZYCJA ZOPTYMALIZOWANA:</label>
-                            <input type="text" id="new-name-input" style="border-color: #0066cc; font-weight: bold; margin-bottom: 0;">
+                            <input type="text" id="new-name-input" style="border-color: #0066cc; font-weight: bold; margin-bottom: 0; width: 100%; padding: 10px;">
                         </div>
                     </div>
 
@@ -240,9 +240,11 @@
                     </h3>
                     <div id="new-description-editor" class="result-box" contenteditable="true" style="min-height: 400px; text-align: justify; font-size: 14px; line-height: 1.6;"></div>
                     
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px;">
-                        <button class="btn-primary" onclick="refreshProductSEO()" style="background: #555; border: none;">🔄 Wygeneruj inną propozycję</button>
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 15px;">
+                        <button class="btn-primary" onclick="refreshProductSEO()" style="background: #555; border: none;">🔄 Nowa propozycja</button>
                         <button class="btn-primary" onclick="copyToClipboard('new-description-editor')" style="background: #28a745; border: none;">📋 Kopiuj HTML</button>
+                        <div style="flex: 1;"></div>
+                        <button class="btn-primary" id="btn-prod-update" onclick="updateProductInIdosell()" style="background: #000; border: none;">🚀 Zaktualizuj w IdoSell</button>
                     </div>
                 </div>
             </div>
