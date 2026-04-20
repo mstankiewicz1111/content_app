@@ -1,5 +1,5 @@
 /**
- * PRODUCTS.JS - Optymalizacja pod Google Discover (Zoptymalizowany Prompt + Aktualizacja)
+ * PRODUCTS.JS - Obsługa optymalizacji Google Discover + Wysyłka do IdoSell
  */
 
 function switchProdTab(tabId) { 
@@ -11,6 +11,8 @@ function switchProdTab(tabId) {
     
     const targetBtn = document.getElementById('btn-' + tabId);
     if(targetBtn) targetBtn.classList.add('active'); 
+
+    if(window.innerWidth <= 768 && typeof toggleMobileMenu === 'function') toggleMobileMenu(); 
 }
 
 async function loadProductToEdit() {
@@ -32,15 +34,13 @@ async function loadProductToEdit() {
         });
         const data = await res.json();
 
-        // Obsługa zarówno surowego payloadu (results) jak i zmapowanego (products)
         let product;
         if (data.results && data.results.length > 0) product = data.results[0];
-        else if (data.products && data.products.length > 0) product = data.products[0];
         else throw new Error("Brak produktu w odpowiedzi z API.");
 
-        // 1. NAZWA I OPIS
-        let nazwa = product.nazwa || "Brak nazwy";
-        let opisDlugi = product.opis || "Brak opisu";
+        // 1. NAZWA I OPIS (Szukamy języka polskiego)
+        let nazwa = "Brak nazwy";
+        let opisDlugi = "Brak opisu";
         
         if (product.productDescriptionsLangData) {
             const polData = product.productDescriptionsLangData.find(d => d.langId === 'pol');
@@ -50,15 +50,13 @@ async function loadProductToEdit() {
             }
         }
 
-        // 2. ZDJĘCIA
+        // 2. ZDJĘCIA (Szukamy productImages)
         let zdjeciaUrls = [];
         if (product.productImages && Array.isArray(product.productImages)) {
-            zdjeciaUrls = product.productImages.map(img => img.productImageSmallUrl || img.productImageLargeUrl);
-        } else if (product.zdjecia && Array.isArray(product.zdjecia)) {
-            zdjeciaUrls = product.zdjecia;
+            zdjeciaUrls = product.productImages.map(img => img.productImageMediumUrl || img.productImageSmallUrl || img.productImageLargeUrl);
         }
 
-        // 3. PARAMETRY
+        // 3. PARAMETRY (Szukamy polskich tłumaczeń)
         let parametryTekst = "Brak parametrów";
         if (product.productParameters && Array.isArray(product.productParameters)) {
              parametryTekst = product.productParameters.map(p => {
@@ -66,8 +64,6 @@ async function loadProductToEdit() {
                  const val = p.parameterValues?.[0]?.parameterValueDescriptionsLangData?.find(l => l.langId === 'pol')?.parameterValueName || "";
                  return `${polName}: ${val}`;
              }).join('\n');
-        } else if (product.parametry) {
-             parametryTekst = product.parametry;
         }
 
         const normalizedProduct = { id: productId, nazwa, opis: opisDlugi, parametry: parametryTekst, zdjeciaUrls };
@@ -96,11 +92,12 @@ function showProductEditor(product) {
 
     document.getElementById('orig-name').innerText = product.nazwa;
     
+    // Render zdjęć
     const imgContainer = document.getElementById('prod-images-preview');
     if (product.zdjeciaUrls && product.zdjeciaUrls.length > 0) {
-        imgContainer.innerHTML = product.zdjeciaUrls.map(src => `<img src="${src}" style="height: 100px; border-radius: 5px; border: 1px solid #ddd;">`).join('');
+        imgContainer.innerHTML = product.zdjeciaUrls.map(src => `<img src="${src}" style="height: 150px; border-radius: 5px; border: 1px solid #ddd; object-fit: cover;">`).join('');
     } else {
-        imgContainer.innerHTML = '<p style="color: #888;">Brak zdjęć do wyświetlenia (Sprawdź endpoint w backendzie).</p>';
+        imgContainer.innerHTML = '<p style="color: #888; font-size: 13px; font-style: italic;">Brak zdjęć dla tego produktu.</p>';
     }
 
     generateSEOContent(product);
@@ -110,31 +107,31 @@ async function generateSEOContent(product) {
     const editor = document.getElementById('new-description-editor');
     editor.innerHTML = "⏳ AI analizuje parametry i pisze opis (ok. 3000 znaków)...";
 
-    // Wyciągamy kod modelu, np. "E253 k01" z oryginalnej nazwy
+    // Wyciągamy kod z oryginalnej nazwy (np. E253 k01)
     const modelCodeMatch = product.nazwa.match(/([A-Z0-9]+\s*[a-z0-9]*)$/i);
-    const modelCode = modelCodeMatch ? modelCodeMatch[0] : "WASSYL";
+    const modelCode = modelCodeMatch ? modelCodeMatch[0] : "";
 
     const prompt = `
-Jesteś copywriterem e-commerce dla polskiej marki modowej WASSYL.
+Zadanie: Optymalizacja SEO dla odzieży e-commerce (marka Wassyl).
 
-DANE:
+DANE BAZOWE:
 - Stara Nazwa: ${product.nazwa}
-- Parametry: ${product.parametry}
+- Parametry (Skład, Krój, Wymiary, Modelka): ${product.parametry}
 - Stary Opis: ${product.opis}
 
-WYTYCZNE NAZWY (BARDZO WAŻNE):
-1. Podział na 2 części oddzielone myślnikiem: " – ". (np. Dopasowana sukienka mini w prążki – idealna na imprezę ${modelCode}).
-2. ZAKAZ UŻYWANIA WIELKICH LITER NA POCZĄTKU KAŻDEGO SŁOWA. Użyj standardowej wielkości liter (np. "Czarna dopasowana sukienka...").
-3. Na końcu musi zostać kod: ${modelCode}.
+WYTYCZNE NAZWY TOWARU:
+1. Składa się z 2 części, oddzielonych długim myślnikiem " – ". (np. Czarna dopasowana sukienka na ramiączkach – idealny wybór na randkę i imprezę ${modelCode}).
+2. CAŁKOWITY ZAKAZ UŻYWANIA "TITLE CASE" (Wielkich Liter Na Początku Każdego Słowa). Stosuj zwykłe zasady pisowni, jak w zdaniu.
+3. Na samym końcu MUSI pozostać kod modelu: ${modelCode}.
 
-WYTYCZNE OPISU:
-1. Długość: Ok. 3000 znaków (max 3200). Nie lej wody na 5000 znaków!
-2. Język: Zrozumiały, dla Gen-Z, bez formalnego slangu i ZERO emoji. ZERO informacji o wariantach kolorystycznych.
-3. Konstrukcja: Bierz fakty (np. materiał) z "Parametrów" i rozwijaj z nich lifestylowy opis (gdzie to ubrać: randka, uczelnia, praca).
-4. HTML: Wyjustuj całość <div style="text-align: justify;">. Kluczowe info pogrubiaj <strong>.
+WYTYCZNE OPISU HTML (Google Discover):
+1. DŁUGOŚĆ: Wygeneruj tekst o długości od 2800 do maksymalnie 3200 znaków. Nie rób elaboratu na 5000 znaków! Pisz zwięźle.
+2. STYL I TONE OF VOICE: Edgy, lifestylowy vibe Wassyl. Żadnej sztywnej korpo-mowy. ABSOLUTNY ZAKAZ UŻYWANIA EMOJI. ZAKAZ wspominania o kolorach (warianty są grupowane).
+3. MERYTORYKA: Opieraj się na suchych faktach z "Parametrów" (skład materiału, krój, długość) i wymyśl naturalne scenariusze użycia (kawa na mieście, spacer z psem, wyjście na uczelnię, wieczór ze znajomymi).
+4. HTML FORMAT: Cały opis zamknij w tagu <div style="text-align: justify;">. Najważniejsze informacje pogrubiaj tagiem <strong>.
 
-ZWRÓĆ CZYSTY JSON (bez bloków markdownowych \`\`\`json):
-{"name": "nazwa", "description": "html opisu"}
+Zwróć wynik jako czysty obiekt JSON:
+{"name": "nowa nazwa produktu", "description": "tutaj pełny kod HTML opisu"}
     `;
 
     try {
@@ -154,7 +151,7 @@ ZWRÓĆ CZYSTY JSON (bez bloków markdownowych \`\`\`json):
         editor.addEventListener('input', updateCharCounter);
         
     } catch (e) {
-        editor.innerHTML = `<span style="color:red;">Błąd generowania AI. Odśwież i spróbuj ponownie.</span>`;
+        editor.innerHTML = `<span style="color:red;">Błąd generowania AI. Odśwież i spróbuj ponownie. Błąd: ${e.message}</span>`;
     }
 }
 
@@ -169,42 +166,42 @@ function updateCharCounter() {
 
 function refreshProductSEO() {
     const origName = document.getElementById('orig-name').innerText;
-    generateSEOContent({ nazwa: origName, opis: "Generuj od nowa.", parametry: "Zachowaj parametry." });
+    generateSEOContent({ nazwa: origName, opis: "Wygeneruj nową propozycję opisu (ok. 3000 znaków).", parametry: "Zachowaj parametry." });
 }
 
-// NOWA FUNKCJA WYSYŁKI DO IDOSELL
+function copyToClipboard(elementId) {
+    const el = document.getElementById(elementId);
+    const html = el.innerHTML;
+    navigator.clipboard.writeText(html).then(() => alert("Skopiowano kod HTML!"));
+}
+
 async function updateProductInIdosell() {
     const productId = document.getElementById('opt-product-id').value;
     const newName = document.getElementById('new-name-input').value;
     const newDesc = document.getElementById('new-description-editor').innerHTML;
     
-    if (!confirm("Czy na pewno chcesz nadpisać dane tego produktu w sklepie IdoSell?")) return;
+    if (!confirm(`Czy na pewno chcesz zaktualizować dane dla produktu ID: ${productId} w systemie IdoSell? Zmiana nadpisze obecne dane na żywo.`)) return;
 
     const btn = document.getElementById('btn-prod-update');
     const origText = btn.innerText;
-    btn.innerText = "⏳ Aktualizowanie w sklepie...";
+    btn.innerText = "⏳ Aktualizuję...";
     btn.disabled = true;
 
     try {
-        // Tu podpinamy endpoint z Twojego backendu (przygotujemy go za moment)
         const res = await fetch('/api/idosell/update_product', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ 
-                id: productId, 
-                name: newName, 
-                long_description: newDesc 
-            })
+            body: JSON.stringify({ id: productId, name: newName, long_description: newDesc })
         });
         const data = await res.json();
         
         if (data.success) {
-            alert("✅ Sukces! Produkt został zaktualizowany w IdoSell.");
+            alert("✅ Sukces! Produkt został zaktualizowany.");
         } else {
-            alert("❌ Błąd z IdoSell: " + (data.error || "Nieznany błąd"));
+            alert("❌ Błąd aktualizacji IdoSell: " + (data.error || "Nieznany błąd"));
         }
     } catch (e) {
-        alert("❌ Błąd sieci: " + e.message);
+        alert("❌ Błąd połączenia: " + e.message);
     } finally {
         btn.innerText = origText;
         btn.disabled = false;
