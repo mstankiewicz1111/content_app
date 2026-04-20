@@ -105,11 +105,15 @@ function showProductEditor(product) {
 
 async function generateSEOContent(product) {
     const editor = document.getElementById('new-description-editor');
-    editor.innerHTML = "⏳ AI analizuje parametry i pisze opis (ok. 3000 znaków)...";
+    // Zmieniony komunikat ładowania
+    editor.innerHTML = "⏳ AI analizuje parametry oraz zdjęcie produktu, aby napisać opis (ok. 3000 znaków)...";
 
     // Wyciągamy kod z oryginalnej nazwy (np. E253 k01)
     const modelCodeMatch = product.nazwa.match(/([A-Z0-9]+\s*[a-z0-9]*)$/i);
     const modelCode = modelCodeMatch ? modelCodeMatch[0] : "";
+
+    // NOWOŚĆ: Pobieramy pierwszy URL zdjęcia do analizy przez AI (jeśli istnieje)
+    const firstImageUrl = (product.zdjeciaUrls && product.zdjeciaUrls.length > 0) ? product.zdjeciaUrls[0] : null;
 
     const prompt = `
 Zadanie: Optymalizacja SEO dla odzieży e-commerce (marka Wassyl).
@@ -117,7 +121,6 @@ Zadanie: Optymalizacja SEO dla odzieży e-commerce (marka Wassyl).
 DANE BAZOWE:
 - Stara Nazwa: ${product.nazwa}
 - Parametry (Skład, Krój, Wymiary, Modelka): ${product.parametry}
-- Stary Opis: ${product.opis}
 
 WYTYCZNE NAZWY TOWARU:
 1. Składa się z 2 części, oddzielonych długim myślnikiem " – ". (np. Czarna dopasowana sukienka na ramiączkach – idealny wybór na randkę i imprezę ${modelCode}).
@@ -125,9 +128,9 @@ WYTYCZNE NAZWY TOWARU:
 3. Na samym końcu MUSI pozostać kod modelu: ${modelCode}.
 
 WYTYCZNE OPISU HTML (Google Discover):
-1. DŁUGOŚĆ: Wygeneruj tekst o długości od 2800 do maksymalnie 3200 znaków. Nie rób elaboratu na 5000 znaków! Pisz zwięźle.
+1. DŁUGOŚĆ: Wygeneruj tekst o długości od 2800 do maksymalnie 3200 znaków. Pisz zwięźle.
 2. STYL I TONE OF VOICE: Edgy, lifestylowy vibe Wassyl. Żadnej sztywnej korpo-mowy. ABSOLUTNY ZAKAZ UŻYWANIA EMOJI. ZAKAZ wspominania o kolorach (warianty są grupowane).
-3. MERYTORYKA: Opieraj się na suchych faktach z "Parametrów" (skład materiału, krój, długość) i wymyśl naturalne scenariusze użycia (kawa na mieście, spacer z psem, wyjście na uczelnię, wieczór ze znajomymi).
+3. MERYTORYKA (ANALIZA ZDJĘCIA): Opieraj się na suchych faktach z "Parametrów" oraz na WŁASNEJ ANALIZIE ZAŁĄCZONEGO ZDJĘCIA (jeśli je otrzymałeś). Opisz krój, to, jak materiał układa się na sylwetce i wymyśl naturalne scenariusze użycia (kawa na mieście, spacer z psem, wyjście na uczelnię, wieczór ze znajomymi).
 4. HTML FORMAT: Cały opis zamknij w tagu <div style="text-align: justify;">. Najważniejsze informacje pogrubiaj tagiem <strong>.
 
 Zwróć wynik jako czysty obiekt JSON:
@@ -138,7 +141,11 @@ Zwróć wynik jako czysty obiekt JSON:
         const res = await fetch('/api/generate', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ prompt: prompt, json_mode: true })
+            body: JSON.stringify({ 
+                prompt: prompt, 
+                json_mode: true,
+                image_url: firstImageUrl // <-- PRZEKAZUJEMY URL ZDJĘCIA DO BACKENDU
+            })
         });
         const data = await res.json();
         
