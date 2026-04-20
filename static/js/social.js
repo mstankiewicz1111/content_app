@@ -28,10 +28,20 @@ async function initSocialDashboard() {
     
     // Dodajemy małe opóźnienie, aby upewnić się, że DOM jest gotowy do renderowania
     setTimeout(async () => {
-        const container = document.getElementById('social-dashboard');
+        let container = document.getElementById('social-dashboard');
+        
+        // AUTOKOREKTA: Jeśli HTML jest stary i brakuje diva, stwórzmy go pod przyciskiem w sm-trend
         if (!container) {
-            console.error("LOG: Nie znaleziono kontenera #social-dashboard");
-            return;
+            console.warn("LOG: Brak kontenera w HTML. Tworzę go dynamicznie...");
+            const parent = document.getElementById('sm-trend');
+            if (parent) {
+                container = document.createElement('div');
+                container.id = 'social-dashboard';
+                parent.appendChild(container);
+            } else {
+                console.error("LOG: Nie znaleziono nawet sm-trend!");
+                return;
+            }
         }
 
         // Loader wizualny
