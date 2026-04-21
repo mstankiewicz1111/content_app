@@ -1,5 +1,5 @@
 /**
- * PRODUCTS.JS - Ostateczny Fix AI + Komunikacja IdoSell + Rewizje
+ * PRODUCTS.JS - Ostateczny Fix AI + Komunikacja IdoSell + Rewizje + Wytyczne Wassyl
  */
 
 function switchProdTab(tabId) { 
@@ -99,14 +99,15 @@ function showProductEditor(product) {
 
 async function generateSEOContent(product) {
     const editor = document.getElementById('new-description-editor');
-    editor.innerHTML = "⏳ AI analizuje parametry i pisze opis (ok. 3000 znaków)...";
+    editor.innerHTML = "⏳ AI analizuje zdjęcie oraz parametry... Generuję opis (ok. 3000 znaków)...";
 
-    const modelCodeMatch = product.nazwa.match(/([A-Z0-9]+\s*[a-z0-9]*)$/i);
-    const modelCode = modelCodeMatch ? modelCodeMatch[0] : "";
+    // Wyciągamy ostatnie człony z oryginalnej nazwy jako sugestię dla modelu
+    const parts = product.nazwa.split(' ');
+    const suggestedCode = parts.slice(Math.max(parts.length - 3, 0)).join(' ');
     const firstImageUrl = (product.zdjeciaUrls && product.zdjeciaUrls.length > 0) ? product.zdjeciaUrls[0] : null;
 
     const prompt = `
-Zadanie: Optymalizacja SEO dla odzieży (Wassyl).
+Zadanie: Optymalizacja SEO odzieży e-commerce dla polskiej marki Wassyl.
 
 DANE BAZOWE:
 - Stara Nazwa: ${product.nazwa}
@@ -114,17 +115,20 @@ DANE BAZOWE:
 
 WYTYCZNE NAZWY:
 1. Podział na 2 części długim myślnikiem " – ".
-2. ZAKAZ Title Case. Zdanie zaczyna się od wielkiej litery, reszta małymi (np. "Czarna dopasowana sukienka – idealna na randkę ${modelCode}").
-3. Na końcu musi być kod: ${modelCode}.
+2. ZAKAZ Title Case. Zdanie zaczyna się od wielkiej litery, reszta słów małymi literami.
+3. ZAKAZ kropki na końcu nazwy. (Dobre: "Czarna bluza oversize – idealna na spacer X672 / X1")
+4. Na końcu MUSI pozostać pełne oznaczenie modelu ze Starej Nazwy (absolutnie nie pomijaj końcówek takich jak k01, / X1 itp.). Szukaj kodu w tych słowach: "${suggestedCode}".
 
 WYTYCZNE OPISU HTML:
-1. DŁUGOŚĆ: Max 3000 znaków. Pisz zwięźle.
+1. DŁUGOŚĆ: Max 3000 znaków. Pisz treściwie.
 2. STYL: Lifestylowy vibe Wassyl. ZAKAZ EMOJI. ZAKAZ kolorów.
-3. TREŚĆ: Opieraj się na suchych faktach z "Parametrów" oraz na analizie dołączonego zdjęcia.
-4. FORMAT HTML: Wyjustuj <div style="text-align: justify;">. Używaj <strong> dla kluczowych atutów.
+3. ZAKAZ ROZMIARÓW: W opisie nie wolno wspominać o rozmiarach (np. "modelka nosi S" albo "dostępna w rozmiarze mini"). Informacje z parametrów o rozmiarach zignoruj w tekście.
+4. PRODUKCJA: OBOWIĄZKOWO wpleć do każdego opisu informację, że ubranie jest szyte w Polsce, w Waszej własnej szwalni (brzmienie naturalne).
+5. MERYTORYKA: Opieraj się na analizie załączonego zdjęcia oraz składzie/kroju z Parametrów.
+6. FORMAT HTML: Wyjustuj <div style="text-align: justify;">. Używaj <strong> dla kluczowych atutów.
 
 Zwróć obiekt JSON:
-{"name": "nowa nazwa", "description": "html opisu"}
+{"name": "nowa nazwa bez kropki", "description": "html opisu"}
     `;
 
     try {
@@ -148,7 +152,7 @@ Zwróć obiekt JSON:
     }
 }
 
-// NOWOŚĆ: REWIZJA AI 
+// REWIZJA AI (Również zaktualizowana o nowe wytyczne)
 async function reviseProductSEO(customInstruction = null) {
     const editor = document.getElementById('new-description-editor');
     const nameInput = document.getElementById('new-name-input');
@@ -168,14 +172,16 @@ async function reviseProductSEO(customInstruction = null) {
     OBECNA NAZWA: ${currentName}
     OBECNY OPIS HTML: ${currentDesc}
     
-    INSTRUKCJA OD UŻYTKOWNIKA (ZASTOSUJ BEZWZGLĘDNIE):
+    INSTRUKCJA OD UŻYTKOWNIKA:
     "${instruction}"
     
-    WYTYCZNE:
-    1. Zwróć wynik jako czysty obiekt JSON: {"name": "...", "description": "..."}
+    WYTYCZNE (ZACHOWAJ BEZWZGLĘDNIE):
+    1. Zwróć JSON: {"name": "...", "description": "..."}
     2. Opis musi pozostać w formacie wyjustowanego HTML z pogrubieniami <strong>.
-    3. ZAKAZ używania wielkich liter w środku nazwy (Title Case).
-    4. Nie używaj emoji.
+    3. ZAKAZ używania wielkich liter w środku nazwy (Title Case) i ZAKAZ kropki na końcu nazwy.
+    4. ZAKAZ emoji, ZAKAZ wspominania o kolorach i ZAKAZ wspominania o rozmiarach/wymiarach modelki.
+    5. Zachowaj kod modelu na końcu nazwy (np. E253 k01).
+    6. W opisie musi pozostać informacja, że ubranie szyjecie w Polsce, we własnej szwalni.
     `;
 
     try {
