@@ -21,37 +21,48 @@ function syncProductIds() {
     document.getElementById('pub-collage-ids').value = ids;
 }
 
-// 1. GENEROWANIE POMYSŁÓW
+// 1. GENEROWANIE POMYSŁÓW (TAB 1)
 async function generateIdeas(userIdea) {
     const resBox = document.getElementById('ideas-result');
     const loader = document.getElementById('loader-1');
     loader.style.display = 'block';
     resBox.innerHTML = '';
     
-    const prompt = `Jesteś redaktorką Wassyl (moda damska). Zaproponuj 5 tematów ubrań/stylizacji (ZAKAZ technologii/kuchni) dla: "${userIdea || 'trendy wiosna 2026'}". Zwróć TYLKO JSON: [{"title": "Tytuł", "desc": "Opis"}].`;
+    // BARDZO BRUTALNY PROMPT PROFILUJĄCY MARKĘ
+    const basePrompt = `Jesteś copywriterką polskiej marki modowej WASSYL. Sprzedajemy ubrania na co dzień: STREETWEAR, dresy, prążkowane komplety, basic, luźne sukienki. Nasz vibe to miejski luz, kawa na mieście, spacer, a nie paryskie wybiegi.
+    KATEGORYCZNY ZAKAZ: poetyckiego języka, metafor typu "Ogrody Hesperyd", "Szept Muzy", "eteryczne piękno". Masz pisać konkretnie, lifestylowo i pod SEO (np. "Jak stylizować dresy na miasto", "5 basicowych koszulek na wiosnę"). Tematy mają dotyczyć WYŁĄCZNIE codziennych, wygodnych ubrań. `;
+
+    const prompt = userIdea 
+        ? basePrompt + `Zaproponuj 5 konkretnych tematów na podstawie pomysłu: "${userIdea}". Zwróć TYLKO JSON: [{"title": "Tytuł", "desc": "Opis"}].`
+        : basePrompt + `Mamy wiosnę 2026. Poszukaj aktualnych trendów (streetwear, casual) i zaproponuj 5 klikalnych tematów. Zwróć TYLKO JSON: [{"title": "Tytuł", "desc": "Opis"}].`;
 
     try {
-        const res = await fetch('/api/generate', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ prompt, search: !userIdea, json_mode: true }) });
+        const res = await fetch('/api/generate', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ prompt: prompt, search: !userIdea, json_mode: true })
+        });
         const data = await res.json();
-        const ideas = JSON.parse(data.result.match(/\[[\s\S]*\]/)[0]);
+        
+        const jsonMatch = data.result.match(/\[[\s\S]*\]/);
+        if (!jsonMatch) throw new Error("AI nie zwróciło tablicy JSON.");
+        const ideas = JSON.parse(jsonMatch[0]);
         
         let html = '<div style="display: flex; flex-direction: column; gap: 15px;">';
         ideas.forEach(idea => {
             const enc = encodeURIComponent(idea.title);
-            html += `<div style="background: #fff; padding: 15px; border-radius: 8px; border: 1px solid #ddd;">
+            html += `
+            <div style="background: #fff; padding: 15px; border-radius: 8px; border: 1px solid #ddd;">
                 <h4 style="margin-top: 0;">${idea.title}</h4>
                 <p style="font-size: 13px; color: #666;">${idea.desc || idea.description}</p>
                 <button class="btn-primary" onclick="selectBlogIdea('${enc}')" style="margin: 0; background: #000;">✍️ Wybierz temat</button>
             </div>`;
         });
         resBox.innerHTML = html + '</div>';
-    } catch (e) { resBox.innerHTML = "Błąd: " + e.message; }
+    } catch (e) { 
+        resBox.innerHTML = "Błąd: " + e.message; 
+    }
     loader.style.display = 'none';
-}
-
-function selectBlogIdea(enc) {
-    document.getElementById('topic-input').value = decodeURIComponent(enc);
-    switchTab('tab2');
 }
 
 // 2. ARTYKUŁ (SAMA TREŚĆ)
