@@ -167,21 +167,24 @@ async function generateMeta(instruction = "") {
 
 function tweakMeta(inst) { generateMeta(inst); }
 
-// PRZEJŚCIE DO PUBLIKACJI (NAPRAWIONE)
+// PRZEJŚCIE DO PUBLIKACJI
 function goToPublish() {
     const title = document.getElementById('final-title').value;
     const lead = document.getElementById('final-lead').value;
     
     if (!title || title.includes('⏳')) {
-        return alert("Kliknij najpierw niebieski przycisk 'Generuj Tytuł i Lead'!");
+        return alert("Najpierw wygeneruj Tytuł i Lead niebieskim przyciskiem!");
     }
     
-    // Kopiujemy dane do pól formularza publikacji
+    // Kopiowanie danych
     document.getElementById('pub-title').value = title;
     document.getElementById('pub-lead').value = lead;
     
+    // Najpierw zmiana zakładki (żeby użytkownik widział reakcję)
     switchTab('tab3');
-    generateHtml(); // Automatyczne generowanie HTML po przejściu
+    
+    // Potem generowanie HTML w tle
+    generateHtml();
 }
 
 // 5. KOLAŻ I HTML (SZABLON WASSYL)
