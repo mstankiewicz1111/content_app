@@ -26,8 +26,8 @@ async function generateIdeas(userIdea) {
     resBox.innerHTML = '';
     
     const prompt = userIdea 
-        ? `Jesteś redaktorką bloga modowego Wassyl. Zaproponuj 5 chwytliwych tematów na podstawie pomysłu: "${userIdea}". Zwróć wynik jako czysty JSON w formacie tablicy obiektów: [{"title": "Tytuł", "desc": "Krótki opis"}].`
-        : `Jesteś redaktorką bloga modowego Wassyl. Kwiecień 2026. Poszukaj aktualnych trendów modowych i zaproponuj 5 chwytliwych tematów. Zwróć JSON: [{"title": "Tytuł", "desc": "Krótki opis"}].`;
+        ? `Jesteś redaktorką bloga modowego Wassyl. Zaproponuj 5 chwytliwych tematów na podstawie pomysłu: "${userIdea}". UWAGA: Zwróć TYLKO I WYŁĄCZNIE czysty JSON w formacie tablicy obiektów: [{"title": "Tytuł", "desc": "Krótki opis"}]. Żadnego przywitania, żadnego tekstu przed ani po JSONie.`
+        : `Jesteś redaktorką bloga modowego Wassyl. Kwiecień 2026. Poszukaj aktualnych trendów modowych i zaproponuj 5 chwytliwych tematów. UWAGA: Zwróć TYLKO I WYŁĄCZNIE czysty JSON w formacie tablicy obiektów: [{"title": "Tytuł", "desc": "Krótki opis"}]. Żadnego przywitania, żadnego tekstu przed ani po JSONie.`;
 
     try {
         const res = await fetch('/api/generate', {
@@ -38,7 +38,17 @@ async function generateIdeas(userIdea) {
         const data = await res.json();
         loader.style.display = 'none';
         
-        let cleanJson = data.result.replace(/```json/g, '').replace(/```/g, '').trim();
+        // PANCERNY PARSER JSON: Szukamy tylko tego, co jest między [ a ]
+        let rawText = data.result;
+        let cleanJson = "";
+        
+        const jsonMatch = rawText.match(/\[[\s\S]*\]/);
+        if (jsonMatch) {
+            cleanJson = jsonMatch[0];
+        } else {
+            throw new Error("AI nie wygenerowało tablicy JSON. Zwróciło tekst: " + rawText.substring(0, 50) + "...");
+        }
+
         const ideas = JSON.parse(cleanJson);
         
         let html = '<div style="display: flex; flex-direction: column; gap: 15px;">';
@@ -55,15 +65,9 @@ async function generateIdeas(userIdea) {
         resBox.innerHTML = html;
     } catch (e) {
         loader.style.display = 'none';
-        resBox.innerHTML = `<div style="color:red;">Błąd AI: ${e.message}</div>`;
+        resBox.innerHTML = `<div style="color:red; padding:15px; background:#ffe6e6; border:1px solid red; border-radius:8px;">Błąd AI: ${e.message}</div>`;
     }
 }
-
-function selectBlogIdea(title) {
-    document.getElementById('topic-input').value = title;
-    switchTab('tab2');
-}
-
 // 1. AUTO-DOBÓR PRODUKTÓW
 async function autoSelectProducts() {
     const topic = document.getElementById('topic-input').value;
