@@ -29,8 +29,6 @@ def api_idosell_products():
             return jsonify({"error": f"Błąd IdoSell {res.status_code}", "details": res.text}), 500
 
         dane = res.json()
-        
-        # Zmiana: Przesyłamy surowy obiekt results bezpośrednio do JS
         if "results" in dane:
             return jsonify({"results": dane["results"]})
             
@@ -54,7 +52,7 @@ def api_publish():
     except Exception as e:
         return jsonify({"error": "Błąd wewnętrzny Pythona", "details": str(e)}), 500
 
-# NOWY ENDPOINT: Aktualizacja nazwy i opisu bezpośrednio w IdoSell
+# ZAKTUALIZOWANY ENDPOINT AKTUALIZACJI Z OBSŁUGĄ KODU 207
 @idosell_bp.route('/update_product', methods=['POST'])
 def api_update_product():
     domain, api_key = get_idosell_config()
@@ -72,7 +70,6 @@ def api_update_product():
     url = f"https://{domain}/api/admin/v7/products/products"
     headers = {"X-API-KEY": api_key, "Content-Type": "application/json", "Accept": "application/json"}
     
-    # Payload dla metody PUT w IdoSell
     payload = {
         "products": [
             {
@@ -90,8 +87,20 @@ def api_update_product():
 
     try:
         res = requests.put(url, headers=headers, json=payload, timeout=20)
-        if res.status_code in [200, 204]:
-            return jsonify({"success": True, "response": res.json()})
+        response_data = res.json()
+        
+        # Akceptujemy 200, 204 oraz 207 (Multi-Status IdoSell)
+        if res.status_code in [200, 204, 207]:
+            # Weryfikacja, czy kod 207 nie ukrywa w sobie błędów dla tego konkretnego ID
+            errors = []
+            for p in response_data.get("products", []):
+                if "errors" in p and p["errors"]:
+                    errors.append(str(p["errors"]))
+            
+            if errors:
+                return jsonify({"success": False, "error": "IdoSell zwrócił błędy: " + "; ".join(errors)}), 200
+                
+            return jsonify({"success": True, "response": response_data})
         else:
             return jsonify({"success": False, "error": f"Błąd IdoSell: {res.status_code}", "details": res.text}), 500
     except Exception as e:
