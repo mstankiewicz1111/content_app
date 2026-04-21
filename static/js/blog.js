@@ -21,6 +21,43 @@ function syncProductIds() {
 }
 
 // ==========================================
+// 0. GENEROWANIE POMYSŁÓW (TAB 1)
+// ==========================================
+async function generateIdeas(userIdea) {
+    const resBox = document.getElementById('ideas-result');
+    const loader = document.getElementById('loader-1');
+    
+    loader.style.display = 'block';
+    resBox.innerHTML = '';
+    
+    // Rozróżnienie promptu: Trend vs Własny pomysł
+    const prompt = userIdea 
+        ? `Jesteś redaktorką bloga modowego marki Wassyl. Zaproponuj 5 chwytliwych, SEO-friendly tematów artykułów na podstawie pomysłu: "${userIdea}". Oprócz tytułu, dodaj do każdego 1 zdanie krótkiego opisu, o czym byłby tekst. Zwróć odpowiedź w czytelnym formacie Markdown.`
+        : `Jesteś redaktorką bloga modowego marki Wassyl. Mamy kwiecień 2026. Przeszukaj najnowsze, realne trendy modowe (styl casual, streetwear, basic) i zaproponuj 5 gorących, bardzo klikalnych tematów na artykuł. Oprócz tytułu, dodaj do każdego 1 zdanie opisu. Zwróć odpowiedź w czytelnym formacie Markdown.`;
+
+    try {
+        const res = await fetch('/api/generate', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                prompt: prompt,
+                search: !userIdea // Uruchamiamy wyszukiwarkę (search: true) tylko dla opcji z trendami
+            })
+        });
+        const data = await res.json();
+        
+        loader.style.display = 'none';
+        
+        // Zabezpieczenie formatowania (jeśli masz funkcję formatMarkdown zdefiniowaną np. w core.js)
+        resBox.innerHTML = typeof formatMarkdown === 'function' ? formatMarkdown(data.result) : data.result.replace(/\n/g, '<br>');
+        
+    } catch (e) {
+        loader.style.display = 'none';
+        resBox.innerHTML = `<div style="color:red; padding:10px; border:1px solid red; border-radius:5px;">Błąd generowania tematów: ${e.message}</div>`;
+    }
+}
+
+// ==========================================
 // 1. AUTO-DOBÓR PRODUKTÓW DO TEMATU
 // ==========================================
 async function autoSelectProducts() {
