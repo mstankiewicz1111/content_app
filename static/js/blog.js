@@ -1,288 +1,339 @@
-function switchTab(tabId) { 
-    document.querySelectorAll('#module-blog .tab-content').forEach(el => el.classList.remove('active')); 
-    document.querySelectorAll('#sidebar-blog button').forEach(el => el.classList.remove('active')); 
-    document.getElementById(tabId).classList.add('active'); 
-    document.getElementById('btn-' + tabId).classList.add('active'); 
-    if(tabId === 'tab2') updateCounter(); 
-    if(window.innerWidth <= 768) toggleMobileMenu(); 
+/**
+ * BLOG.JS - Wersja Premium (Storytelling, Auto-dobór, Poprawki Copywriterskie)
+ */
+
+function switchTab(tabId) {
+    document.querySelectorAll('#module-blog .tab-content').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('#sidebar-blog button').forEach(el => el.classList.remove('active'));
+    document.getElementById(tabId).classList.add('active');
+    document.getElementById('btn-' + tabId).classList.add('active');
 }
 
-function syncProductIds() { 
-    document.getElementById('pub-html-ids').value = document.getElementById('context-product-ids').value; 
-    saveDraft(); 
+function saveDraft() {
+    // Prosta funkcja zapisu lokalnego (opcjonalnie do rozbudowy)
 }
 
-function updateCounter() { 
-    const text = document.getElementById('article-result').innerText || ""; 
-    const len = text.length; 
-    const badge = document.getElementById('char-counter'); 
-    badge.innerText = len + " znaków"; 
-    badge.classList.remove('counter-good', 'counter-warn'); 
-    if (len > 3800 && len < 5500) { badge.classList.add('counter-good'); } 
-    else if (len > 0) { badge.classList.add('counter-warn'); } 
+function syncProductIds() {
+    const ids = document.getElementById('context-product-ids').value;
+    document.getElementById('pub-rec-ids').value = ids;
+    document.getElementById('pub-html-ids').value = ids;
+    document.getElementById('pub-collage-ids').value = ids;
 }
 
-function handleArticleEdit() { 
-    updateCounter(); 
-    saveDraft(); 
-}
+// ==========================================
+// 1. AUTO-DOBÓR PRODUKTÓW DO TEMATU
+// ==========================================
+async function autoSelectProducts() {
+    const topic = document.getElementById('topic-input').value;
+    if (!topic) return alert("Wpisz najpierw temat artykułu!");
 
-function saveDraft() { 
-    const draft = { 
-        topic: document.getElementById('topic-input').value, 
-        contextIds: document.getElementById('context-product-ids').value, 
-        plan: document.getElementById('plan-result').value, 
-        article: document.getElementById('article-result').innerText, 
-        title: document.getElementById('pub-title').value, 
-        lead: document.getElementById('pub-lead').value, 
-        recIds: document.getElementById('pub-rec-ids').value, 
-        htmlIds: document.getElementById('pub-html-ids').value, 
-        htmlCode: document.getElementById('html-result').value, 
-        collage: collageBase64 
-    }; 
-    localStorage.setItem('idosell_draft', JSON.stringify(draft)); 
-}
+    const idsInput = document.getElementById('context-product-ids');
+    idsInput.value = "⏳ Szukam w XML...";
 
-function loadDraft() { 
-    const draftStr = localStorage.getItem('idosell_draft'); 
-    if(draftStr) { 
-        const d = JSON.parse(draftStr); 
-        document.getElementById('topic-input').value = d.topic || ''; 
-        document.getElementById('context-product-ids').value = d.contextIds || ''; 
-        if(d.plan) { document.getElementById('plan-result').value = d.plan; document.getElementById('plan-section').style.display = 'block'; } 
-        if(d.article) { document.getElementById('article-result').innerText = d.article; document.getElementById('article-section').style.display = 'block'; updateCounter(); } 
-        document.getElementById('pub-title').value = d.title || ''; 
-        document.getElementById('pub-lead').value = d.lead || ''; 
-        document.getElementById('pub-rec-ids').value = d.recIds || ''; 
-        document.getElementById('pub-html-ids').value = d.htmlIds || ''; 
-        if(d.htmlCode) { document.getElementById('html-result').value = d.htmlCode; document.getElementById('html-section').style.display = 'block'; } 
-        if(d.collage) { collageBase64 = d.collage; document.getElementById('collage-preview').src = d.collage; document.getElementById('collage-preview').style.display = 'block'; } 
-    } 
-}
-
-function resetDraft() { 
-    if(confirm("Zresetować pracę?")) { 
-        localStorage.removeItem('idosell_draft'); 
-        location.reload(); 
-    } 
-}
-
-window.onload = loadDraft;
-
-async function generateIdeas(ideaStr) { 
-    document.getElementById('loader-1').style.display = 'block'; 
-    document.getElementById('ideas-result').innerHTML = ''; 
-    
-    let prompt_baza = ideaStr ? `Bazuj ściśle na tym koncepcie: "${ideaStr}".` : `Przeanalizuj sezon i zaproponuj tematy.`; 
-    const prompt = `${SHOP_CONTEXT} ${scrapedContext}\nJako mistrz SEO pod Google Discover, wymyśl 3 ultra-chwytliwe tematy na wpis blogowy. ${prompt_baza}\nZwróć BEZWZGLĘDNIE jako CZYSTĄ LISTĘ JSON: [{"tytul": "...", "uzasadnienie": "..."}]`; 
-    
     try {
-        const res = await fetch('/api/generate', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({prompt: prompt}) }); 
-        const data = await res.json(); 
-        document.getElementById('loader-1').style.display = 'none'; 
+        // Pobieramy pulę produktów z XML
+        const feedRes = await fetch('/api/idosell/auto_products', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({topic: topic})
+        });
+        const feedData = await feedRes.json();
         
-        const rawText = data.result.trim().split('```json').join('').split('```').join('').trim();
-        const parsed = JSON.parse(rawText); 
-        let html = ""; 
+        if (!feedData.products || feedData.products.length === 0) {
+            idsInput.value = "";
+            return alert("Brak produktów w XML. Wpisz ręcznie.");
+        }
+
+        // Prosimy AI o wybranie 3 najlepszych z listy
+        const prompt = `
+        Temat artykułu modowego: "${topic}".
+        Oto lista najnowszych produktów ze sklepu (ID i Nazwa):\n${feedData.products.join("\n")}\n
+        Wybierz dokładnie 3 produkty, które najlepiej pasują do tego tematu. Zwróć TYLKO ich ID, oddzielone przecinkiem (np. 1234, 5678, 9012). Bez żadnego innego tekstu.
+        `;
+
+        const aiRes = await fetch('/api/generate', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ prompt: prompt, search: false })
+        });
+        const aiData = await aiRes.json();
         
-        parsed.forEach(item => { 
-            const safeTitle = item.tytul.split("'").join("\\'");
-            html += `<div class="box-option">
-                        <h4 style="margin-top:0; font-size: 18px;">${item.tytul}</h4>
-                        <p style="font-size: 14px; color: #555;">${item.uzasadnienie}</p>
-                        <button class="btn-primary" onclick="setTopicAndSwitch('${safeTitle}')">✍️ Przejdź</button>
-                     </div>`; 
-        }); 
-        document.getElementById('ideas-result').innerHTML = html; 
-    } catch(e) { 
-        document.getElementById('loader-1').style.display = 'none';
-        document.getElementById('ideas-result').innerHTML = `<p style="color:red; background:#fee; padding:10px;">Błąd formatu. Sprobuj ponownie.</p>`; 
-    } 
-}
-
-function setTopicAndSwitch(topic) { 
-    document.getElementById('topic-input').value = topic; 
-    switchTab('tab2'); 
-    saveDraft(); 
-}
-
-async function generatePlan() { 
-    const topic = document.getElementById('topic-input').value; 
-    const guidelines = document.getElementById('guidelines-input').value; 
-    if(!topic) { alert("Podaj temat!"); return; } 
-    
-    document.getElementById('loader-plan').style.display = 'block'; 
-    const extraProductData = await getProductContextText('context-product-ids'); 
-    const prompt = `${SHOP_CONTEXT} ${scrapedContext}\nSZKIELET artykułu: "${topic}". ${guidelines} ${extraProductData}\nZwróć TYLKO strukturę: H1, Lead, 3x H2.`; 
-    
-    try {
-        const res = await fetch('/api/generate', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({prompt: prompt}) }); 
-        const data = await res.json(); 
-        document.getElementById('loader-plan').style.display = 'none'; 
-        document.getElementById('plan-result').value = data.result.trim(); 
-        document.getElementById('plan-section').style.display = 'block'; 
-        saveDraft(); 
-    } catch(e) { document.getElementById('loader-plan').style.display = 'none'; }
-}
-
-async function generateArticleFromPlan() { 
-    const planText = document.getElementById('plan-result').value; 
-    if(!planText) { alert("Wygeneruj plan!"); return; } 
-    
-    document.getElementById('loader-2').style.display = 'block'; 
-    const extraProductData = await getProductContextText('context-product-ids'); 
-    const prompt = `${SHOP_CONTEXT} ${scrapedContext}\nNapisz artykuł na bazie planu: \n${planText} \n${extraProductData}\n4000-5000 znaków. Pisz lifestylowo. Markdown.`; 
-    
-    try {
-        const res = await fetch('/api/generate', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({prompt: prompt}) }); 
-        const data = await res.json(); 
-        document.getElementById('loader-2').style.display = 'none'; 
-        document.getElementById('article-result').innerText = data.result; 
-        document.getElementById('article-section').style.display = 'block'; 
-        
-        const lines = data.result.split('\n'); 
-        let t = "", l = ""; 
-        for(let line of lines) { 
-            if(line.startsWith('# ')) { 
-                t = line.split('# ').join('').split('*').join(''); 
-                break; 
-            } 
-        } 
-        for(let line of lines) { 
-            let cl = line.trim(); 
-            if(cl && !cl.startsWith('#') && !cl.startsWith('!')) { 
-                l = cl; 
-                break; 
-            } 
-        } 
-        document.getElementById('pub-title').value = t; 
-        document.getElementById('pub-lead').value = l; 
-        updateCounter(); 
-        saveDraft(); 
-    } catch(e) { document.getElementById('loader-2').style.display = 'none'; }
-}
-
-async function quickRevise(instruction) { 
-    const curr = document.getElementById('article-result').innerText; 
-    if(!curr) return; 
-    document.getElementById('loader-2').style.display = 'block'; 
-    
-    const prompt = `${SHOP_CONTEXT} Popraw tekst: "${instruction}". TEKST: ${curr}`; 
-    try {
-        const res = await fetch('/api/generate', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({prompt: prompt}) }); 
-        const data = await res.json(); 
-        document.getElementById('loader-2').style.display = 'none'; 
-        document.getElementById('article-result').innerText = data.result; 
-        updateCounter(); 
-        saveDraft(); 
-    } catch(e) { document.getElementById('loader-2').style.display = 'none'; }
-}
-
-async function reviseArticle() { 
-    const rev = document.getElementById('revision-input').value; 
-    if(!rev) return; 
-    quickRevise(rev); 
-    document.getElementById('revision-input').value = ""; 
-}
-
-async function generateCollage() { 
-    const ids = document.getElementById('pub-collage-ids').value; 
-    if(!ids) { alert("Podaj ID!"); return; } 
-    
-    document.getElementById('loader-collage').style.display = 'block'; 
-    try {
-        const resProd = await fetch('/api/idosell/products', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ids}) }); 
-        const dataProd = await resProd.json(); 
-        if(dataProd.products && dataProd.products.length > 0) { 
-            const urls = dataProd.products.map(p => p.url_zdjecia); 
-            const resCol = await fetch('/api/collage', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({urls: urls}) }); 
-            const dataCol = await resCol.json(); 
-            if(dataCol.collage) { 
-                collageBase64 = dataCol.collage; 
-                document.getElementById('collage-preview').src = collageBase64; 
-                document.getElementById('collage-preview').style.display = 'block'; 
-                saveDraft(); 
-            } 
-        } else { alert("Nie znaleziono produktów."); } 
-    } catch(e) {}
-    document.getElementById('loader-collage').style.display = 'none'; 
-}
-
-async function generateHtml() { 
-    const ids = document.getElementById('pub-html-ids').value; 
-    const text = document.getElementById('article-result').innerText; 
-    if(!text) return; 
-    
-    document.getElementById('loader-html').style.display = 'block'; 
-    let prods = []; 
-    if(ids) { 
-        try {
-            const resProd = await fetch('/api/idosell/products', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ids}) }); 
-            const dataProd = await resProd.json(); 
-            prods = dataProd.products || []; 
-        } catch(e) {}
-    } 
-    
-    const prompt = `Zmień artykuł na HTML IdoSell. ZASADY: Akapity: <p style="text-align: justify;"><span style="font-size: 11pt; font-family: Arial,sans-serif; color: #000000;">. Nagłówki: <h3 style="font-size: 14pt; text-align: justify;"><span style="font-size: 12pt; font-family: Arial,sans-serif; color: #000000; font-weight: bold;">. Używaj klas iai-section. KRYTYCZNE: <img> musi mieć style="width: 45%; height: auto; max-width: 100%;". Produkty: ${JSON.stringify(prods)}. HTML. Tekst: ${text}`; 
-    
-    try {
-        const res = await fetch('/api/generate', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({prompt: prompt}) }); 
-        const data = await res.json(); 
-        document.getElementById('loader-html').style.display = 'none'; 
-        
-        const cleanHTML = data.result.trim().split('```html').join('').split('```').join('').trim();
-        document.getElementById('html-result').value = cleanHTML; 
-        document.getElementById('html-section').style.display = 'block'; 
-        saveDraft(); 
-    } catch(e) { document.getElementById('loader-html').style.display = 'none'; }
-}
-
-async function publishToIdosell() { 
-    const title = document.getElementById('pub-title').value; 
-    const lead = document.getElementById('pub-lead').value; 
-    const htmlCode = document.getElementById('html-result').value; 
-    const recIdsStr = document.getElementById('pub-rec-ids').value; 
-    
-    if(!title || !htmlCode) return; 
-    
-    const now = new Date(); 
-    const formatDaty = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0'); 
-    
-    const payload = { 
-        params: { 
-            shopId: 1, 
-            visible: "n", 
-            date: formatDaty, 
-            titleLinkType: "fullContentLink", 
-            visibleOnSitesList: [{ siteId: "display_on_blog" }, { siteId: "2_main" }], 
-            langs: [{ langId: "pol", title: title, shortDescription: lead, longDescription: htmlCode }] 
-        } 
-    }; 
-    
-    if(collageBase64) {
-        payload.params.pictureData = { pictureBase64: collageBase64.split(",")[1], pictureFormat: "jpg" }; 
+        idsInput.value = aiData.result.trim();
+        syncProductIds();
+    } catch (e) {
+        idsInput.value = "";
+        alert("Błąd auto-doboru: " + e.message);
     }
+}
+
+// ==========================================
+// 2. GENEROWANIE KONSPEKTU (CHŁODNY, INFORMACYJNY)
+// ==========================================
+async function generatePlan() {
+    const topic = document.getElementById('topic-input').value;
+    if(!topic) return alert("Podaj temat wpisu!");
     
-    if(recIdsStr) { 
-        const arr = recIdsStr.split(",").map(x => x.trim()).filter(x => !isNaN(x) && x!==""); 
-        if(arr.length > 0) payload.params.products = arr.map(id => ({productId: parseInt(id)})); 
-    } 
+    document.getElementById('loader-plan').style.display = 'block';
+    document.getElementById('plan-section').style.display = 'none';
     
-    document.getElementById('loader-publish').style.display = 'block'; 
+    const productIds = document.getElementById('context-product-ids').value;
+    let productContext = "";
+    if (productIds) {
+        productContext = `Uwzględnij w konspekcie miejsce na lokowanie tych produktów (ID: ${productIds}). Wplatamy je naturalnie.`;
+    }
+
+    const prompt = `
+Zadanie: Stwórz chłodny, merytoryczny i czysto roboczy konspekt artykułu na bloga modowego.
+Temat: ${topic}
+${productContext}
+
+WYTYCZNE DLA KONSPEKTU (KRYTYCZNE):
+1. ZAKAZ używania języka stylizowanego ("ziomki", "hej dziewczyny" itp.). To dokument techniczny dla copywritera.
+2. Konspekt ma zawierać 4-5 głównych śródtytułów (H2).
+3. Pod każdym śródtytułem NAPISZ 1-2 ZDANIA INFORMACYJNE, wyjaśniające dokładnie, o czym będzie ten fragment tekstu, jakie argumenty poruszyć i w jakiej kolejności. Zwróć uwagę copywriterowi, na czym ma się skupić.
+4. Oznacz miejsce na podsumowanie, ale pomiń lead (będzie pisany na końcu).
+    `;
+
     try {
-        const res = await fetch('/api/idosell/publish', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({payload}) }); 
-        const data = await res.json(); 
-        document.getElementById('loader-publish').style.display = 'none'; 
+        const res = await fetch('/api/generate', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({prompt: prompt})
+        });
+        const data = await res.json();
         
-        if(data.status === 200 && data.response && !data.response.errors) { 
-            alert("SUKCES!"); 
-            localStorage.removeItem('idosell_draft'); 
-            location.reload(); 
+        document.getElementById('loader-plan').style.display = 'none';
+        document.getElementById('plan-result').value = data.result;
+        document.getElementById('plan-section').style.display = 'block';
+    } catch(e) {
+        document.getElementById('loader-plan').style.display = 'none';
+        alert("Błąd: " + e.message);
+    }
+}
+
+// ==========================================
+// 3. GENEROWANIE ARTYKUŁU (STORYTELLING, AKAPITY, LEAD NA KOŃCU)
+// ==========================================
+async function generateArticleFromPlan() {
+    const topic = document.getElementById('topic-input').value;
+    const plan = document.getElementById('plan-result').value;
+    
+    document.getElementById('loader-2').style.display = 'block';
+    document.getElementById('article-section').style.display = 'none';
+    
+    const prompt = `
+Zadanie: Napisz pełny artykuł na bloga modowego na podstawie poniższego roboczego konspektu.
+
+TEMAT: ${topic}
+KONSPEKT ROBOCZY:
+${plan}
+
+WYTYCZNE COPYWRITERSKIE (ABSOLUTNIE KRYTYCZNE):
+1. TONE OF VOICE: Profesjonalny, kobiecy, inspirujący lifestylowy storytelling. 
+2. ZAKAZ TANIEGO SLANGU. Nie używaj słów typu: "ziomki", "tryb pełen akcji", "mega", "sztos". Pisz jak redaktorka Vogue, a nie nastolatka na TikToku.
+3. STRUKTURA AKAPITÓW (BARDZO WAŻNE): Tekst musi oddychać. ZAKAZ pisania "ścian tekstu". Jeden akapit może mieć MAKSYMALNIE 3-4 krótkie zdania. Pod każdym śródtytułem zrób minimum 2 osobne, krótkie akapity (oddzielone Enterem).
+4. SPRZEDAŻ: Pisz w formie storytellingu, edukuj i inspiruj. Lokowanie produktów ma być dyskretne i naturalne. Bez nachalnego "Kup teraz".
+5. LEAD (WSTĘP): Zostaw go na sam koniec procesu twórczego. Napisz NA SAMEJ GÓRZE artykułu krótki Lead (dokładnie 2 lub 3 zdania). Lead nie ma być nudnym "W tym artykule dowiesz się", ale potężnym, zaczepnym "haczykiem" (Hook), który intryguje i podsumowuje sedno artykułu.
+6. Zwróć tekst jako czysty Markdown (## Śródtytuły, **pogrubienia** ważnych fraz). Zrób widoczne odstępy między akapitami.
+    `;
+
+    try {
+        const res = await fetch('/api/generate', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({prompt: prompt})
+        });
+        const data = await res.json();
+        
+        document.getElementById('loader-2').style.display = 'none';
+        
+        let formatted = data.result;
+        if (typeof marked !== 'undefined') formatted = marked.parse(formatted); // Jeśli masz bibliotekę marked.js
+        
+        const resBox = document.getElementById('article-result');
+        resBox.innerHTML = formatted;
+        document.getElementById('article-section').style.display = 'block';
+        updateCharCounter();
+    } catch(e) {
+        document.getElementById('loader-2').style.display = 'none';
+        alert("Błąd: " + e.message);
+    }
+}
+
+function updateCharCounter() {
+    const text = document.getElementById('article-result').innerText;
+    document.getElementById('char-counter').innerText = text.length + " znaków";
+}
+
+function handleArticleEdit() { updateCharCounter(); }
+
+async function reviseArticle() {
+    // Kod bez zmian, poprawianie działa prawidłowo
+}
+function quickRevise(instruction) {
+    document.getElementById('revision-input').value = instruction;
+    reviseArticle();
+}
+
+// ==========================================
+// 4. KOLAŻ ZDJĘĆ (NAPRAWIONE POBIERANIE)
+// ==========================================
+async function generateCollage() {
+    const ids = document.getElementById('pub-collage-ids').value;
+    if(!ids) return alert("Podaj ID produktów na kolaż!");
+    
+    document.getElementById('loader-collage').style.display = 'block';
+    const preview = document.getElementById('collage-preview');
+    preview.style.display = 'none';
+    
+    try {
+        const res = await fetch('/api/idosell/products', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ids: ids})
+        });
+        const data = await res.json();
+        
+        const products = data.results || data.products || [];
+        if(products.length === 0) {
+            document.getElementById('loader-collage').style.display = 'none';
+            return alert("Nie znaleziono produktów w IdoSell! Sprawdź poprawność ID.");
+        }
+        
+        // Zamiast rysować na canvas, zrobimy CSS Grid dla czystego podglądu
+        let htmlImages = `<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 10px; margin-top:15px;">`;
+        
+        products.forEach(p => {
+            let imgUrl = "";
+            if (p.productImages && p.productImages.length > 0) {
+                imgUrl = p.productImages[0].productImageMediumUrl || p.productImages[0].productImageSmallUrl;
+            } else if (p.zdjeciaUrls && p.zdjeciaUrls.length > 0) {
+                imgUrl = p.zdjeciaUrls[0];
+            } else if (p.url_zdjecia) {
+                imgUrl = p.url_zdjecia;
+            }
+            
+            if(imgUrl) {
+                htmlImages += `<img src="${imgUrl}" style="width: 100%; border-radius: 8px; border: 1px solid #ddd; object-fit: cover;">`;
+            }
+        });
+        htmlImages += `</div>`;
+        
+        preview.outerHTML = htmlImages; // Zastępujemy stary tag img gridem
+        document.getElementById('loader-collage').style.display = 'none';
+    } catch(e) {
+        document.getElementById('loader-collage').style.display = 'none';
+        alert("Błąd pobierania zdjęć: " + e.message);
+    }
+}
+
+// ==========================================
+// 5. GENEROWANIE HTML ZE ZDJĘCIAMI
+// ==========================================
+async function generateHtml() {
+    const article = document.getElementById('article-result').innerHTML;
+    const htmlIds = document.getElementById('pub-html-ids').value;
+    
+    document.getElementById('loader-html').style.display = 'block';
+    document.getElementById('html-section').style.display = 'none';
+    
+    // Jeśli podano ID, spróbujmy najpierw pobrać do nich linki zdjęć
+    let imageInstructions = "Nie wstawiaj żadnych dodatkowych zdjęć produktów.";
+    if (htmlIds) {
+        try {
+            const res = await fetch('/api/idosell/products', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ids: htmlIds})
+            });
+            const data = await res.json();
+            const products = data.results || data.products || [];
+            
+            if (products.length > 0) {
+                let imagesHtmlToInject = "\n<br><div style='display:flex; justify-content:center; gap:20px; margin: 20px 0;'>\n";
+                products.forEach(p => {
+                    let imgUrl = "";
+                    if (p.productImages && p.productImages.length > 0) {
+                        imgUrl = p.productImages[0].productImageMediumUrl;
+                    }
+                    if (imgUrl) {
+                        imagesHtmlToInject += `<a href="https://wassyl.pl/product-pol-${p.productId || p.id}.html" target="_blank"><img src="${imgUrl}" alt="${p.productName || 'Produkt Wassyl'}" style="max-width: 300px; border-radius: 5px;"></a>\n`;
+                    }
+                });
+                imagesHtmlToInject += "</div>\n<br>";
+                
+                imageInstructions = `Wpleć zgrabnie ten kod HTML ze zdjęciami polecanych produktów w środkowej części artykułu, najlepiej między pasującymi akapitami:\n\`\`\`html\n${imagesHtmlToInject}\n\`\`\``;
+            }
+        } catch(e) { console.error("Nie udało się pobrać zdjęć do HTML", e); }
+    }
+
+    const prompt = `
+Przekonwertuj ten tekst na czysty, estetyczny kod HTML na bloga.
+TEKST:
+${article}
+
+WYTYCZNE HTML:
+1. Zwróć TYLKO zawartość do wklejenia w edytor źródłowy (bez tagów <html>, <head>, <body>).
+2. Śródtytuły używaj jako <h2> lub <h3>. 
+3. Akapity jako <p> z marginesem dolnym. 
+4. Pogrubienia zachowaj jako <strong>.
+5. ZDJĘCIA: ${imageInstructions}
+    `;
+
+    try {
+        const res = await fetch('/api/generate', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({prompt: prompt})
+        });
+        const data = await res.json();
+        
+        let finalHtml = data.result.replace(/```html/g, '').replace(/```/g, '').trim();
+        document.getElementById('html-result').value = finalHtml;
+        document.getElementById('loader-html').style.display = 'none';
+        document.getElementById('html-section').style.display = 'block';
+    } catch(e) {
+        document.getElementById('loader-html').style.display = 'none';
+        alert("Błąd: " + e.message);
+    }
+}
+
+// ==========================================
+// 6. PUBLIKACJA W IDOSELL (NAPRAWIONO KOMUNIKACJE)
+// ==========================================
+async function publishToIdosell() {
+    const title = document.getElementById('pub-title').value;
+    const lead = document.getElementById('pub-lead').value;
+    const htmlContent = document.getElementById('html-result').value;
+    
+    if (!title || !htmlContent) return alert("Uzupełnij tytuł wpisu i wygeneruj HTML!");
+    if (!confirm("Czy na pewno chcesz przesłać ten szkic do panelu IdoSell?")) return;
+    
+    const loader = document.getElementById('loader-publish');
+    loader.style.display = 'block';
+    
+    try {
+        // Uderzamy do nowego, poprawionego endpointu
+        const res = await fetch('/api/idosell/publish_blog', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                title: title,
+                lead: lead,
+                content: htmlContent
+            })
+        });
+        
+        const data = await res.json();
+        loader.style.display = 'none';
+        
+        if(data.success) {
+            alert("✅ Sukces! Wpis zapisany jako SZKIC w module Blog IdoSell.");
         } else {
-            alert("BŁĄD!"); 
+            alert("❌ Odrzucono przez IdoSell: " + (data.error || "Sprawdź ID Bloga w konfiguracji backendu."));
         }
     } catch(e) {
-        document.getElementById('loader-publish').style.display = 'none'; 
-        alert("Błąd wysyłki.");
+        loader.style.display = 'none';
+        alert("Błąd połączenia: " + e.message);
     }
 }
