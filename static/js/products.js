@@ -114,7 +114,7 @@ DANE BAZOWE:
 - Parametry: ${product.parametry}
 
 WYTYCZNE NAZWY:
-1. Podział na 2 części długim myślnikiem " – ".
+1. Podział na 2 części długim myślnikiem " – ". Staraj się użyć tego znaku mniej więcej w połowie nazwy.
 2. ZAKAZ Title Case. Zdanie zaczyna się od wielkiej litery, reszta słów małymi literami.
 3. ZAKAZ kropki na końcu nazwy. (Dobre: "Czarna bluza oversize – idealna na spacer X672 / X1")
 4. Na końcu MUSI pozostać pełne oznaczenie modelu ze Starej Nazwy (absolutnie nie pomijaj końcówek takich jak k01, / X1 itp.). Szukaj kodu w tych słowach: "${suggestedCode}".
@@ -122,7 +122,7 @@ WYTYCZNE NAZWY:
 WYTYCZNE OPISU HTML:
 1. DŁUGOŚĆ: Max 3000 znaków. Pisz treściwie.
 2. STYL: Lifestylowy vibe Wassyl. ZAKAZ EMOJI. ZAKAZ kolorów.
-3. ZAKAZ ROZMIARÓW: W opisie nie wolno wspominać o rozmiarach (np. "modelka nosi S" albo "dostępna w rozmiarze mini"). Informacje z parametrów o rozmiarach zignoruj w tekście.
+3. ZAKAZ ROZMIARÓW: W opisie nie wolno wspominać o rozmiarach (np. "modelka nosi S" albo "dostępna w rozmiarze mini"). Informacje z parametrów o rozmiarach zignoruj w tekście. Zignoruj też informację typu "Mierzone na płasko do wymiarów +/- 2 cm."
 4. PRODUKCJA: OBOWIĄZKOWO wpleć do każdego opisu informację, że ubranie jest szyte w Polsce, w Waszej własnej szwalni (brzmienie naturalne).
 5. MERYTORYKA: Opieraj się na analizie załączonego zdjęcia oraz składzie/kroju z Parametrów.
 6. FORMAT HTML: Wyjustuj <div style="text-align: justify;">. Używaj <strong> dla kluczowych atutów.
