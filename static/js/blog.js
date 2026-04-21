@@ -16,6 +16,74 @@ function syncProductIds() {
     document.getElementById('pub-collage-ids').value = ids;
 }
 
+// ==========================================
+// 0. GENEROWANIE POMYSŁÓW
+// ==========================================
+async function generateIdeas(userIdea) {
+    const resBox = document.getElementById('ideas-result');
+    const loader = document.getElementById('loader-1');
+    loader.style.display = 'block';
+    resBox.innerHTML = '';
+    
+    const prompt = userIdea 
+        ? `Jesteś redaktorką bloga modowego Wassyl. Zaproponuj 5 chwytliwych tematów na podstawie pomysłu: "${userIdea}". UWAGA: Zwróć TYLKO I WYŁĄCZNIE czysty JSON w formacie tablicy obiektów: [{"title": "Tytuł", "desc": "Krótki opis"}]. Żadnego przywitania, żadnego tekstu przed ani po JSONie.`
+        : `Jesteś redaktorką bloga modowego Wassyl. Kwiecień 2026. Poszukaj aktualnych trendów modowych i zaproponuj 5 chwytliwych tematów. UWAGA: Zwróć TYLKO I WYŁĄCZNIE czysty JSON w formacie tablicy obiektów: [{"title": "Tytuł", "desc": "Krótki opis"}]. Żadnego przywitania, żadnego tekstu przed ani po JSONie.`;
+
+    try {
+        const res = await fetch('/api/generate', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ prompt: prompt, search: !userIdea, json_mode: true })
+        });
+        const data = await res.json();
+        loader.style.display = 'none';
+        
+        // PANCERNY PARSER JSON (Trzystopniowy)
+        let rawText = data.result || "";
+        rawText = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
+        
+        let ideas = [];
+        try {
+            // Próba 1: Czysty parse
+            ideas = JSON.parse(rawText);
+        } catch (e1) {
+            // Próba 2: Wyciągnięcie siłą zawartości między nawiasami kwadratowymi
+            const jsonMatch = rawText.match(/\[[\s\S]*\]/);
+            if (jsonMatch) {
+                ideas = JSON.parse(jsonMatch[0]);
+            } else {
+                throw new Error("AI nie wygenerowało odpowiedniej struktury danych. Zwrócony tekst: " + rawText.substring(0, 100));
+            }
+        }
+
+        // Zabezpieczenie przed sytuacją, gdy AI wypluje obiekt zamiast tablicy
+        if (!Array.isArray(ideas)) {
+            if (ideas.tematy && Array.isArray(ideas.tematy)) ideas = ideas.tematy;
+            else if (ideas.ideas && Array.isArray(ideas.ideas)) ideas = ideas.ideas;
+            else ideas = [ideas];
+        }
+
+        let html = '<div style="display: flex; flex-direction: column; gap: 15px;">';
+        ideas.forEach(idea => {
+            const title = idea.title || "Brak tytułu";
+            const desc = idea.desc || idea.description || "Brak opisu";
+            const encodedTitle = encodeURIComponent(title);
+            
+            html += `
+            <div style="background: #fff; padding: 15px; border-radius: 8px; border: 1px solid #ddd; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+                <h4 style="margin-top: 0; color: #000; font-size: 16px;">${title}</h4>
+                <p style="font-size: 13px; color: #666; margin-bottom: 15px;">${desc}</p>
+                <button class="btn-primary" onclick="selectBlogIdea('${encodedTitle}')" style="margin: 0; font-size: 12px; padding: 6px 12px; background: #000;">✍️ Wybierz ten temat</button>
+            </div>`;
+        });
+        html += '</div>';
+        resBox.innerHTML = html;
+    } catch (e) {
+        loader.style.display = 'none';
+        resBox.innerHTML = `<div style="color:red; padding:15px; background:#ffe6e6; border:1px solid red; border-radius:8px;">Błąd parsowania: ${e.message}</div>`;
+    }
+}
+
 // 1. AUTO-DOBÓR
 async function autoSelectProducts() {
     const topic = document.getElementById('topic-input').value;
