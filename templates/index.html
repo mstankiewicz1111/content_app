@@ -218,35 +218,48 @@
                 </div>
 
                 <div id="prod-editor" class="tab-content">
-                    <h2>✨ Edytor SEO (Google Discover)</h2>
-                    
-                    <div class="row" style="margin-bottom: 20px;">
-                        <div class="col">
-                            <label style="font-size: 12px; font-weight: bold;">ORYGINALNA NAZWA (IDOSELL):</label>
-                            <div id="orig-name" class="result-box" style="font-size: 13px; opacity: 0.7; margin-bottom: 0; min-height: 40px;"></div>
-                        </div>
-                        <div class="col">
-                            <label style="font-size: 12px; font-weight: bold; color: #0066cc;">PROPOZYCJA ZOPTYMALIZOWANA:</label>
-                            <input type="text" id="new-name-input" style="border-color: #0066cc; font-weight: bold; margin-bottom: 0; width: 100%; padding: 10px;">
-                        </div>
-                    </div>
+    <h2>✨ Edytor SEO (Google Discover)</h2>
+    
+    <div class="row" style="margin-bottom: 20px;">
+        <div class="col">
+            <label style="font-size: 12px; font-weight: bold;">ORYGINALNA NAZWA (IDOSELL):</label>
+            <div id="orig-name" class="result-box" style="font-size: 13px; opacity: 0.7; margin-bottom: 0; min-height: 40px;"></div>
+        </div>
+        <div class="col">
+            <label style="font-size: 12px; font-weight: bold; color: #0066cc;">PROPOZYCJA ZOPTYMALIZOWANA:</label>
+            <input type="text" id="new-name-input" style="border-color: #0066cc; font-weight: bold; margin-bottom: 0; width: 100%; padding: 10px;">
+        </div>
+    </div>
 
-                    <h3 style="margin-top: 0; font-size: 14px;">🎨 Pobrane zdjęcia produktu:</h3>
-                    <div id="prod-images-preview" style="display: flex; gap: 10px; overflow-x: auto; margin-bottom: 20px; padding-bottom: 10px;"></div>
+    <h3 style="margin-top: 0; font-size: 14px;">🎨 Pobrane zdjęcia produktu:</h3>
+    <div id="prod-images-preview" style="display: flex; gap: 10px; overflow-x: auto; margin-bottom: 20px; padding-bottom: 10px;"></div>
 
-                    <h3 style="display: flex; justify-content: space-between; align-items: center; font-size: 14px; margin-bottom: 10px;">
-                        📝 Nowy opis HTML 
-                        <span id="prod-char-counter" class="counter-badge">0 znaków</span>
-                    </h3>
-                    <div id="new-description-editor" class="result-box" contenteditable="true" style="min-height: 400px; text-align: justify; font-size: 14px; line-height: 1.6;"></div>
-                    
-                    <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 15px;">
-                        <button class="btn-primary" onclick="refreshProductSEO()" style="background: #555; border: none;">🔄 Nowa propozycja</button>
-                        <button class="btn-primary" onclick="copyToClipboard('new-description-editor')" style="background: #28a745; border: none;">📋 Kopiuj HTML</button>
-                        <div style="flex: 1;"></div>
-                        <button class="btn-primary" id="btn-prod-update" onclick="updateProductInIdosell()" style="background: #000; border: none;">🚀 Zaktualizuj w IdoSell</button>
-                    </div>
-                </div>
+    <h3 style="display: flex; justify-content: space-between; align-items: center; font-size: 14px; margin-bottom: 10px;">
+        📝 Nowy opis HTML 
+        <span id="prod-char-counter" class="counter-badge">0 znaków</span>
+    </h3>
+    <div id="new-description-editor" class="result-box" contenteditable="true" style="min-height: 400px; text-align: justify; font-size: 14px; line-height: 1.6;"></div>
+    <p style="font-size: 11px; color: #888; text-align: right; margin-top: 5px;">* Edytor jest aktywny. Możesz kliknąć w tekst powyżej i wprowadzić ręczne poprawki z klawiatury.</p>
+    
+    <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-top: 15px; border: 1px solid #ddd;">
+        <h4 style="margin-top: 0; font-size: 13px;">🤖 Korekta AI</h4>
+        <div style="display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: wrap;">
+            <button class="btn-primary btn-quick" onclick="reviseProductSEO('Skróć tekst o około 30%, zachowując formatowanie HTML.')">✂️ Skróć o 30%</button>
+            <button class="btn-primary btn-quick" onclick="reviseProductSEO('Przepisz tekst w tonie bardziej eleganckim i profesjonalnym, skierowanym do dojrzalszych kobiet.')">💼 Profesjonalny</button>
+            <button class="btn-primary btn-quick" onclick="reviseProductSEO('Przepisz tekst tak, by był bardzo na luzie, w stylu streetwearowym, skierowany bezpośrednio do pokolenia Z.')">🛹 Luzacki</button>
+        </div>
+        <div style="display: flex; gap: 10px;">
+            <input type="text" id="prod-revision-input" placeholder="Własne uwagi (np. 'skup się bardziej na materiale')..." style="margin: 0; flex: 1;">
+            <button class="btn-primary" onclick="reviseProductSEO()" style="margin: 0; background: #555; border: none;">Zastosuj</button>
+        </div>
+    </div>
+
+    <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 25px;">
+        <button class="btn-primary" onclick="copyToClipboard('new-description-editor')" style="background: #28a745; border: none;">📋 Kopiuj HTML</button>
+        <div style="flex: 1;"></div>
+        <button class="btn-primary" id="btn-prod-update" onclick="updateProductInIdosell()" style="background: #000; border: none; padding: 10px 25px; font-weight: bold;">🚀 Zaktualizuj na żywo w IdoSell</button>
+    </div>
+</div>
             </div>
 
             <div id="module-chat" class="module-content">
