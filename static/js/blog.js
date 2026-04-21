@@ -1,5 +1,5 @@
 /**
- * BLOG.JS - Wersja Premium (Storytelling, Auto-dobór, Poprawki Copywriterskie, Fixy)
+ * BLOG.JS - Wersja Premium (Kompletna i Załatana)
  */
 
 function switchTab(tabId) {
@@ -18,7 +18,9 @@ function syncProductIds() {
     document.getElementById('pub-collage-ids').value = ids;
 }
 
+// ==========================================
 // 0. GENEROWANIE POMYSŁÓW
+// ==========================================
 async function generateIdeas(userIdea) {
     const resBox = document.getElementById('ideas-result');
     const loader = document.getElementById('loader-1');
@@ -38,7 +40,6 @@ async function generateIdeas(userIdea) {
         const data = await res.json();
         loader.style.display = 'none';
         
-        // PANCERNY PARSER JSON: Szukamy tylko tego, co jest między [ a ]
         let rawText = data.result;
         let cleanJson = "";
         
@@ -46,19 +47,20 @@ async function generateIdeas(userIdea) {
         if (jsonMatch) {
             cleanJson = jsonMatch[0];
         } else {
-            throw new Error("AI nie wygenerowało tablicy JSON. Zwróciło tekst: " + rawText.substring(0, 50) + "...");
+            throw new Error("AI nie wygenerowało poprawnej struktury. Tekst: " + rawText.substring(0, 50) + "...");
         }
 
         const ideas = JSON.parse(cleanJson);
         
         let html = '<div style="display: flex; flex-direction: column; gap: 15px;">';
         ideas.forEach(idea => {
-            const safeTitle = idea.title.replace(/'/g, "\\'").replace(/"/g, "&quot;");
+            // Niezawodne kodowanie tytułu, żeby nie rozbijało przycisku HTML
+            const encodedTitle = encodeURIComponent(idea.title);
             html += `
             <div style="background: #fff; padding: 15px; border-radius: 8px; border: 1px solid #ddd; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
                 <h4 style="margin-top: 0; color: #000; font-size: 16px;">${idea.title}</h4>
                 <p style="font-size: 13px; color: #666; margin-bottom: 15px;">${idea.desc}</p>
-                <button class="btn-primary" onclick="selectBlogIdea('${safeTitle}')" style="margin: 0; font-size: 12px; padding: 6px 12px; background: #000;">✍️ Wybierz ten temat</button>
+                <button class="btn-primary" onclick="selectBlogIdea('${encodedTitle}')" style="margin: 0; font-size: 12px; padding: 6px 12px; background: #000;">✍️ Wybierz ten temat</button>
             </div>`;
         });
         html += '</div>';
@@ -68,7 +70,15 @@ async function generateIdeas(userIdea) {
         resBox.innerHTML = `<div style="color:red; padding:15px; background:#ffe6e6; border:1px solid red; border-radius:8px;">Błąd AI: ${e.message}</div>`;
     }
 }
+
+function selectBlogIdea(encodedTitle) {
+    document.getElementById('topic-input').value = decodeURIComponent(encodedTitle);
+    switchTab('tab2');
+}
+
+// ==========================================
 // 1. AUTO-DOBÓR PRODUKTÓW
+// ==========================================
 async function autoSelectProducts() {
     const topic = document.getElementById('topic-input').value;
     if (!topic) return alert("Wpisz najpierw temat artykułu!");
@@ -102,7 +112,9 @@ async function autoSelectProducts() {
     }
 }
 
+// ==========================================
 // 2. GENEROWANIE KONSPEKTU
+// ==========================================
 async function generatePlan() {
     const topic = document.getElementById('topic-input').value;
     if(!topic) return alert("Podaj temat wpisu!");
@@ -130,7 +142,9 @@ async function generatePlan() {
     }
 }
 
+// ==========================================
 // 3. GENEROWANIE ARTYKUŁU
+// ==========================================
 async function generateArticleFromPlan() {
     const topic = document.getElementById('topic-input').value;
     const plan = document.getElementById('plan-result').value;
@@ -172,7 +186,6 @@ WYTYCZNE (KRYTYCZNE):
     }
 }
 
-// NAPRAWIONA ZMIANA NAZWY LICZNIKA (Brak konfliktu z products.js)
 function updateBlogCharCounter() {
     const el = document.getElementById('article-result');
     if(!el) return;
@@ -182,7 +195,6 @@ function updateBlogCharCounter() {
 
 function handleArticleEdit() { updateBlogCharCounter(); }
 
-// PRZYWRÓCONA I ZOPTYMALIZOWANA FUNKCJA REWIZJI
 async function reviseArticle() {
     const article = document.getElementById('article-result').innerHTML;
     const instruction = document.getElementById('revision-input').value;
@@ -218,14 +230,15 @@ function quickRevise(instruction) {
     reviseArticle();
 }
 
-// PŁYNNE PRZEJŚCIE DO PUBLIKACJI Z WYPEŁNIENIEM DANYCH
 function goToPublish() {
     document.getElementById('pub-title').value = document.getElementById('topic-input').value;
     switchTab('tab3');
-    generateHtml(); // Od razu ładujemy HTML żeby formularz nie był pusty!
+    generateHtml();
 }
 
+// ==========================================
 // 4. KOLAŻ ZDJĘĆ
+// ==========================================
 async function generateCollage() {
     const ids = document.getElementById('pub-collage-ids').value;
     if(!ids) return alert("Podaj ID produktów!");
@@ -259,7 +272,9 @@ async function generateCollage() {
     }
 }
 
+// ==========================================
 // 5. GENEROWANIE HTML
+// ==========================================
 async function generateHtml() {
     const article = document.getElementById('article-result').innerHTML;
     const htmlIds = document.getElementById('pub-html-ids').value;
@@ -299,7 +314,9 @@ async function generateHtml() {
     }
 }
 
+// ==========================================
 // 6. PUBLIKACJA W IDOSELL
+// ==========================================
 async function publishToIdosell() {
     const title = document.getElementById('pub-title').value;
     const lead = document.getElementById('pub-lead').value;
