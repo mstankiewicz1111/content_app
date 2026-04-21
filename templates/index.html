@@ -106,8 +106,12 @@
                     <input type="text" id="topic-input" oninput="saveDraft()" placeholder="Wybrany temat artykułu">
                     <textarea id="guidelines-input" rows="2" placeholder="Dodatkowe wytyczne (opcjonalnie)" oninput="saveDraft()"></textarea>
                     <div style="background: #eef2f5; padding: 15px; border-radius: 5px; margin-bottom: 15px; border-left: 4px solid #0066cc;">
-                        <input type="text" id="context-product-ids" placeholder="ID produktów do opisu (np. 16216, 16357)" oninput="syncProductIds()">
-                    </div>
+    <label style="font-size: 12px; font-weight: bold; margin-bottom: 5px; display: block;">Produkty do wplecenia w tekst:</label>
+    <div style="display: flex; gap: 10px;">
+        <input type="text" id="context-product-ids" placeholder="ID produktów (np. 16216, 16357)" oninput="syncProductIds()" style="flex: 1; margin: 0;">
+        <button class="btn-primary" onclick="autoSelectProducts()" style="margin: 0; background: #555; border: none; padding: 0 15px;">🤖 Auto-dobór z XML</button>
+    </div>
+</div>
                     <button class="btn-primary" onclick="generatePlan()">📋 KROK 1: Wygeneruj Szkielet</button>
                     <div id="loader-plan" class="loader">⏳ Tworzę strukturę wpisu...</div>
                     
