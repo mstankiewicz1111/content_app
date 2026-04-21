@@ -30,10 +30,9 @@ async function generateIdeas(userIdea) {
     loader.style.display = 'block';
     resBox.innerHTML = '';
     
-    // Rozróżnienie promptu: Trend vs Własny pomysł
     const prompt = userIdea 
-        ? `Jesteś redaktorką bloga modowego marki Wassyl. Zaproponuj 5 chwytliwych, SEO-friendly tematów artykułów na podstawie pomysłu: "${userIdea}". Oprócz tytułu, dodaj do każdego 1 zdanie krótkiego opisu, o czym byłby tekst. Zwróć odpowiedź w czytelnym formacie Markdown.`
-        : `Jesteś redaktorką bloga modowego marki Wassyl. Mamy kwiecień 2026. Przeszukaj najnowsze, realne trendy modowe (styl casual, streetwear, basic) i zaproponuj 5 gorących, bardzo klikalnych tematów na artykuł. Oprócz tytułu, dodaj do każdego 1 zdanie opisu. Zwróć odpowiedź w czytelnym formacie Markdown.`;
+        ? `Jesteś redaktorką bloga modowego Wassyl. Zaproponuj 5 chwytliwych tematów na podstawie pomysłu: "${userIdea}". Zwróć wynik jako czysty JSON w formacie tablicy obiektów: [{"title": "Tytuł", "desc": "Krótki opis"}].`
+        : `Jesteś redaktorką bloga modowego Wassyl. Kwiecień 2026. Poszukaj aktualnych trendów modowych (streetwear, dresy, casual) i zaproponuj 5 chwytliwych tematów. Zwróć wynik jako czysty JSON w formacie tablicy obiektów: [{"title": "Tytuł", "desc": "Krótki opis"}].`;
 
     try {
         const res = await fetch('/api/generate', {
@@ -41,20 +40,44 @@ async function generateIdeas(userIdea) {
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({
                 prompt: prompt,
-                search: !userIdea // Uruchamiamy wyszukiwarkę (search: true) tylko dla opcji z trendami
+                search: !userIdea,
+                json_mode: true
             })
         });
         const data = await res.json();
         
         loader.style.display = 'none';
         
-        // Zabezpieczenie formatowania (jeśli masz funkcję formatMarkdown zdefiniowaną np. w core.js)
-        resBox.innerHTML = typeof formatMarkdown === 'function' ? formatMarkdown(data.result) : data.result.replace(/\n/g, '<br>');
+        // Czyszczenie JSON-a z ewentualnych znaczników markdown
+        let cleanJson = data.result.replace(/```json/g, '').replace(/```/g, '').trim();
+        const ideas = JSON.parse(cleanJson);
+        
+        // Renderowanie pięknych kafelków z przyciskami
+        let html = '<div style="display: flex; flex-direction: column; gap: 15px;">';
+        ideas.forEach(idea => {
+            // Zabezpieczenie przed apostrofami w tytule psującymi JS
+            const safeTitle = idea.title.replace(/'/g, "\\'").replace(/"/g, "&quot;");
+            html += `
+            <div style="background: #fff; padding: 15px; border-radius: 8px; border: 1px solid #ddd; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+                <h4 style="margin-top: 0; color: #000; font-size: 16px;">${idea.title}</h4>
+                <p style="font-size: 13px; color: #666; margin-bottom: 15px;">${idea.desc}</p>
+                <button class="btn-primary" onclick="selectBlogIdea('${safeTitle}')" style="margin: 0; font-size: 12px; padding: 6px 12px; background: #000;">✍️ Wybierz ten temat</button>
+            </div>`;
+        });
+        html += '</div>';
+        
+        resBox.innerHTML = html;
         
     } catch (e) {
         loader.style.display = 'none';
-        resBox.innerHTML = `<div style="color:red; padding:10px; border:1px solid red; border-radius:5px;">Błąd generowania tematów: ${e.message}</div>`;
+        resBox.innerHTML = `<div style="color:red; padding:10px; border:1px solid red; border-radius:5px;">Błąd generowania tematów (prawdopodobnie AI nie zwróciło czystego JSON): ${e.message}</div>`;
     }
+}
+
+// Funkcja pomocnicza: wkleja temat i przenosi do Kroku 2
+function selectBlogIdea(title) {
+    document.getElementById('topic-input').value = title;
+    switchTab('tab2');
 }
 
 // ==========================================
