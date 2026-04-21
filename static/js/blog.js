@@ -25,9 +25,14 @@ async function generateIdeas(userIdea) {
     loader.style.display = 'block';
     resBox.innerHTML = '';
     
+    // Zaktualizowane, bardzo rygorystyczne prompty
     const prompt = userIdea 
-        ? `Jesteś redaktorką Wassyl. Zaproponuj 5 tematów dla: "${userIdea}". Zwróć TYLKO JSON: [{"title": "Tytuł", "desc": "Opis"}].`
-        : `Jesteś redaktorką Wassyl. Trendy kwiecień 2026. Zaproponuj 5 tematów. Zwróć TYLKO JSON: [{"title": "Tytuł", "desc": "Opis"}].`;
+        ? `Jesteś redaktorką polskiego sklepu z modą damską Wassyl (streetwear, casual). Zaproponuj 5 tematów wpisów na podstawie pomysłu: "${userIdea}". Tematy MUSZĄ dotyczyć wyłącznie ubrań i stylizacji. Zwróć TYLKO JSON: [{"title": "Tytuł", "desc": "Opis"}].`
+        : `Jesteś redaktorką polskiego sklepu z modą damską Wassyl. Mamy wiosnę 2026 roku. Zaproponuj 5 chwytliwych tematów na wpisy blogowe. 
+        KRYTYCZNE WYTYCZNE: 
+        1. Skup się WYŁĄCZNIE na odzieży damskiej, stylizacjach, streetwearze, basicach, sukienkach i dresach. 
+        2. KATEGORYCZNY ZAKAZ tematów o technologii, kulinariach, podróżach, kosmetykach i lifestyle'u. Tylko ciuchy!
+        Zwróć TYLKO JSON: [{"title": "Tytuł", "desc": "Opis"}].`;
 
     try {
         const res = await fetch('/api/generate', {
@@ -36,7 +41,9 @@ async function generateIdeas(userIdea) {
             body: JSON.stringify({ prompt: prompt, search: !userIdea, json_mode: true })
         });
         const data = await res.json();
+        
         const jsonMatch = data.result.match(/\[[\s\S]*\]/);
+        if (!jsonMatch) throw new Error("AI nie zwróciło tablicy JSON.");
         const ideas = JSON.parse(jsonMatch[0]);
         
         let html = '<div style="display: flex; flex-direction: column; gap: 15px;">';
@@ -50,13 +57,10 @@ async function generateIdeas(userIdea) {
             </div>`;
         });
         resBox.innerHTML = html + '</div>';
-    } catch (e) { resBox.innerHTML = "Błąd: " + e.message; }
+    } catch (e) { 
+        resBox.innerHTML = "Błąd: " + e.message; 
+    }
     loader.style.display = 'none';
-}
-
-function selectBlogIdea(enc) {
-    document.getElementById('topic-input').value = decodeURIComponent(enc);
-    switchTab('tab2');
 }
 
 // 2. KROK 2: KONSPEKT I ARTYKUŁ
