@@ -52,73 +52,68 @@ def api_publish():
     except Exception as e:
         return jsonify({"error": "Błąd wewnętrzny Pythona", "details": str(e)}), 500
 
-# ZAKTUALIZOWANY ENDPOINT - Zastosowano poprawny Payload wyśledzony przez Ciebie
-@idosell_bp.route('/update_product', methods=['POST'])
-def api_update_product():
+from datetime import datetime
+
+@idosell_bp.route('/publish_blog', methods=['POST'])
+def api_publish_blog():
     domain, api_key = get_idosell_config()
-    if not domain or not api_key:
-        return jsonify({"success": False, "error": "Brak konfiguracji API"}), 400
-
     data = request.json
-    prod_id = data.get("id")
-    new_name = data.get("name")
-    new_desc = data.get("long_description")
-
-    if not prod_id or not new_name or not new_desc:
-        return jsonify({"success": False, "error": "Brakujące dane do aktualizacji"}), 400
-
-    url = f"https://{domain}/api/admin/v7/products/products"
-    headers = {
-        "X-API-KEY": api_key, 
-        "Content-Type": "application/json", 
-        "Accept": "application/json"
-    }
     
-    # STRUKTURA "params" Z TWOJEGO TESTU
+    title = data.get("title", "Nowy wpis")
+    lead = data.get("lead", "")
+    content = data.get("content", "")
+    product_ids_str = data.get("productIds", "") # Pobieramy string z ID (np. "16111, 16415")
+
+    # Mapowanie produktów z inputu na format IdoSell: [{"productId": 16111}, ...]
+    products_list = []
+    if product_ids_str:
+        for pid in product_ids_str.split(","):
+            pid = pid.strip()
+            if pid.isdigit():
+                products_list.append({"productId": int(pid)})
+
+    # Twój sprawdzony, działający payload!
     payload = {
         "params": {
-            "products": [
+            "date": datetime.now().strftime("%Y-%m-%d"),
+            "visible": "n",
+            "langs": [
                 {
-                    "productId": int(prod_id),
-                    "productLongDescriptions": {
-                        "productLongDescriptionsLangData": [
-                            {
-                                "langId": "pol",
-                                "productLongDescription": new_desc
-                            }
-                        ]
-                    },
-                    "productNames": {
-                        "productNamesLangData": [
-                            {
-                                "langId": "pol",
-                                "productName": new_name
-                            }
-                        ]
-                    }
+                    "langId": "pol",
+                    "title": title,
+                    "shortDescription": lead,
+                    "longDescription": content
                 }
-            ]
+            ],
+            "titleLinkType": "fullContentLink",
+            "shopId": 1
         }
     }
-
+    
+    # Dodajemy produkty do payloadu, jeśli użytkownik jakieś podał
+    if products_list:
+        payload["params"]["products"] = products_list
+    
+    url = f"https://{domain}/api/admin/v7/entries/entries"
+    headers = {"X-API-KEY": api_key, "Content-Type": "application/json"}
+    
     try:
-        res = requests.put(url, headers=headers, json=payload, timeout=20)
+        res = requests.post(url, headers=headers, json=payload, timeout=30)
+        response_data = res.json()
         
-        try:
-            response_data = res.json()
-        except:
-            response_data = {"raw_text": res.text}
-
-        if res.status_code in [200, 204, 207]:
-            # Sprawdzenie w poszukiwaniu ukrytych błędów wewnątrz paczki
-            if "products" in response_data:
-                for p in response_data["products"]:
-                    if "errors" in p and p["errors"]:
-                        return jsonify({"success": False, "error": f"Błąd zapisu w IdoSell: {p['errors']}"}), 200
-            
-            return jsonify({"success": True, "response": response_data})
+        # Sukces, próbujemy wyciągnąć entryId
+        if res.status_code in [200, 201]:
+            entry_id = None
+            if "result" in response_data and "entryId" in response_data["result"]:
+                entry_id = response_data["result"]["entryId"]
+                
+            return jsonify({
+                "success": True, 
+                "response": response_data,
+                "entryId": entry_id
+            })
         else:
-            return jsonify({"success": False, "error": f"Błąd HTTP {res.status_code}", "details": response_data}), 500
+            return jsonify({"success": False, "error": f"Odrzucono: {res.status_code}", "details": response_data}), 500
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
