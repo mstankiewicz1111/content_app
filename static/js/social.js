@@ -1,5 +1,5 @@
 /**
- * SOCIAL.JS - WERSJA ZOPTYMALIZOWANA (UKŁAD 2026 + FIXED PROMPTS)
+ * SOCIAL.JS - WERSJA ZOPTYMALIZOWANA Z BRAND VOICE SYMULATOREM
  */
 
 // 1. ZARZĄDZANIE ZAKŁADKAMI
@@ -21,7 +21,7 @@ function switchSocialTab(tabId) {
     }
 }
 
-// 2. DASHBOARD INSPIRACJI (ZMODYFIKOWANY UKŁAD I PROMPTY)
+// 2. DASHBOARD INSPIRACJI
 async function initSocialDashboard() {
     setTimeout(async () => {
         let container = document.getElementById('social-dashboard');
@@ -45,13 +45,12 @@ async function initSocialDashboard() {
         try {
             const eventRes = await fetch('/api/get_upcoming_events').then(r => r.json());
             
-            // KRYTYCZNA ZMIANA PROMPTU: Wymuszamy rok 2026 i zakazujemy starych estetyk
             const [aiInspoRes, tiktokTrendRes] = await Promise.all([
                 fetch('/api/generate', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({
-                        prompt: "Jesteś ekspertem social media Wassyl. Dziś jest 20 kwietnia 2026. Podaj 1 kreatywny, lifestylowy pomysł na post. Skup się na bluzach/spodniach dresowych. ZAKAZ: trendów z 2024/2025 roku (żadnych Mob Wife, Clean Girl). Napisz to w 2 zdaniach.",
+                        prompt: "Jesteś ekspertem social media Wassyl. Dziś jest 20 kwietnia 2026. Podaj 1 kreatywny, lifestylowy pomysł na post. Skup się na bluzach/spodniach dresowych. ZAKAZ: trendów z 2024/2025 roku. Napisz to w 2 zdaniach.",
                         search: true
                     })
                 }).then(r => r.json()),
@@ -59,7 +58,7 @@ async function initSocialDashboard() {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({
-                        prompt: "Znajdź 1 NAJŚWIEŻSZY trend modowy na TikToku (stan na kwiecień 2026). Nie podawaj starych trendów jak Mob Wife, Eclectic Grandpa czy Quiet Luxury. Szukaj czegoś, co pasuje do ubrań basic i streetwear. Opisz krótko.",
+                        prompt: "Znajdź 1 NAJŚWIEŻSZY trend modowy na TikToku (stan na kwiecień 2026). Nie podawaj starych trendów. Szukaj czegoś, co pasuje do ubrań basic i streetwear. Opisz krótko.",
                         search: true
                     })
                 }).then(r => r.json())
@@ -71,7 +70,6 @@ async function initSocialDashboard() {
 
             const safeMd = (text) => typeof formatMarkdown === 'function' ? formatMarkdown(text) : text;
 
-            // NOWA KOLEJNOŚĆ: Trend na górze, Kalendarz na dole po prawej
             container.innerHTML = `
                 <div class="dashboard-wrapper" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
                     <div class="dashboard-left-col">
@@ -100,7 +98,6 @@ async function initSocialDashboard() {
     }, 200);
 }
 
-// 2A. REFRESH Z WYMUSZENIEM AKTUALNOŚCI
 async function refreshSingleInspiration(type) {
     const block = type === 'idea' ? document.querySelector('.dashboard-block:not(.trend-live):not(.events-block)') : document.querySelector('.trend-live');
     const contentArea = block.querySelector('.ai-content') || block.querySelector('.trend-content');
@@ -108,7 +105,7 @@ async function refreshSingleInspiration(type) {
 
     const prompt = type === 'idea' 
         ? "Daj inny pomysł na post Wassyl (20.04.2026). Tylko dresy i streetstyle. Absolutny zakaz trendów retro/vintage z lat 2024-2025."
-        : "Znajdź INNY trend z TikToka, który narodził się w marcu/kwietniu 2026. Skup się na Gen-Z i ubraniach baggy. Pomiń Mob Wife i Grandpa style.";
+        : "Znajdź INNY trend z TikToka, który narodził się w marcu/kwietniu 2026. Skup się na Gen-Z i ubraniach baggy.";
 
     try {
         const res = await fetch('/api/generate', {
@@ -124,7 +121,6 @@ async function refreshSingleInspiration(type) {
     }
 }
 
-// RESZTA FUNKCJI (Analiza trendów, Hooki, Scenariusz) POZOSTAJE BEZ ZMIAN
 async function analyzeTrends() {
     const resBox = document.getElementById('trend-result'); 
     const loader = document.getElementById('loader-trend');
@@ -144,6 +140,7 @@ async function analyzeTrends() {
     } catch(e) { if(loader) loader.style.display = 'none'; }
 }
 
+// ZMODYFIKOWANE: Generator Hooków podłączony pod WASSYL DNA
 async function generateHooks() {
     const topic = document.getElementById('hook-topic').value; 
     const resBox = document.getElementById('hooks-result'); 
@@ -153,10 +150,17 @@ async function generateHooks() {
     if(wrapper) wrapper.style.display = 'none';
     try {
         const extraData = typeof getProductContextText === 'function' ? await getProductContextText('hook-product-ids') : "";
+        const combinedTopic = topic + (extraData ? ` (Dodatkowe info o produkcie: ${extraData})` : "");
+        
+        // Pobieramy prompt centralny z wytycznymi marki
+        const promptText = (typeof Prompts !== 'undefined' && Prompts.getHooks) 
+            ? Prompts.getHooks(combinedTopic) 
+            : `Wygeneruj 10 viralowych hooków o: ${combinedTopic}. Styl Wassyl.`;
+
         const res = await fetch('/api/generate', { 
             method: 'POST', 
             headers: {'Content-Type': 'application/json'}, 
-            body: JSON.stringify({prompt: `Wygeneruj 10 viralowych hooków o: ${topic}. Styl Wassyl. ${extraData}`}) 
+            body: JSON.stringify({prompt: promptText}) 
         });
         const data = await res.json(); 
         if(loader) loader.style.display = 'none'; 
@@ -165,6 +169,7 @@ async function generateHooks() {
     } catch(e) { if(loader) loader.style.display = 'none'; }
 }
 
+// ZMODYFIKOWANE: Generator Scenariuszy podłączony pod WASSYL DNA
 async function generateScript() {
     const topic = document.getElementById('script-topic').value; 
     const dur = document.getElementById('script-duration').value; 
@@ -175,10 +180,17 @@ async function generateScript() {
     if(wrapper) wrapper.style.display = 'none';
     try {
         const extraData = typeof getProductContextText === 'function' ? await getProductContextText('script-product-ids') : "";
+        const combinedTopic = `${topic}. Długość wideo: ${dur}. ${extraData}`;
+
+        // Pobieramy prompt centralny z wytycznymi marki
+        const promptText = (typeof Prompts !== 'undefined' && Prompts.getVideoScript) 
+            ? Prompts.getVideoScript(combinedTopic) 
+            : `Stwórz scenariusz wideo o: ${combinedTopic}. Styl Wassyl. Markdown.`;
+
         const res = await fetch('/api/generate', { 
             method: 'POST', 
             headers: {'Content-Type': 'application/json'}, 
-            body: JSON.stringify({prompt: `Stwórz scenariusz wideo (${dur}) o: ${topic}. Styl Wassyl. ${extraData}. Markdown.`}) 
+            body: JSON.stringify({prompt: promptText}) 
         });
         const data = await res.json(); 
         if(loader) loader.style.display = 'none'; 
@@ -193,4 +205,40 @@ function repurposeFromBlog() {
     if(!blogText || blogText.length < 50) { alert("Najpierw stwórz artykuł w sekcji BLOG!"); return; }
     document.getElementById('script-topic').value = "Recykling na podstawie artykułu: " + blogText.substring(0, 300); 
     switchSocialTab('sm-scripts');
+}
+
+// --- NOWOŚĆ: LOGIKA SYMULATORA GŁOSU MARKI ---
+async function simulateBrandVoice() {
+    const rawText = document.getElementById('sim-raw-text').value;
+    if (!rawText) return alert("Wpisz jakiś tekst do przetworzenia!");
+    
+    const loader = document.getElementById('loader-sim');
+    const wrapper = document.getElementById('sim-wrapper');
+    const beforeBox = document.getElementById('sim-before');
+    const afterBox = document.getElementById('sim-after');
+    
+    loader.style.display = 'block';
+    wrapper.style.display = 'none';
+    
+    try {
+        beforeBox.innerText = rawText; // Pokaż surowy tekst w lewej kolumnie
+        
+        // Zabezpieczenie na wypadek, gdyby plik prompts.js nie został załadowany poprawnie
+        const promptText = (typeof Prompts !== 'undefined' && Prompts.getBrandSim) 
+            ? Prompts.getBrandSim(rawText) 
+            : `Zadanie: Transformacja tekstu na styl WASSYL (Miejski luz, streetwear, zero poezji, konkret i vibe). PRZERÓB TEKST: "${rawText}". Zwróć tylko zrewidowany wynik.`;
+
+        const res = await fetch('/api/generate', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({prompt: promptText})
+        });
+        const data = await res.json();
+        
+        afterBox.innerHTML = typeof formatMarkdown === 'function' ? formatMarkdown(data.result) : data.result;
+        wrapper.style.display = 'block';
+    } catch(e) {
+        alert("Błąd symulatora: " + e.message);
+    }
+    loader.style.display = 'none';
 }
