@@ -202,7 +202,7 @@ function goToPublish() {
     generateHtml();
 }
 
-// 6. KOLAŻ I HTML (KROK 4)
+// 6. KOLAŻ
 async function generateCollage() {
     const ids = getVal('pub-collage-ids');
     if(!ids) return alert("Podaj ID produktów do kolażu!");
@@ -216,16 +216,36 @@ async function generateCollage() {
         const data = await res.json();
         const products = (data.results || []).slice(0, 3);
         
+        if (products.length === 0) {
+            document.getElementById('loader-collage').style.display = 'none';
+            return alert("Nie znaleziono produktów o podanych ID w IdoSell.");
+        }
+
         const imgs = await Promise.all(products.map(p => {
             return new Promise((resolve, reject) => {
+                // Bezpieczne sprawdzanie, czy produkt ma w ogóle zdjęcia
+                const url = (p.productImages && p.productImages.length > 0) 
+                    ? (p.productImages[0].productImageLargeUrl || p.productImages[0].productImageMediumUrl) 
+                    : null;
+                
+                if (!url) return reject(new Error(`Produkt ID ${p.productId || p.id} nie ma przypisanych zdjęć.`));
+
                 const img = new Image();
-                img.crossOrigin = "Anonymous";
+                img.crossOrigin = "Anonymous"; // Próba 1: Idealna (pozwala na bezproblemowy zapis prawym klawiszem)
                 img.onload = () => resolve(img);
-                img.onerror = reject;
-                img.src = p.productImages[0].productImageLargeUrl || p.productImages[0].productImageMediumUrl;
+                img.onerror = () => {
+                    console.warn("CORS zablokował zdjęcie, próbuję trybu fallback dla URL:", url);
+                    // Próba 2: Fallback bez weryfikacji (omija blokadę, ale może wymagać screena do zapisu)
+                    const imgFallback = new Image();
+                    imgFallback.onload = () => resolve(imgFallback);
+                    imgFallback.onerror = () => reject(new Error(`Przeglądarka trwale zablokowała pobranie zdjęcia: ${url}`));
+                    imgFallback.src = url;
+                };
+                img.src = url;
             });
         }));
 
+        // Renderowanie płótna
         ctx.fillStyle = "#fff";
         ctx.fillRect(0, 0, 1200, 675);
         const w = 1200 / imgs.length;
@@ -233,45 +253,26 @@ async function generateCollage() {
         imgs.forEach((img, i) => {
             const scale = Math.max(w / img.width, 675 / img.height);
             const dW = img.width * scale, dH = img.height * scale;
-            ctx.save(); ctx.beginPath(); ctx.rect(i * w, 0, w, 675); ctx.clip();
+            ctx.save(); 
+            ctx.beginPath(); 
+            ctx.rect(i * w, 0, w, 675); 
+            ctx.clip();
             ctx.drawImage(img, (i * w) + (w / 2) - (dW / 2), 337.5 - (dH / 2), dW, dH);
             ctx.restore();
-            if(i > 0) { ctx.fillStyle = "#fff"; ctx.fillRect(i * w - 5, 0, 10, 675); }
+            
+            // Pionowy separator
+            if(i > 0) { 
+                ctx.fillStyle = "#fff"; 
+                ctx.fillRect(i * w - 5, 0, 10, 675); 
+            }
         });
         
         document.getElementById('collage-container').style.display = 'block';
-    } catch(e) { alert("Błąd kolażu: " + e.message); }
-    document.getElementById('loader-collage').style.display = 'none';
-}
-
-async function generateHtml() {
-    const article = document.getElementById('article-result').innerHTML;
-    const htmlIds = getVal('pub-html-ids');
-    const loader = document.getElementById('loader-html');
-    if(loader) loader.style.display = 'block';
-    
-    let imgContext = "Brak zdjęć produktów.";
-    if(htmlIds && htmlIds.trim() !== "") {
-        try {
-            const res = await fetch('/api/idosell/products', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ids: htmlIds}) });
-            const data = await res.json();
-            const products = data.results || [];
-            imgContext = products.map(p => {
-                const url = (p.productImages && p.productImages.length > 0) ? p.productImages[0].productImageLargeUrl : "";
-                return url ? `- URL: ${url}, Link: https://wassyl.pl/product-pol-${p.productId || p.id}.html` : "";
-            }).filter(x => x !== "").join('\n');
-        } catch(e) { console.error("Błąd pobierania zdjęć do HTML:", e); }
+    } catch(e) { 
+        console.error(e);
+        alert("Błąd kolażu: " + e.message); 
     }
-
-    const prompt = Prompts.getHtml(article, imgContext);
-
-    try {
-        const res = await fetch('/api/generate', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({prompt}) });
-        const data = await res.json();
-        document.getElementById('html-result').value = data.result.replace(/```html/g, '').replace(/```/g, '').trim();
-        document.getElementById('html-section').style.display = 'block';
-    } catch(e) { alert("Błąd generowania HTML: " + e.message); }
-    if(loader) loader.style.display = 'none';
+    document.getElementById('loader-collage').style.display = 'none';
 }
 
 // 7. WYSYŁKA DO IDOSELL
