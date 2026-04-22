@@ -130,6 +130,27 @@
                             <button class="btn-primary btn-quick" onclick="quickRevise('Dodaj więcej wzmianek o samych ubraniach.')">👗 Więcej o ciuchach</button>
                         </div>
                         <input type="text" id="revision-input" placeholder="Własne uwagi...">
+                        <hr style="border:0; border-top:1px dashed #ccc; margin: 30px 0;">
+    <h3>🎯 Krok 3: Tytuł i Zaczepny Lead</h3>
+    <p style="font-size: 12px; color: #666;">AI przeczyta Twój artykuł i wymyśli do niego chwytliwy tytuł oraz krótki wstęp.</p>
+    
+    <button class="btn-primary" onclick="generateMeta()" style="width: 100%; background: #0066cc;">💡 Wygeneruj Tytuł i Lead</button>
+    
+    <div id="meta-section" style="display: none; margin-top: 20px; background: #f8f9fa; padding: 15px; border-radius: 8px; border: 1px solid #ddd;">
+        <label style="font-weight:bold; font-size:12px;">TYTUŁ SEO:</label>
+        <input type="text" id="final-title" style="font-weight: bold; border-color: #0066cc; width: 100%; margin-bottom: 15px; padding: 10px;">
+        
+        <label style="font-weight:bold; font-size:12px;">LEAD (Zajawka / Hook - 2-3 zdania):</label>
+        <textarea id="final-lead" rows="3" style="border-color: #0066cc; line-height: 1.5; width: 100%; padding: 10px; margin-bottom: 10px;"></textarea>
+        
+        <div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
+            <button class="btn-primary btn-quick" onclick="tweakMeta('Zrób tytuł i lead bardziej clickbaitowy i intrygujący.')">🔥 Clickbaitowy</button>
+            <button class="btn-primary btn-quick" onclick="tweakMeta('Zrób bardzo konkretny i informacyjny tytuł oraz lead.')">ℹ️ Informacyjny</button>
+            <button class="btn-primary btn-quick" onclick="tweakMeta('Napisz to w totalnie luźnym, streetwearowym stylu.')">🛹 Luzacki</button>
+        </div>
+        
+        <button class="btn-primary" onclick="goToPublish()" style="width: 100%; background: #28a745; padding: 15px; font-weight: bold;">✅ Gotowe! Idź do Publikacji ➜</button>
+    </div>
                         <div style="display: flex; justify-content: space-between; align-items: center;">
                             <button class="btn-primary" onclick="reviseArticle()" style="background:#555; border:none;">🔄 Nanieś poprawki</button>
                             <button class="btn-primary" onclick="goToPublish()" style="background: #28a745;">✅ Idź do Publikacji ➜</button>
