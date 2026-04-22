@@ -80,6 +80,51 @@ async function generateIdeas(userIdea) {
     loader.style.display = 'none';
 }
 
+async function autoFetchXML() {
+    const inputField = document.getElementById('context-product-ids');
+    if (!inputField) return alert("Brak pola 'context-product-ids' na stronie!");
+
+    const topic = getVal('topic-input');
+
+    // Tworzymy i doczepiamy tymczasowy komunikat statusu pod inputem
+    let statusMsg = document.getElementById('xml-status-msg');
+    if (!statusMsg) {
+        statusMsg = document.createElement('div');
+        statusMsg.id = 'xml-status-msg';
+        statusMsg.style.cssText = 'margin-top: 8px; font-size: 12px; font-weight: bold;';
+        inputField.parentNode.appendChild(statusMsg);
+    }
+
+    // Stan ładowania
+    statusMsg.style.color = '#0066cc';
+    statusMsg.innerText = '⏳ Łączę się z plikiem XML i analizuję feed...';
+    inputField.value = '⏳ Pobieram...';
+
+    try {
+        const res = await fetch('/api/idosell/auto_products', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({topic})
+        });
+        const data = await res.json();
+
+        if (data.success && data.ids) {
+            inputField.value = data.ids;
+            statusMsg.style.color = '#28a745';
+            statusMsg.innerText = '✅ Sukces! Wylosowano polecane produkty z XML.';
+            syncProductIds(); // Synchronizujemy z polami kolażu i HTML od razu!
+        } else {
+            inputField.value = '';
+            statusMsg.style.color = 'red';
+            statusMsg.innerText = '❌ Błąd: ' + (data.error || 'Nie znaleziono produktów.');
+        }
+    } catch(e) {
+        inputField.value = '';
+        statusMsg.style.color = 'red';
+        statusMsg.innerText = '❌ Błąd serwera: ' + e.message;
+    }
+}
+
 function selectBlogIdea(enc) {
     document.getElementById('topic-input').value = decodeURIComponent(enc);
     switchTab('tab2');
