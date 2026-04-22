@@ -191,15 +191,14 @@ function goToPublish() {
         return alert("Najpierw wygeneruj Tytuł i Lead niebieskim przyciskiem!");
     }
     
-    // Transfer danych do pól Kroku 4
+    // Transfer danych do pól formularza publikacji
     if(document.getElementById('pub-title')) document.getElementById('pub-title').value = title;
     if(document.getElementById('pub-lead')) document.getElementById('pub-lead').value = lead;
     
     // Zmiana zakładki
     switchTab('tab3');
     
-    // Automatyczne wywołanie konwersji na HTML
-    generateHtml();
+    console.log("Przejście zakończone. Czekam na ręczne wygenerowanie kodu HTML.");
 }
 
 // 6. KOLAŻ
