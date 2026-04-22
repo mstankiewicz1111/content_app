@@ -128,7 +128,7 @@ def api_auto_products():
     data = request.json
     
     # ⚠️ TUTAJ WKLEJ SWÓJ PRAWDZIWY LINK DO XML (Pomiędzy cudzysłowy)
-    xml_url = os.environ.get("WASSYL_XML_FEED", "TUTAJ_WKLEJ_SWOJ_LINK").strip() 
+    xml_url = os.environ.get("WASSYL_XML_FEED", "https://wassyl.pl/data/export/feed10015_1b9e5511234776450ad2740f.xml").strip() 
     
     if "TUTAJ_WKLEJ" in xml_url or not xml_url.startswith("http"):
         return jsonify({"success": False, "error": "Brak poprawnego linku do pliku XML w kodzie Pythona."}), 500
