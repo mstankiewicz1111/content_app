@@ -111,8 +111,8 @@ async function autoFetchXML() {
         if (data.success && data.ids) {
             inputField.value = data.ids;
             statusMsg.style.color = '#28a745';
-            statusMsg.innerText = '✅ Sukces! Wylosowano polecane produkty z XML.';
-            syncProductIds(); // Synchronizujemy z polami kolażu i HTML od razu!
+            statusMsg.innerText = `✅ Sukces! ${data.message || 'Pobrano polecane produkty.'}`;
+            syncProductIds(); 
         } else {
             inputField.value = '';
             statusMsg.style.color = 'red';
