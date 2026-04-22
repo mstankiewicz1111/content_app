@@ -203,53 +203,82 @@ function goToPublish() {
 
 // 6. KOLAŻ
 async function generateCollage() {
+    console.log("Uruchamiam generowanie kolażu...");
     const ids = getVal('pub-collage-ids');
     if(!ids) return alert("Podaj ID produktów do kolażu!");
     
     document.getElementById('loader-collage').style.display = 'block';
     const canvas = document.getElementById('collage-canvas');
+    if (!canvas) {
+        alert("Błąd: Nie znaleziono elementu canvas w HTML.");
+        return;
+    }
     const ctx = canvas.getContext('2d');
     
     try {
+        console.log("Pobieram dane produktów z IdoSell dla ID:", ids);
         const res = await fetch('/api/idosell/products', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ids}) });
         const data = await res.json();
+        
         const products = (data.results || []).slice(0, 3);
+        console.log("Znaleziono produktów do kolażu:", products.length);
         
         if (products.length === 0) {
             document.getElementById('loader-collage').style.display = 'none';
             return alert("Nie znaleziono produktów o podanych ID w IdoSell.");
         }
 
-        const imgs = await Promise.all(products.map(p => {
-            return new Promise((resolve, reject) => {
-                // Bezpieczne sprawdzanie, czy produkt ma w ogóle zdjęcia
-                const url = (p.productImages && p.productImages.length > 0) 
-                    ? (p.productImages[0].productImageLargeUrl || p.productImages[0].productImageMediumUrl) 
-                    : null;
-                
-                if (!url) return reject(new Error(`Produkt ID ${p.productId || p.id} nie ma przypisanych zdjęć.`));
+        // PANCERNA funkcja ładująca pojedyncze zdjęcie
+        const loadImg = (p) => new Promise((resolve) => {
+            // Inteligentne wyciąganie URL (najpierw galeria, potem główna ikona)
+            let url = "";
+            if (p.productImages && p.productImages.length > 0) {
+                url = p.productImages[0].productImageLargeUrl || p.productImages[0].productImageMediumUrl;
+            } else if (p.productIcon && p.productIcon.productIconLargeUrl) {
+                url = p.productIcon.productIconLargeUrl;
+            }
+            
+            if (!url) {
+                console.warn(`Brak zdjęcia dla produktu ID: ${p.productId || p.id}`);
+                return resolve(null); // Zwracamy null zamiast wywalać cały kolaż
+            }
 
-                const img = new Image();
-                img.crossOrigin = "Anonymous"; // Próba 1: Idealna (pozwala na bezproblemowy zapis prawym klawiszem)
-                img.onload = () => resolve(img);
-                img.onerror = () => {
-                    console.warn("CORS zablokował zdjęcie, próbuję trybu fallback dla URL:", url);
-                    // Próba 2: Fallback bez weryfikacji (omija blokadę, ale może wymagać screena do zapisu)
-                    const imgFallback = new Image();
-                    imgFallback.onload = () => resolve(imgFallback);
-                    imgFallback.onerror = () => reject(new Error(`Przeglądarka trwale zablokowała pobranie zdjęcia: ${url}`));
-                    imgFallback.src = url;
+            console.log("Pobieram zdjęcie:", url);
+            const img = new Image();
+            img.crossOrigin = "Anonymous"; // Próba ominięcia blokady Canvas
+            
+            img.onload = () => resolve(img);
+            img.onerror = () => {
+                console.warn("Blokada CORS dla zdjęcia, próbuję trybu fallback:", url);
+                const fallbackImg = new Image();
+                fallbackImg.onload = () => resolve(fallbackImg);
+                fallbackImg.onerror = () => {
+                    console.error("Całkowity błąd pobierania zdjęcia:", url);
+                    resolve(null); // Skrypt idzie dalej mimo błędu jednego zdjęcia
                 };
-                img.src = url;
-            });
-        }));
+                fallbackImg.src = url;
+            };
+            img.src = url;
+        });
 
-        // Renderowanie płótna
+        // Ładujemy wszystkie zdjęcia równolegle, ignorując błędy pojedynczych
+        const loadedResults = await Promise.all(products.map(p => loadImg(p)));
+        
+        // Filtrujemy tylko te zdjęcia, które udało się fizycznie załadować
+        const validImgs = loadedResults.filter(img => img !== null);
+        console.log("Poprawnie załadowano zdjęć:", validImgs.length);
+
+        if (validImgs.length === 0) {
+            document.getElementById('loader-collage').style.display = 'none';
+            return alert("Żadne ze zdjęć nie mogło zostać pobrane z serwera (zabezpieczenia przeglądarki lub błędne linki).");
+        }
+
+        // Rysowanie
         ctx.fillStyle = "#fff";
         ctx.fillRect(0, 0, 1200, 675);
-        const w = 1200 / imgs.length;
+        const w = 1200 / validImgs.length;
         
-        imgs.forEach((img, i) => {
+        validImgs.forEach((img, i) => {
             const scale = Math.max(w / img.width, 675 / img.height);
             const dW = img.width * scale, dH = img.height * scale;
             ctx.save(); 
@@ -258,8 +287,6 @@ async function generateCollage() {
             ctx.clip();
             ctx.drawImage(img, (i * w) + (w / 2) - (dW / 2), 337.5 - (dH / 2), dW, dH);
             ctx.restore();
-            
-            // Pionowy separator
             if(i > 0) { 
                 ctx.fillStyle = "#fff"; 
                 ctx.fillRect(i * w - 5, 0, 10, 675); 
@@ -267,8 +294,9 @@ async function generateCollage() {
         });
         
         document.getElementById('collage-container').style.display = 'block';
+        console.log("Kolaż wygenerowany sukcesem!");
     } catch(e) { 
-        console.error(e);
+        console.error("Krytyczny błąd kolażu:", e);
         alert("Błąd kolażu: " + e.message); 
     }
     document.getElementById('loader-collage').style.display = 'none';
