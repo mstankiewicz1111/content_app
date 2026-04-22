@@ -161,28 +161,35 @@
                <div id="tab3" class="tab-content">
     <button class="btn-primary" onclick="switchTab('tab2')" style="background: #555; margin-bottom: 20px;">⬅ Wróć do edytora tekstu</button>
     <h2>⚙️ Formularz Publikacji</h2>
-                    <div class="row">
-                        <div class="col">
-                            <label>Tytuł wpisu:</label><input type="text" id="pub-title" oninput="saveDraft()">
-                            <label>Lead wpisu:</label><textarea id="pub-lead" rows="4" oninput="saveDraft()"></textarea>
-                            <label>ID produktów polecanych:</label><input type="text" id="pub-rec-ids" oninput="saveDraft()">
-                            <label>ID produktów do HTML:</label><input type="text" id="pub-html-ids" oninput="saveDraft()">
-                        </div>
-                        <div class="col">
-                            <label>ID na Kolaż:</label><input type="text" id="pub-collage-ids">
-                            <button class="btn-primary" onclick="generateCollage()">🖼️ Generuj Kolaż</button>
-                            <div id="loader-collage" class="loader">⏳ Pobieram zdjęcia...</div>
-                            <img id="collage-preview" src="" style="width: 100%; margin-top: 15px; display:none;">
-                        </div>
-                    </div>
-                    <button class="btn-primary" onclick="generateHtml()" style="margin-top: 20px;">✨ Konwertuj na IdoSell HTML</button>
-                    <div id="loader-html" class="loader">⏳ Tworzę kod HTML...</div>
-                    <div id="html-section" style="display: none; margin-top: 20px;">
-                        <textarea id="html-result" rows="8" readonly></textarea>
-                        <button class="btn-primary" onclick="publishToIdosell()" style="width: 100%; background: #28a745; margin-top: 15px;">🚀 OPUBLIKUJ SZKIC W IDOSELL</button>
-                        <div id="loader-publish" class="loader" style="text-align: center;">⏳ Wysyłam...</div>
-                    </div>
-                </div>
+    <div class="row">
+        <div class="col">
+            <label>Tytuł wpisu:</label><input type="text" id="pub-title" oninput="saveDraft()">
+            <label>Lead wpisu:</label><textarea id="pub-lead" rows="4" oninput="saveDraft()"></textarea>
+            <label>ID produktów polecanych:</label><input type="text" id="pub-rec-ids" oninput="saveDraft()">
+            <label>ID produktów do HTML:</label><input type="text" id="pub-html-ids" oninput="saveDraft()">
+        </div>
+        <div class="col">
+            <label>ID na Kolaż (max 3):</label>
+            <input type="text" id="pub-collage-ids">
+            <button class="btn-primary" onclick="generateCollage()">🖼️ Generuj Kolaż</button>
+            <div id="loader-collage" class="loader">⏳ Pobieram zdjęcia i rysuję kolaż...</div>
+            
+            <div id="collage-container" style="margin-top: 15px; display: none;">
+                <p style="font-size: 11px; color: #666; margin-bottom: 5px;">Kolaż 1200 x 675 px. Prawy przycisk myszy -> "Zapisz grafikę jako..."</p>
+                <canvas id="collage-canvas" width="1200" height="675" style="width: 100%; border: 1px solid #ddd; border-radius: 5px;"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <button class="btn-primary" onclick="generateHtml()" style="margin-top: 20px;">✨ Konwertuj na IdoSell HTML</button>
+    <div id="loader-html" class="loader">⏳ Tworzę kod HTML...</div>
+    <div id="html-section" style="display: none; margin-top: 20px;">
+        <textarea id="html-result" rows="8" readonly></textarea>
+        
+        <button class="btn-primary" onclick="publishToIdosell()" style="width: 100%; background: #28a745; margin-top: 15px;">🚀 OPUBLIKUJ SZKIC W IDOSELL</button>
+        <div id="loader-publish" class="loader" style="text-align: center;">⏳ Wysyłam do IdoSell...</div>
+    </div>
+</div>
             </div>
 
             <div id="module-social" class="module-content">
