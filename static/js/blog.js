@@ -347,7 +347,72 @@ async function generateCollage() {
     document.getElementById('loader-collage').style.display = 'none';
 }
 
-// 7. WYSYŁKA DO IDOSELL
+async function generateHtml() {
+    console.log("Rozpoczynam generowanie kodu HTML...");
+    const articleEl = document.getElementById('article-result');
+    if (!articleEl) return alert("Błąd: Nie znaleziono treści artykułu!");
+    
+    const article = articleEl.innerHTML;
+    const htmlIds = getVal('pub-html-ids');
+    const loader = document.getElementById('loader-html');
+    if(loader) loader.style.display = 'block';
+    
+    let imgContext = "Brak zdjęć produktów.";
+    
+    // Jeśli podano ID, pobieramy najpierw linki do zdjęć z IdoSell
+    if(htmlIds && htmlIds.trim() !== "") {
+        try {
+            console.log("Pobieram linki do zdjęć dla ID:", htmlIds);
+            const res = await fetch('/api/idosell/products', { 
+                method: 'POST', 
+                headers: {'Content-Type': 'application/json'}, 
+                body: JSON.stringify({ids: htmlIds}) 
+            });
+            const data = await res.json();
+            const products = data.results || [];
+            
+            imgContext = products.map(p => {
+                // Szukamy najlepszego dostępnego zdjęcia
+                let url = "";
+                if (p.productImages && p.productImages.length > 0) {
+                    url = p.productImages[0].productImageLargeUrl || p.productImages[0].productImageMediumUrl;
+                } else if (p.productIcon && p.productIcon.productIconLargeUrl) {
+                    url = p.productIcon.productIconLargeUrl;
+                }
+                return url ? `- URL: ${url}, Link: https://wassyl.pl/product-pol-${p.productId || p.id}.html` : "";
+            }).filter(x => x !== "").join('\n');
+            
+        } catch(e) { 
+            console.error("Błąd pobierania zdjęć do HTML:", e); 
+        }
+    }
+    // 7. GENEROWANIE HTML
+    // Pobieramy instrukcję z Twojego pliku prompts.js
+    const prompt = Prompts.getHtml(article, imgContext);
+
+    try {
+        console.log("Wysyłam tekst do AI w celu konwersji na HTML...");
+        const res = await fetch('/api/generate', { 
+            method: 'POST', 
+            headers: {'Content-Type': 'application/json'}, 
+            body: JSON.stringify({prompt}) 
+        });
+        const data = await res.json();
+        
+        // Czyścimy z formatowania markdown (jeśli AI dodało ```html)
+        const cleanHtml = data.result.replace(/```html/g, '').replace(/```/g, '').trim();
+        
+        document.getElementById('html-result').value = cleanHtml;
+        document.getElementById('html-section').style.display = 'block';
+        console.log("HTML wygenerowany pomyślnie!");
+    } catch(e) { 
+        alert("Błąd generowania HTML: " + e.message); 
+    }
+    
+    if(loader) loader.style.display = 'none';
+}
+
+// 8. WYSYŁKA DO IDOSELL
 async function publishToIdosell() {
     const title = getVal('pub-title');
     const lead = getVal('pub-lead');
