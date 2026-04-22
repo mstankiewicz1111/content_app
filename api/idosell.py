@@ -1,5 +1,7 @@
 import os
 import requests
+import xml.etree.ElementTree as ET
+from datetime import datetime
 from flask import Blueprint, request, jsonify
 
 idosell_bp = Blueprint('idosell', __name__)
@@ -52,7 +54,6 @@ def api_publish():
     except Exception as e:
         return jsonify({"error": "Błąd wewnętrzny Pythona", "details": str(e)}), 500
 
-from datetime import datetime
 
 @idosell_bp.route('/publish_blog', methods=['POST'])
 def api_publish_blog():
@@ -62,9 +63,9 @@ def api_publish_blog():
     title = data.get("title", "Nowy wpis")
     lead = data.get("lead", "")
     content = data.get("content", "")
-    product_ids_str = data.get("productIds", "") # Pobieramy string z ID (np. "16111, 16415")
+    product_ids_str = data.get("productIds", "")
 
-    # Mapowanie produktów z inputu na format IdoSell: [{"productId": 16111}, ...]
+    # Mapowanie produktów z inputu na format IdoSell
     products_list = []
     if product_ids_str:
         for pid in product_ids_str.split(","):
@@ -72,7 +73,7 @@ def api_publish_blog():
             if pid.isdigit():
                 products_list.append({"productId": int(pid)})
 
-    # Twój sprawdzony, działający payload!
+    # Poprawny payload dla IdoSell
     payload = {
         "params": {
             "date": datetime.now().strftime("%Y-%m-%d"),
@@ -117,19 +118,16 @@ def api_publish_blog():
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
-import xml.etree.ElementTree as ET
 
-# 1. ENDPOINT: AUTO-DOBÓR PRODUKTÓW Z XML
 @idosell_bp.route('/auto_products', methods=['POST'])
 def api_auto_products():
     data = request.json
     topic = data.get("topic", "")
     
-    # TUTAJ WKLEJ LINK DO SWOJEGO FEEDU XML (np. Google Shopping XML z IdoSell)
+    # TUTAJ WKLEJ LINK DO SWOJEGO FEEDU XML
     xml_url = os.environ.get("WASSYL_XML_FEED", "https://wassyl.pl/Twoj_Feed_XML.xml") 
     
     try:
-        # Pobieramy feed XML
         res = requests.get(xml_url, timeout=15)
         if res.status_code != 200:
             return jsonify({"error": "Nie udało się pobrać pliku XML"}), 500
@@ -137,14 +135,11 @@ def api_auto_products():
         root = ET.fromstring(res.content)
         products_pool = []
         
-        # Przykładowe parsowanie standardowego feedu (dostosuj tagi do swojego XML)
-        # Zakładamy strukturę <item> -> <g:id> oraz <title>
         namespace = {'g': 'http://base.google.com/ns/1.0'}
-        for item in root.findall('.//item')[:100]: # Bierzemy pierwsze 100 (np. nowości)
+        for item in root.findall('.//item')[:100]:
             item_id = item.find('g:id', namespace)
             title = item.find('title')
             
-            # Fallback jeśli brak namespace'a
             if item_id is None: item_id = item.find('id')
             
             if item_id is not None and title is not None:
@@ -153,36 +148,3 @@ def api_auto_products():
         return jsonify({"products": products_pool})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-
-# 2. ZAKTUALIZOWANY ENDPOINT PUBLIKACJI BLOGA
-@idosell_bp.route('/publish_blog', methods=['POST'])
-def api_publish_blog():
-    domain, api_key = get_idosell_config()
-    data = request.json
-    
-    # Format wymagany przez API IdoSell dla wpisów blogowych (entries)
-    payload = {
-        "entries": [
-            {
-                "blogId": 1, # Upewnij się, że to poprawne ID Twojego bloga w IdoSell
-                "entryTitles": {"pol": data.get("title", "Nowy wpis")},
-                "entryShortDescriptions": {"pol": data.get("lead", "")},
-                "entryLongDescriptions": {"pol": data.get("content", "")},
-                "entryIsActive": "n" # Publikujemy jako szkic/nieaktywne
-            }
-        ]
-    }
-    
-    url = f"https://{domain}/api/admin/v7/entries/entries"
-    headers = {"X-API-KEY": api_key, "Content-Type": "application/json"}
-    
-    try:
-        res = requests.post(url, headers=headers, json=payload, timeout=30)
-        response_data = res.json()
-        
-        if res.status_code in [200, 204, 207]:
-            return jsonify({"success": True, "response": response_data})
-        else:
-            return jsonify({"success": False, "error": f"Odrzucono: {res.status_code}", "details": response_data}), 500
-    except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
