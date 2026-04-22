@@ -126,37 +126,65 @@ def api_publish_blog():
 @idosell_bp.route('/auto_products', methods=['POST'])
 def api_auto_products():
     data = request.json
-    topic = data.get("topic", "")
     
-    # URL do feedu XML
-    xml_url = os.environ.get("WASSYL_XML_FEED", "https://wassyl.pl/Twoj_Feed_XML.xml") 
+    # ⚠️ TUTAJ WKLEJ SWÓJ PRAWDZIWY LINK DO XML (Pomiędzy cudzysłowy)
+    xml_url = os.environ.get("WASSYL_XML_FEED", "TUTAJ_WKLEJ_SWOJ_LINK").strip() 
+    
+    if "TUTAJ_WKLEJ" in xml_url or not xml_url.startswith("http"):
+        return jsonify({"success": False, "error": "Brak poprawnego linku do pliku XML w kodzie Pythona."}), 500
     
     try:
-        res = requests.get(xml_url, timeout=15)
+        # Zwiększamy timeout do 25 sekund dla ciężkich plików XML
+        res = requests.get(xml_url, timeout=25)
         if res.status_code != 200:
-            return jsonify({"success": False, "error": "Nie udało się pobrać pliku XML"}), 500
+            return jsonify({"success": False, "error": f"Serwer IdoSell odrzucił pobieranie pliku XML (Kod: {res.status_code})"}), 500
             
-        root = ET.fromstring(res.content)
+        # Bezpieczne parsowanie (żeby zapobiec wywalaniu błędu 500 przez Flask)
+        try:
+            root = ET.fromstring(res.content)
+        except Exception as parse_err:
+            return jsonify({"success": False, "error": "Pobrano plik, ale nie jest to poprawny format XML."}), 500
+            
         extracted_ids = []
         
-        # Szukamy produktów (tagi wg standardu Google Shopping lub Ceneo)
-        namespace = {'g': 'http://base.google.com/ns/1.0'}
-        for item in root.findall('.//item'):
-            item_id = item.find('g:id', namespace)
-            if item_id is None: 
-                item_id = item.find('id') # Fallback na zwykłe <id>
-            
-            if item_id is not None and item_id.text and item_id.text.isdigit():
-                extracted_ids.append(item_id.text.strip())
+        # STRATEGIA 1: Format IdoSell / Ceneo (<o id="123">)
+        for offer in root.findall('.//o'):
+            offer_id = offer.get('id')
+            if offer_id and offer_id.isdigit():
+                extracted_ids.append(offer_id)
                 
+        # STRATEGIA 2: Format Google Shopping (<item><g:id>123</g:id>)
         if not extracted_ids:
-            return jsonify({"success": False, "error": "Plik XML jest pusty lub ma nieznaną strukturę."}), 400
+            namespace = {'g': 'http://base.google.com/ns/1.0'}
+            for item in root.findall('.//item'):
+                item_id = item.find('g:id', namespace)
+                if item_id is None: 
+                    item_id = item.find('id') # Fallback
+                if item_id is not None and item_id.text and item_id.text.isdigit():
+                    extracted_ids.append(item_id.text.strip())
+        
+        # STRATEGIA 3: Format Facebook Catalog / Zwykły (<item><id>123</id>)
+        if not extracted_ids:
+            for item in root.findall('.//item'):
+                item_id = item.find('id')
+                if item_id is not None and item_id.text and item_id.text.isdigit():
+                    extracted_ids.append(item_id.text.strip())
 
-        # Wyciągamy np. 100 najnowszych/pierwszych produktów z feedu
-        pool = extracted_ids[:100]
-        # Wybieramy z nich 3 losowe (żeby blog nie polecał ciągle tego samego)
+        # Usuwamy duplikaty (jeśli XML ma kilka wariantów tego samego ID)
+        extracted_ids = list(set(extracted_ids))
+        
+        if not extracted_ids:
+            return jsonify({"success": False, "error": "Pobrano XML, ale nie odnaleziono w nim tagów z numerami ID."}), 500
+
+        # Wyciągamy np. 150 najnowszych produktów z feedu (żeby blog nie losował starych)
+        pool = extracted_ids[:150]
+        
+        # Wybieramy z nich 3 losowe
         selected_ids = random.sample(pool, min(3, len(pool)))
                 
         return jsonify({"success": True, "ids": ", ".join(selected_ids)})
+        
+    except requests.exceptions.Timeout:
+        return jsonify({"success": False, "error": "Upłynął limit czasu (25s). Plik XML jest zbyt duży."}), 500
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
+        return jsonify({"success": False, "error": f"Krytyczny błąd: {str(e)}"}), 500
