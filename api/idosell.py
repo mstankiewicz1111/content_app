@@ -1,6 +1,7 @@
 import os
 import requests
 import random
+import re
 import xml.etree.ElementTree as ET
 from datetime import datetime
 from flask import Blueprint, request, jsonify
@@ -126,65 +127,84 @@ def api_publish_blog():
 @idosell_bp.route('/auto_products', methods=['POST'])
 def api_auto_products():
     data = request.json
+    topic = data.get("topic", "")
     
-    # ⚠️ TUTAJ WKLEJ SWÓJ PRAWDZIWY LINK DO XML (Pomiędzy cudzysłowy)
+    # ⚠️ TUTAJ WKLEJ SWÓJ PRAWDZIWY LINK DO XML
     xml_url = os.environ.get("WASSYL_XML_FEED", "https://wassyl.pl/data/export/feed10015_1b9e5511234776450ad2740f.xml").strip() 
     
     if "TUTAJ_WKLEJ" in xml_url or not xml_url.startswith("http"):
-        return jsonify({"success": False, "error": "Brak poprawnego linku do pliku XML w kodzie Pythona."}), 500
+        return jsonify({"success": False, "error": "Brak poprawnego linku do pliku XML."}), 500
     
     try:
-        # Zwiększamy timeout do 25 sekund dla ciężkich plików XML
         res = requests.get(xml_url, timeout=25)
         if res.status_code != 200:
-            return jsonify({"success": False, "error": f"Serwer IdoSell odrzucił pobieranie pliku XML (Kod: {res.status_code})"}), 500
+            return jsonify({"success": False, "error": f"Odrzucono pobieranie XML (Kod: {res.status_code})"}), 500
             
-        # Bezpieczne parsowanie (żeby zapobiec wywalaniu błędu 500 przez Flask)
         try:
             root = ET.fromstring(res.content)
-        except Exception as parse_err:
-            return jsonify({"success": False, "error": "Pobrano plik, ale nie jest to poprawny format XML."}), 500
+        except Exception:
+            return jsonify({"success": False, "error": "Pobrano plik, ale to nie jest poprawny format XML."}), 500
             
-        extracted_ids = []
+        products = []
         
-        # STRATEGIA 1: Format IdoSell / Ceneo (<o id="123">)
+        # STRATEGIA 1: Format IdoSell / Ceneo (<o id="123"><name>...</name>)
         for offer in root.findall('.//o'):
             offer_id = offer.get('id')
-            if offer_id and offer_id.isdigit():
-                extracted_ids.append(offer_id)
+            name_tag = offer.find('name')
+            if offer_id and offer_id.isdigit() and name_tag is not None and name_tag.text:
+                products.append({'id': offer_id, 'name': name_tag.text.lower()})
                 
-        # STRATEGIA 2: Format Google Shopping (<item><g:id>123</g:id>)
-        if not extracted_ids:
+        # STRATEGIA 2: Format Google Shopping / Standard (<item><g:id> lub <id>)
+        if not products:
             namespace = {'g': 'http://base.google.com/ns/1.0'}
             for item in root.findall('.//item'):
                 item_id = item.find('g:id', namespace)
-                if item_id is None: 
-                    item_id = item.find('id') # Fallback
-                if item_id is not None and item_id.text and item_id.text.isdigit():
-                    extracted_ids.append(item_id.text.strip())
-        
-        # STRATEGIA 3: Format Facebook Catalog / Zwykły (<item><id>123</id>)
-        if not extracted_ids:
-            for item in root.findall('.//item'):
-                item_id = item.find('id')
-                if item_id is not None and item_id.text and item_id.text.isdigit():
-                    extracted_ids.append(item_id.text.strip())
-
-        # Usuwamy duplikaty (jeśli XML ma kilka wariantów tego samego ID)
-        extracted_ids = list(set(extracted_ids))
-        
-        if not extracted_ids:
-            return jsonify({"success": False, "error": "Pobrano XML, ale nie odnaleziono w nim tagów z numerami ID."}), 500
-
-        # Wyciągamy np. 150 najnowszych produktów z feedu (żeby blog nie losował starych)
-        pool = extracted_ids[:150]
-        
-        # Wybieramy z nich 3 losowe
-        selected_ids = random.sample(pool, min(3, len(pool)))
+                if item_id is None: item_id = item.find('id')
                 
-        return jsonify({"success": True, "ids": ", ".join(selected_ids)})
+                title_tag = item.find('g:title', namespace)
+                if title_tag is None: title_tag = item.find('title')
+                
+                if item_id is not None and title_tag is not None and item_id.text and item_id.text.isdigit() and title_tag.text:
+                    products.append({'id': item_id.text.strip(), 'name': title_tag.text.lower()})
+
+        if not products:
+            return jsonify({"success": False, "error": "Brak produktów w pliku XML."}), 500
+
+        # --- INTELIGENTNE DOPASOWANIE DO TEMATU ---
+        # Czyścimy temat ze znaków interpunkcyjnych i bierzemy słowa dłuższe niż 3 litery (omijamy "na", "do", "z")
+        topic_clean = re.sub(r'[^\w\s]', '', topic.lower())
+        topic_words = [w for w in topic_clean.split() if len(w) > 3]
+        
+        matched_ids = []
+        if topic_words:
+            for p in products:
+                # Jeśli którekolwiek słowo z tematu pojawia się w nazwie produktu
+                if any(word in p['name'] for word in topic_words):
+                    matched_ids.append(p['id'])
+                    
+        # Usuwamy duplikaty zachowując kolejność
+        matched_ids = list(dict.fromkeys(matched_ids))
+        
+        # Podejmujemy decyzję, co zwrócić
+        if len(matched_ids) >= 3:
+            selected_ids = random.sample(matched_ids, 3)
+            info = "Znaleziono pasujące produkty!"
+        elif len(matched_ids) > 0:
+            selected_ids = matched_ids
+            info = "Znaleziono kilka pasujących produktów."
+        else:
+            # Fallback: Losujemy 3 z 150 najnowszych/pierwszych w XML
+            pool = [p['id'] for p in products][:150]
+            selected_ids = random.sample(pool, min(3, len(pool)))
+            info = "Wylosowano z najnowszych (brak ścisłego dopasowania do tematu)."
+                
+        return jsonify({
+            "success": True, 
+            "ids": ", ".join(selected_ids),
+            "message": info
+        })
         
     except requests.exceptions.Timeout:
-        return jsonify({"success": False, "error": "Upłynął limit czasu (25s). Plik XML jest zbyt duży."}), 500
+        return jsonify({"success": False, "error": "Upłynął limit czasu (25s)."}), 500
     except Exception as e:
         return jsonify({"success": False, "error": f"Krytyczny błąd: {str(e)}"}), 500
