@@ -128,7 +128,7 @@ def api_auto_products():
     topic = data.get("topic", "")
     
     # TUTAJ WKLEJ LINK DO SWOJEGO FEEDU XML
-    xml_url = os.environ.get("WASSYL_XML_FEED", "https://wassyl.pl/Twoj_Feed_XML.xml") 
+    xml_url = os.environ.get("WASSYL_XML_FEED", "https://wassyl.pl/data/export/feed10012_18beae6bc29398f9f25458e4.xml") 
     
     try:
         res = requests.get(xml_url, timeout=15)
