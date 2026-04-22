@@ -1,5 +1,6 @@
 import os
 import requests
+import random
 import xml.etree.ElementTree as ET
 from datetime import datetime
 from flask import Blueprint, request, jsonify
@@ -127,27 +128,35 @@ def api_auto_products():
     data = request.json
     topic = data.get("topic", "")
     
-    # TUTAJ WKLEJ LINK DO SWOJEGO FEEDU XML
-    xml_url = os.environ.get("WASSYL_XML_FEED", "https://wassyl.pl/data/export/feed10012_18beae6bc29398f9f25458e4.xml") 
+    # URL do feedu XML
+    xml_url = os.environ.get("WASSYL_XML_FEED", "https://wassyl.pl/Twoj_Feed_XML.xml") 
     
     try:
         res = requests.get(xml_url, timeout=15)
         if res.status_code != 200:
-            return jsonify({"error": "Nie udało się pobrać pliku XML"}), 500
+            return jsonify({"success": False, "error": "Nie udało się pobrać pliku XML"}), 500
             
         root = ET.fromstring(res.content)
-        products_pool = []
+        extracted_ids = []
         
+        # Szukamy produktów (tagi wg standardu Google Shopping lub Ceneo)
         namespace = {'g': 'http://base.google.com/ns/1.0'}
-        for item in root.findall('.//item')[:100]:
+        for item in root.findall('.//item'):
             item_id = item.find('g:id', namespace)
-            title = item.find('title')
+            if item_id is None: 
+                item_id = item.find('id') # Fallback na zwykłe <id>
             
-            if item_id is None: item_id = item.find('id')
-            
-            if item_id is not None and title is not None:
-                products_pool.append(f"ID: {item_id.text}, Nazwa: {title.text}")
+            if item_id is not None and item_id.text and item_id.text.isdigit():
+                extracted_ids.append(item_id.text.strip())
                 
-        return jsonify({"products": products_pool})
+        if not extracted_ids:
+            return jsonify({"success": False, "error": "Plik XML jest pusty lub ma nieznaną strukturę."}), 400
+
+        # Wyciągamy np. 100 najnowszych/pierwszych produktów z feedu
+        pool = extracted_ids[:100]
+        # Wybieramy z nich 3 losowe (żeby blog nie polecał ciągle tego samego)
+        selected_ids = random.sample(pool, min(3, len(pool)))
+                
+        return jsonify({"success": True, "ids": ", ".join(selected_ids)})
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"success": False, "error": str(e)}), 500
