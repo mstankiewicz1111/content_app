@@ -73,11 +73,14 @@ def api_publish_blog():
             if pid.isdigit():
                 products_list.append({"productId": int(pid)})
 
-    # Poprawny payload dla IdoSell
+    # Poprawny payload dla IdoSell z Twoją poprawką
     payload = {
         "params": {
             "date": datetime.now().strftime("%Y-%m-%d"),
             "visible": "n",
+            "visibleOnSitesList": [
+                {"siteId": "display_on_blog"} # <--- TWÓJ FIX
+            ],
             "langs": [
                 {
                     "langId": "pol",
