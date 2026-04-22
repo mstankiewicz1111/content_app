@@ -279,19 +279,53 @@ async function publishToIdosell() {
     const title = getVal('pub-title');
     const lead = getVal('pub-lead');
     const content = getVal('html-result');
+    const productIds = getVal('pub-html-ids'); // Pobieramy ID produktów do podpięcia pod wpis
     
     if(!title || !content) return alert("Uzupełnij tytuł i wygeneruj kod HTML!");
     
     document.getElementById('loader-publish').style.display = 'block';
+    
+    // Usuwamy stary komunikat o sukcesie (jeśli klikamy ponownie)
+    const oldMsg = document.getElementById('publish-success-message');
+    if (oldMsg) oldMsg.remove();
+    
     try {
         const res = await fetch('/api/idosell/publish_blog', { 
             method: 'POST', 
             headers: {'Content-Type': 'application/json'}, 
-            body: JSON.stringify({ title, lead, content }) 
+            body: JSON.stringify({ title, lead, content, productIds }) 
         });
+        
         const data = await res.json();
-        if(data.success) alert("✅ Sukces! Wpis został zapisany jako SZKIC w IdoSell.");
-        else alert("❌ Błąd IdoSell: " + (data.error || "Nieznany błąd"));
-    } catch(e) { alert("Błąd połączenia: " + e.message); }
+        
+        if(data.success) {
+            let successHtml = `<strong>🎉 Sukces! Wpis został zapisany jako SZKIC.</strong>`;
+            
+            // Jeśli backend zwrócił ID wpisu, generujemy klikalny link
+            if (data.entryId) {
+                const blogLink = `https://wassyl.pl/-blog-pol-${data.entryId}.html`;
+                successHtml += `<br><br>Numer wpisu: <b>${data.entryId}</b>`;
+                successHtml += `<br><a href="${blogLink}" target="_blank" style="display: inline-block; margin-top: 10px; color: #0066cc; text-decoration: underline; font-weight: bold;">🔗 Zobacz wpis w sklepie (kliknij)</a>`;
+            }
+
+            // Tworzymy zielony kontener z sukcesem i linkiem
+            const successContainer = document.createElement('div');
+            successContainer.id = 'publish-success-message';
+            successContainer.style.cssText = 'margin-top: 20px; padding: 15px; background-color: #d4edda; color: #155724; border-radius: 5px; border: 1px solid #c3e6cb; font-size: 14px;';
+            successContainer.innerHTML = successHtml;
+            
+            // Doklejamy komunikat na samym dole formularza publikacji
+            document.getElementById('tab3').appendChild(successContainer);
+            
+            // Powiadomienie natychmiastowe dla użytkownika
+            alert(data.entryId ? `✅ Wpis pomyślnie dodany! ID: ${data.entryId}` : `✅ Wpis dodany!`);
+            
+        } else {
+            alert("❌ Błąd IdoSell: " + (data.error || "Nieznany błąd"));
+        }
+    } catch(e) { 
+        alert("Błąd połączenia: " + e.message); 
+    }
+    
     document.getElementById('loader-publish').style.display = 'none';
 }
