@@ -413,13 +413,21 @@ async function publishToIdosell() {
     const title = getVal('pub-title');
     const lead = getVal('pub-lead');
     const content = getVal('html-result');
-    const productIds = getVal('pub-html-ids'); // Pobieramy ID produktów do podpięcia pod wpis
+    const productIds = getVal('pub-html-ids'); 
     
     if(!title || !content) return alert("Uzupełnij tytuł i wygeneruj kod HTML!");
+
+    // --- NOWOŚĆ: Pobieranie obrazka z płótna (Canvas) ---
+    let imageBase64 = null;
+    const canvas = document.getElementById('collage-canvas');
+    // Sprawdzamy czy canvas istnieje i czy kolaż faktycznie został wygenerowany
+    if (canvas && document.getElementById('collage-container').style.display !== 'none') {
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.9); // Zapisujemy jako JPG (90% jakości)
+        imageBase64 = dataUrl.split(',')[1]; // Czysty ciąg Base64 bez prefixu "data:image/jpeg..."
+    }
     
     document.getElementById('loader-publish').style.display = 'block';
     
-    // Usuwamy stary komunikat o sukcesie (jeśli klikamy ponownie)
     const oldMsg = document.getElementById('publish-success-message');
     if (oldMsg) oldMsg.remove();
     
@@ -427,7 +435,8 @@ async function publishToIdosell() {
         const res = await fetch('/api/idosell/publish_blog', { 
             method: 'POST', 
             headers: {'Content-Type': 'application/json'}, 
-            body: JSON.stringify({ title, lead, content, productIds }) 
+            // Przesyłamy imageBase64 na backend
+            body: JSON.stringify({ title, lead, content, productIds, imageBase64 }) 
         });
         
         const data = await res.json();
@@ -435,23 +444,18 @@ async function publishToIdosell() {
         if(data.success) {
             let successHtml = `<strong>🎉 Sukces! Wpis został zapisany jako SZKIC.</strong>`;
             
-            // Jeśli backend zwrócił ID wpisu, generujemy klikalny link
             if (data.entryId) {
                 const blogLink = `https://wassyl.pl/-blog-pol-${data.entryId}.html`;
                 successHtml += `<br><br>Numer wpisu: <b>${data.entryId}</b>`;
                 successHtml += `<br><a href="${blogLink}" target="_blank" style="display: inline-block; margin-top: 10px; color: #0066cc; text-decoration: underline; font-weight: bold;">🔗 Zobacz wpis w sklepie (kliknij)</a>`;
             }
 
-            // Tworzymy zielony kontener z sukcesem i linkiem
             const successContainer = document.createElement('div');
             successContainer.id = 'publish-success-message';
             successContainer.style.cssText = 'margin-top: 20px; padding: 15px; background-color: #d4edda; color: #155724; border-radius: 5px; border: 1px solid #c3e6cb; font-size: 14px;';
             successContainer.innerHTML = successHtml;
             
-            // Doklejamy komunikat na samym dole formularza publikacji
             document.getElementById('tab3').appendChild(successContainer);
-            
-            // Powiadomienie natychmiastowe dla użytkownika
             alert(data.entryId ? `✅ Wpis pomyślnie dodany! ID: ${data.entryId}` : `✅ Wpis dodany!`);
             
         } else {
