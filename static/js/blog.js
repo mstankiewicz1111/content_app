@@ -121,7 +121,7 @@ async function autoFetchXML() {
     }
 }
 
-function selectBlogIdea(enc) {
+function selectIdea(enc) {
     document.getElementById('topic-input').value = decodeURIComponent(enc);
     switchTab('tab2');
 }
