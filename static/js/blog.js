@@ -33,51 +33,47 @@ function syncProductIds() {
 }
 
 // 2. GENEROWANIE POMYSŁÓW (KROK 1)
-async function generateIdeas(userIdea) {
-    const resBox = document.getElementById('ideas-result');
-    const loader = document.getElementById('loader-1');
-    loader.style.display = 'block';
-    resBox.innerHTML = '';
-    
-    // Pobieramy prompt z pliku prompts.js
-    const prompt = Prompts.getIdeas(userIdea);
+async function generateIdeas() {
+    const idea = getVal('idea-input');
+    document.getElementById('loader-ideas').style.display = 'block';
+    document.getElementById('ideas-list').innerHTML = ''; // Czyścimy poprzednie wyniki
 
     try {
+        const promptText = Prompts.getIdeas(idea);
         const res = await fetch('/api/generate', { 
             method: 'POST', 
             headers: {'Content-Type': 'application/json'}, 
-            body: JSON.stringify({ prompt, search: !userIdea, json_mode: true }) 
+            body: JSON.stringify({prompt: promptText}) 
         });
+        
         const data = await res.json();
         
-        let rawText = data.result || "";
-        let ideas = [];
-        const jsonMatch = rawText.match(/\[[\s\S]*\]/);
+        // 🧹 KLUCZOWA POPRAWKA: Czyszczenie znaczników markdown przed odczytem JSON
+        let cleanJson = data.result.replace(/```json/g, '').replace(/```/g, '').trim();
         
-        if (jsonMatch) {
-            ideas = JSON.parse(jsonMatch[0]);
-        } else {
-            throw new Error("AI nie zwróciło poprawnego formatu JSON.");
-        }
+        const ideas = JSON.parse(cleanJson);
+        let html = '';
         
-        let html = '<div style="display: flex; flex-direction: column; gap: 15px;">';
-        ideas.forEach(idea => {
-            const title = idea.title || "Bez tytułu";
-            const desc = idea.desc || idea.description || "Brak opisu";
-            const enc = encodeURIComponent(title);
+        ideas.forEach((item) => {
+            // Zabezpieczenie apostrofów w tytule przed "zepsuciem" przycisku
+            const safeTitle = item.title.replace(/'/g, "\\'"); 
+            
             html += `
-            <div style="background: #fff; padding: 15px; border-radius: 8px; border: 1px solid #ddd; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
-                <h4 style="margin-top: 0; color: #000; font-size: 16px;">${title}</h4>
-                <p style="font-size: 13px; color: #666; margin-bottom: 15px;">${desc}</p>
-                <button class="btn-primary" onclick="selectBlogIdea('${enc}')" style="margin: 0; font-size: 12px; padding: 6px 12px; background: #000;">✍️ Wybierz ten temat</button>
+            <div class="idea-card" style="border: 1px solid #ddd; padding: 15px; margin-bottom: 10px; border-radius: 5px;">
+                <h4 style="margin-top: 0; color: #0066cc;">${item.title}</h4>
+                <p style="font-size: 13px; color: #555;">${item.desc}</p>
+                <button class="btn-primary" onclick="selectIdea('${safeTitle}')" style="margin: 0; font-size: 12px; padding: 5px 10px;">Wybierz ten temat</button>
             </div>`;
         });
-        resBox.innerHTML = html + '</div>';
-    } catch (e) { 
-        console.error(e);
-        resBox.innerHTML = `<div style="color:red; padding:10px;">Błąd: ${e.message}</div>`; 
+        
+        document.getElementById('ideas-list').innerHTML = html;
+        
+    } catch(e) { 
+        console.error("Szczegóły błędu:", e);
+        alert("Błąd generowania pomysłów: " + e.message + " (Sprawdź konsolę F12)"); 
     }
-    loader.style.display = 'none';
+    
+    document.getElementById('loader-ideas').style.display = 'none';
 }
 
 async function autoFetchXML() {
