@@ -121,8 +121,8 @@ async function autoFetchXML() {
     }
 }
 
-function selectIdea(enc) {
-    document.getElementById('topic-input').value = decodeURIComponent(enc);
+function selectIdea(title) {
+    document.getElementById('topic-input').value = title;
     switchTab('tab2');
 }
 
