@@ -87,20 +87,22 @@
             <h1 class="header-title">Asystent Content Marketingu</h1>
 
             <div id="module-blog" class="module-content">
-                <div id="tab1" class="tab-content active">
-                    <h2>💡 Propozycje tematów na bloga</h2>
-                    <div class="box-option">
-                        <h3 style="margin-top: 0;">Opcja A: Automatyczne Trendy</h3>
-                        <button class="btn-primary" onclick="generateIdeas('')">🔥 Generuj z trendów</button>
-                    </div>
-                    <div class="box-option">
-                        <h3 style="margin-top: 0;">Opcja B: Twój konkretny pomysł</h3>
-                        <input type="text" id="idea-input" placeholder="np. sukienka na szybką kawę">
-                        <button class="btn-primary" onclick="generateIdeas(document.getElementById('idea-input').value)">💡 Generuj z pomysłu</button>
-                    </div>
-                    <div id="loader-1" class="loader">⏳ Pracuję nad tematami... To może potrwać do 30 sekund.</div>
-                    <div id="ideas-result" style="margin-top: 20px;"></div>
-                </div>
+<div id="tab1" class="tab-content active">
+    <h2>💡 Propozycje tematów na bloga</h2>
+    <div class="box-option">
+        <h3 style="margin-top: 0;">Opcja A: Automatyczne Trendy</h3>
+        <button class="btn-primary" onclick="generateIdeas('')">🔥 Generuj z trendów</button>
+    </div>
+    <div class="box-option">
+        <h3 style="margin-top: 0;">Opcja B: Twój konkretny pomysł</h3>
+        <input type="text" id="idea-input" placeholder="np. sukienka na szybką kawę">
+        <button class="btn-primary" onclick="generateIdeas(document.getElementById('idea-input').value)">💡 Generuj z pomysłu</button>
+    </div>
+    
+    <div id="loader-ideas" class="loader" style="display: none;">⏳ Pracuję nad tematami... To może potrwać do 30 sekund.</div>
+    
+    <div id="ideas-list" style="margin-top: 20px;"></div>
+</div>
 
                 <div id="tab2" class="tab-content">
                     <h2>✍️ Dwustopniowy Kreator Treści</h2>
