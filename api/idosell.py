@@ -66,6 +66,7 @@ def api_publish_blog():
     lead = data.get("lead", "")
     content = data.get("content", "")
     product_ids_str = data.get("productIds", "")
+    image_base64 = data.get("imageBase64", None) # <--- Odbieramy zdjęcie
 
     # Mapowanie produktów z inputu na format IdoSell
     products_list = []
@@ -75,13 +76,13 @@ def api_publish_blog():
             if pid.isdigit():
                 products_list.append({"productId": int(pid)})
 
-    # Poprawny payload dla IdoSell z Twoją poprawką
+    # Poprawny payload dla IdoSell
     payload = {
         "params": {
             "date": datetime.now().strftime("%Y-%m-%d"),
             "visible": "n",
             "visibleOnSitesList": [
-                {"siteId": "display_on_blog"} # <--- TWÓJ FIX
+                {"siteId": "display_on_blog"} 
             ],
             "langs": [
                 {
@@ -96,9 +97,16 @@ def api_publish_blog():
         }
     }
     
-    # Dodajemy produkty do payloadu, jeśli użytkownik jakieś podał
+    # Dodajemy produkty do payloadu
     if products_list:
         payload["params"]["products"] = products_list
+
+    # --- NOWOŚĆ: Dodajemy zdjęcie jako miniaturę wpisu ---
+    if image_base64:
+        payload["params"]["pictureData"] = {
+            "pictureBase64": image_base64,
+            "pictureFormat": "jpg"
+        }
     
     url = f"https://{domain}/api/admin/v7/entries/entries"
     headers = {"X-API-KEY": api_key, "Content-Type": "application/json"}
