@@ -121,23 +121,49 @@ async function refreshSingleInspiration(type) {
     }
 }
 
+// 3. ANALIZA TRENDÓW 
 async function analyzeTrends() {
     const resBox = document.getElementById('trend-result'); 
     const loader = document.getElementById('loader-trend');
     const wrapper = document.getElementById('trend-wrapper');
+    
     if(loader) loader.style.display = 'block'; 
     if(wrapper) wrapper.style.display = 'none';
+    
     try {
+        // Zabezpieczony prompt z uwzględnieniem miejskiego luzu
+        const promptText = (typeof WASSYL_DNA !== 'undefined') 
+            ? `${WASSYL_DNA}\nWymień 3 najgorętsze, aktualne trendy fashion na TikToku. Skup się na streetwearze, dresach i basicach, które pasują do naszej marki. Zwróć wynik jako czytelny Markdown, bez poetyckich metafor.`
+            : "Wymień 3 najgorętsze trendy fashion na TikToku (Kwiecień 2026). Format: Markdown.";
+
+        console.log("Wysyłam zapytanie o trendy...");
+        
         const res = await fetch('/api/generate', { 
             method: 'POST', 
             headers: {'Content-Type': 'application/json'}, 
-            body: JSON.stringify({prompt: "Wymień 3 najgorętsze trendy fashion na TikToku (AKTUALNE NA KWIECIEŃ 2026). Markdown.", search: true}) 
+            // Usunięto parametr search: true, aby uniknąć błędu 500
+            body: JSON.stringify({prompt: promptText}) 
         });
+        
         const data = await res.json(); 
+        
+        if (!data.result) {
+            throw new Error(data.error || "Brak odpowiedzi od AI.");
+        }
+        
+        let cleanResult = data.result.replace(/```markdown/g, '').replace(/```/g, '').trim();
+        
+        resBox.innerHTML = typeof formatMarkdown === 'function' ? formatMarkdown(cleanResult) : cleanResult; 
+        
         if(loader) loader.style.display = 'none'; 
-        resBox.innerHTML = typeof formatMarkdown === 'function' ? formatMarkdown(data.result) : data.result; 
         if(wrapper) wrapper.style.display = 'block';
-    } catch(e) { if(loader) loader.style.display = 'none'; }
+        console.log("Trendy wygenerowane poprawnie!");
+        
+    } catch(e) { 
+        if(loader) loader.style.display = 'none'; 
+        console.error("Szczegóły błędu analizy trendów:", e);
+        alert("Błąd analizy trendów: " + e.message + " (Sprawdź konsolę F12)"); 
+    }
 }
 
 // ZMODYFIKOWANE: Generator Hooków podłączony pod WASSYL DNA
