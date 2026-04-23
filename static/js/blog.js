@@ -262,16 +262,14 @@ async function generateCollage() {
         const data = await res.json();
         
         const products = (data.results || []).slice(0, 3);
-        console.log("Znaleziono produktów do kolażu:", products.length);
         
         if (products.length === 0) {
             document.getElementById('loader-collage').style.display = 'none';
             return alert("Nie znaleziono produktów o podanych ID w IdoSell.");
         }
 
-        // PANCERNA funkcja ładująca pojedyncze zdjęcie
-        const loadImg = (p) => new Promise((resolve) => {
-            // Inteligentne wyciąganie URL (najpierw galeria, potem główna ikona)
+        // PANCERNA funkcja ładująca pojedyncze zdjęcie przez Proxy Pythona
+        const loadImg = async (p) => {
             let url = "";
             if (p.productImages && p.productImages.length > 0) {
                 url = p.productImages[0].productImageLargeUrl || p.productImages[0].productImageMediumUrl;
@@ -279,39 +277,39 @@ async function generateCollage() {
                 url = p.productIcon.productIconLargeUrl;
             }
             
-            if (!url) {
-                console.warn(`Brak zdjęcia dla produktu ID: ${p.productId || p.id}`);
-                return resolve(null); // Zwracamy null zamiast wywalać cały kolaż
+            if (!url) return null;
+
+            try {
+                console.log("Pobieram zdjęcie przez bezpieczne proxy:", url);
+                const proxyRes = await fetch('/api/idosell/proxy_image', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({url: url})
+                });
+                const proxyData = await proxyRes.json();
+
+                if (proxyData.success && proxyData.base64) {
+                    return new Promise((resolve) => {
+                        const img = new Image();
+                        img.onload = () => resolve(img);
+                        img.onerror = () => resolve(null);
+                        // Ładujemy Base64 z naszego serwera - Płótno pozostaje CZYSTE!
+                        img.src = "data:image/jpeg;base64," + proxyData.base64; 
+                    });
+                }
+            } catch (e) {
+                console.error("Błąd proxy dla zdjęcia:", url, e);
             }
+            return null;
+        };
 
-            console.log("Pobieram zdjęcie:", url);
-            const img = new Image();
-            img.crossOrigin = "Anonymous"; // Próba ominięcia blokady Canvas
-            
-            img.onload = () => resolve(img);
-            img.onerror = () => {
-                console.warn("Blokada CORS dla zdjęcia, próbuję trybu fallback:", url);
-                const fallbackImg = new Image();
-                fallbackImg.onload = () => resolve(fallbackImg);
-                fallbackImg.onerror = () => {
-                    console.error("Całkowity błąd pobierania zdjęcia:", url);
-                    resolve(null); // Skrypt idzie dalej mimo błędu jednego zdjęcia
-                };
-                fallbackImg.src = url;
-            };
-            img.src = url;
-        });
-
-        // Ładujemy wszystkie zdjęcia równolegle, ignorując błędy pojedynczych
+        // Ładujemy wszystkie zdjęcia równolegle
         const loadedResults = await Promise.all(products.map(p => loadImg(p)));
-        
-        // Filtrujemy tylko te zdjęcia, które udało się fizycznie załadować
         const validImgs = loadedResults.filter(img => img !== null);
-        console.log("Poprawnie załadowano zdjęć:", validImgs.length);
 
         if (validImgs.length === 0) {
             document.getElementById('loader-collage').style.display = 'none';
-            return alert("Żadne ze zdjęć nie mogło zostać pobrane z serwera (zabezpieczenia przeglądarki lub błędne linki).");
+            return alert("Żadne ze zdjęć nie mogło zostać pobrane.");
         }
 
         // Rysowanie
@@ -335,7 +333,7 @@ async function generateCollage() {
         });
         
         document.getElementById('collage-container').style.display = 'block';
-        console.log("Kolaż wygenerowany sukcesem!");
+        console.log("Kolaż wygenerowany sukcesem i jest czysty (niezanieczyszczony)!");
     } catch(e) { 
         console.error("Krytyczny błąd kolażu:", e);
         alert("Błąd kolażu: " + e.message); 
@@ -417,13 +415,16 @@ async function publishToIdosell() {
     
     if(!title || !content) return alert("Uzupełnij tytuł i wygeneruj kod HTML!");
 
-    // --- NOWOŚĆ: Pobieranie obrazka z płótna (Canvas) ---
+    // Zabezpieczone pobieranie obrazka z płótna (Canvas)
     let imageBase64 = null;
     const canvas = document.getElementById('collage-canvas');
-    // Sprawdzamy czy canvas istnieje i czy kolaż faktycznie został wygenerowany
     if (canvas && document.getElementById('collage-container').style.display !== 'none') {
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.9); // Zapisujemy jako JPG (90% jakości)
-        imageBase64 = dataUrl.split(',')[1]; // Czysty ciąg Base64 bez prefixu "data:image/jpeg..."
+        try {
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+            imageBase64 = dataUrl.split(',')[1]; 
+        } catch (err) {
+            console.warn("Nadal występuje problem z zanieczyszczonym płótnem. Wysyłam wpis bez zdjęcia.", err);
+        }
     }
     
     document.getElementById('loader-publish').style.display = 'block';
@@ -435,7 +436,6 @@ async function publishToIdosell() {
         const res = await fetch('/api/idosell/publish_blog', { 
             method: 'POST', 
             headers: {'Content-Type': 'application/json'}, 
-            // Przesyłamy imageBase64 na backend
             body: JSON.stringify({ title, lead, content, productIds, imageBase64 }) 
         });
         
