@@ -236,7 +236,7 @@ def proxy_image():
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
-# --- AKTUALIZACJA PRODUKTÓW W IDOSELL (GOOGLE DISCOVER) ---
+# --- AKTUALIZACJA PRODUKTÓW W IDOSELL ---
 @idosell_bp.route('/update_product', methods=['POST'])
 def api_update_product():
     domain, api_key = get_idosell_config()
@@ -249,32 +249,64 @@ def api_update_product():
     if not product_id:
         return jsonify({"success": False, "error": "Brak ID produktu"}), 400
         
-    # Payload zgodny z dokumentacją IdoSell do aktualizacji towaru
+    # Payload odwzorowany DOKŁADNIE 1:1 z poprawnie działającego cURL-a
     payload = {
-        "products": [
-            {
-                "productId": int(product_id),
-                "productDescriptionsLangData": [
-                    {
-                        "langId": "pol",
-                        "productName": new_name,
-                        "productLongDescription": new_desc
+        "params": {
+            "products": [
+                {
+                    "productId": int(product_id),
+                    "productNames": {
+                        "productNamesLangData": [
+                            {
+                                "langId": "pol",
+                                "shopId": 1,
+                                "productName": new_name
+                            }
+                        ]
+                    },
+                    "productLongDescriptions": {
+                        "productLongDescriptionsLangData": [
+                            {
+                                "langId": "pol",
+                                "shopId": 1,
+                                "productLongDescription": new_desc
+                            }
+                        ]
                     }
-                ]
-            }
-        ]
+                }
+            ]
+        }
     }
     
     url = f"https://{domain}/api/admin/v7/products/products"
-    headers = {"X-API-KEY": api_key, "Content-Type": "application/json"}
+    
+    # Dodajemy nagłówek Accept zgodnie z Twoim wzorcem
+    headers = {
+        "X-API-KEY": api_key, 
+        "Content-Type": "application/json",
+        "Accept": "application/json"
+    }
     
     try:
-        # Do aktualizacji w IdoSell używamy metody PUT
         res = requests.put(url, headers=headers, json=payload, timeout=30)
+        response_data = res.json()
         
         if res.status_code in [200, 201]:
             return jsonify({"success": True})
+            
+        elif res.status_code == 207:
+            error_msg = "Odrzucono zmiany w produkcie (Multi-Status 207)."
+            try:
+                # Próbujemy wyłuskać dokładny powód błędu z odpowiedzi
+                results = response_data.get("results", [])
+                if results and "errors" in results[0]:
+                    error_msg = results[0]["errors"][0].get("faultString", str(results[0]["errors"]))
+            except Exception:
+                pass
+            return jsonify({"success": False, "error": f"207 -> {error_msg}"})
+            
         else:
-            return jsonify({"success": False, "error": f"Błąd IdoSell: {res.status_code}", "details": res.text}), 500
+            return jsonify({"success": False, "error": f"KOD {res.status_code}"})
+            
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
+        return jsonify({"success": False, "error": str(e)})
