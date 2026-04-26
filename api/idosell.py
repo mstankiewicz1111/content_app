@@ -235,3 +235,46 @@ def proxy_image():
             return jsonify({"success": False, "error": f"Błąd pobierania: {res.status_code}"}), 500
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
+
+# --- AKTUALIZACJA PRODUKTÓW W IDOSELL (GOOGLE DISCOVER) ---
+@idosell_bp.route('/update_product', methods=['POST'])
+def api_update_product():
+    domain, api_key = get_idosell_config()
+    data = request.json
+    
+    product_id = data.get("id")
+    new_name = data.get("name")
+    new_desc = data.get("long_description")
+    
+    if not product_id:
+        return jsonify({"success": False, "error": "Brak ID produktu"}), 400
+        
+    # Payload zgodny z dokumentacją IdoSell do aktualizacji towaru
+    payload = {
+        "products": [
+            {
+                "productId": int(product_id),
+                "productDescriptionsLangData": [
+                    {
+                        "langId": "pol",
+                        "productName": new_name,
+                        "productLongDescription": new_desc
+                    }
+                ]
+            }
+        ]
+    }
+    
+    url = f"https://{domain}/api/admin/v7/products/products"
+    headers = {"X-API-KEY": api_key, "Content-Type": "application/json"}
+    
+    try:
+        # Do aktualizacji w IdoSell używamy metody PUT
+        res = requests.put(url, headers=headers, json=payload, timeout=30)
+        
+        if res.status_code in [200, 201]:
+            return jsonify({"success": True})
+        else:
+            return jsonify({"success": False, "error": f"Błąd IdoSell: {res.status_code}", "details": res.text}), 500
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
