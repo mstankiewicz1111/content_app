@@ -106,8 +106,10 @@ async function generateSEOContent(product) {
     const suggestedCode = parts.slice(Math.max(parts.length - 3, 0)).join(' ');
     const firstImageUrl = (product.zdjeciaUrls && product.zdjeciaUrls.length > 0) ? product.zdjeciaUrls[0] : null;
 
-    const prompt = `
-Zadanie: Optymalizacja SEO odzieży e-commerce dla polskiej marki Wassyl.
+    // --- NOWOŚĆ: PODPIĘCIE DNA MARKI WASSYL ---
+    const brandContext = (typeof WASSYL_DNA !== 'undefined') ? WASSYL_DNA + "\n\n" : "";
+
+    const prompt = `${brandContext}Zadanie: Optymalizacja SEO odzieży e-commerce dla polskiej marki Wassyl.
 
 DANE BAZOWE:
 - Stara Nazwa: ${product.nazwa}
@@ -125,7 +127,7 @@ WYTYCZNE OPISU HTML:
 3. ZAKAZ ROZMIARÓW: W opisie nie wolno wspominać o rozmiarach (np. "modelka nosi S" albo "dostępna w rozmiarze mini"). Informacje z parametrów o rozmiarach zignoruj w tekście. Zignoruj też informację typu "Mierzone na płasko do wymiarów +/- 2 cm."
 4. PRODUKCJA: OBOWIĄZKOWO wpleć do każdego opisu informację, że ubranie jest szyte w Polsce, w Waszej własnej szwalni (brzmienie naturalne).
 5. MERYTORYKA: Opieraj się na analizie załączonego zdjęcia oraz składzie/kroju z Parametrów.
-6. FORMAT HTML: Wyjustuj <div style="text-align: justify;">. Używaj <strong> dla kluczowych atutów.
+6. FORMAT HTML: Wyjustuj <div style="text-align: justify;">. BEZWZGLĘDNY ZAKAZ UŻYWANIA ZNAKÓW ** DO POGRUBIEŃ. Zawsze używaj znacznika <strong> dla kluczowych atutów.
 
 Zwróć obiekt JSON:
 {"name": "nowa nazwa bez kropki", "description": "html opisu"}
@@ -142,6 +144,11 @@ Zwróć obiekt JSON:
         let cleanJson = data.result.replace(/```json/g, '').replace(/```/g, '').trim();
         const result = JSON.parse(cleanJson);
 
+        // --- NOWOŚĆ: ŻELAZNA MIOTŁA NA ZNACZNIKI MARKDOWN ---
+        if (result.description) {
+            result.description = result.description.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+        }
+
         document.getElementById('new-name-input').value = result.name || "";
         editor.innerHTML = result.description || "Błąd generowania.";
         updateCharCounter();
@@ -152,7 +159,7 @@ Zwróć obiekt JSON:
     }
 }
 
-// REWIZJA AI (Również zaktualizowana o nowe wytyczne)
+// REWIZJA AI (Również zaktualizowana o nowe wytyczne i sprzątanie gwiazdek)
 async function reviseProductSEO(customInstruction = null) {
     const editor = document.getElementById('new-description-editor');
     const nameInput = document.getElementById('new-name-input');
@@ -165,9 +172,11 @@ async function reviseProductSEO(customInstruction = null) {
     const origText = editor.innerHTML;
     
     editor.innerHTML = "⏳ AI nanosi Twoje poprawki...";
+
+    // --- NOWOŚĆ: PODPIĘCIE DNA MARKI WASSYL ---
+    const brandContext = (typeof WASSYL_DNA !== 'undefined') ? WASSYL_DNA + "\n\n" : "";
     
-    const prompt = `
-    Zadanie: Skoryguj nazwę i opis produktu modowego wg zaleceń użytkownika.
+    const prompt = `${brandContext}Zadanie: Skoryguj nazwę i opis produktu modowego wg zaleceń użytkownika.
     
     OBECNA NAZWA: ${currentName}
     OBECNY OPIS HTML: ${currentDesc}
@@ -177,7 +186,7 @@ async function reviseProductSEO(customInstruction = null) {
     
     WYTYCZNE (ZACHOWAJ BEZWZGLĘDNIE):
     1. Zwróć JSON: {"name": "...", "description": "..."}
-    2. Opis musi pozostać w formacie wyjustowanego HTML z pogrubieniami <strong>.
+    2. Opis musi pozostać w formacie wyjustowanego HTML z pogrubieniami <strong>. BEZWZGLĘDNY ZAKAZ UŻYWANIA ZNAKÓW **.
     3. ZAKAZ używania wielkich liter w środku nazwy (Title Case) i ZAKAZ kropki na końcu nazwy.
     4. ZAKAZ emoji, ZAKAZ wspominania o kolorach i ZAKAZ wspominania o rozmiarach/wymiarach modelki.
     5. Zachowaj kod modelu na końcu nazwy (np. E253 k01).
@@ -193,6 +202,11 @@ async function reviseProductSEO(customInstruction = null) {
         const data = await res.json();
         let cleanJson = data.result.replace(/```json/g, '').replace(/```/g, '').trim();
         const result = JSON.parse(cleanJson);
+
+        // --- NOWOŚĆ: ŻELAZNA MIOTŁA NA ZNACZNIKI MARKDOWN W REWIZJI ---
+        if (result.description) {
+            result.description = result.description.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+        }
 
         nameInput.value = result.name || currentName;
         editor.innerHTML = result.description || currentDesc;
