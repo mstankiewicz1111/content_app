@@ -259,7 +259,6 @@ def api_update_product():
                         "productNamesLangData": [
                             {
                                 "langId": "pol",
-                                "shopId": 1,
                                 "productName": new_name
                             }
                         ]
@@ -268,7 +267,6 @@ def api_update_product():
                         "productLongDescriptionsLangData": [
                             {
                                 "langId": "pol",
-                                "shopId": 1,
                                 "productLongDescription": new_desc
                             }
                         ]
