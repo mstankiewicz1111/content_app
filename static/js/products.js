@@ -311,10 +311,7 @@ async function startMassGeneration() {
         const products = data.results;
         
         // 2. Pętla przez produkty - generujemy opisy JEDEN PO DRUGIM
-        for (let i = 0; i < products.length; i++) {
-            const prod = products[i];
-
-            // --- BEZPIECZNE WYCIĄGANIE NAZWY (Jak w module pojedynczym) ---
+        // --- BEZPIECZNE WYCIĄGANIE NAZWY ---
             let nazwa = "Brak nazwy";
             if (prod.productDescriptionsLangData) {
                 const polData = prod.productDescriptionsLangData.find(d => d.langId === 'pol');
@@ -331,33 +328,52 @@ async function startMassGeneration() {
                 }).join(', ');
             }
 
+            // --- NOWOŚĆ: BEZPIECZNE WYCIĄGANIE ZDJĘCIA DLA AI ---
+            let firstImageUrl = null;
+            if (prod.productImages && prod.productImages.length > 0) {
+                firstImageUrl = prod.productImages[0].productImageLargeUrl || prod.productImages[0].productImageMediumUrl;
+            } else if (prod.productIcon && prod.productIcon.productIconLargeUrl) {
+                firstImageUrl = prod.productIcon.productIconLargeUrl;
+            }
+
             statusText.innerText = `🤖 Generowanie przez AI (${i + 1} z ${products.length}): ${nazwa}`;
             progressBar.style.width = `${10 + ((i / products.length) * 90)}%`;
 
-            // Przygotowanie danych dla AI
+            // Przygotowanie danych
             const parts = nazwa.split(' ');
             const suggestedCode = parts.slice(Math.max(parts.length - 3, 0)).join(' ');
             const brandContext = (typeof WASSYL_DNA !== 'undefined') ? WASSYL_DNA + "\n\n" : "";
 
-            const prompt = `${brandContext}Zadanie: Napisz lifestylowy opis produktu dla marki Wassyl.
-PRODUKT: ${nazwa}
-PARAMETRY: ${parametryTekst}
+            // --- PEŁNY, RYGORYSTYCZNY PROMPT (1:1 z pojedynczym produktem) ---
+            const prompt = `${brandContext}Zadanie: Optymalizacja SEO odzieży e-commerce dla polskiej marki Wassyl.
 
-WYTYCZNE:
-1. Styl: Streetwear, miejski luz, kumpelski ton.
-2. Format: Czysty HTML (wyjustowany <div style="text-align: justify;">). 
-3. ABSOLUTNY ZAKAZ używania znaków **. Jeśli chcesz coś pogrubić, użyj <strong>.
-4. Wspomnij o polskiej produkcji we własnej szwalni.
-5. Zachowaj kod modelu: "${suggestedCode}". ZAKAZ emoji i kropki na końcu nazwy.
+DANE BAZOWE:
+- Stara Nazwa: ${nazwa}
+- Parametry: ${parametryTekst}
 
-Zwróć JSON: {"name": "...", "description": "..."}`;
+WYTYCZNE NAZWY:
+1. Podział na 2 części długim myślnikiem " – ". Staraj się użyć tego znaku mniej więcej w połowie nazwy.
+2. ZAKAZ Title Case. Zdanie zaczyna się od wielkiej litery, reszta słów małymi literami.
+3. ZAKAZ kropki na końcu nazwy. (Dobre: "Czarna bluza oversize – idealna na spacer X672 / X1")
+4. Na końcu MUSI pozostać pełne oznaczenie modelu ze Starej Nazwy (absolutnie nie pomijaj końcówek takich jak k01, / X1 itp.). Szukaj kodu w tych słowach: "${suggestedCode}".
+
+WYTYCZNE OPISU HTML:
+1. DŁUGOŚĆ: Max 3000 znaków. Pisz treściwie.
+2. STYL: Lifestylowy vibe Wassyl. ZAKAZ EMOJI. ZAKAZ kolorów.
+3. ZAKAZ ROZMIARÓW: W opisie nie wolno wspominać o rozmiarach (np. "modelka nosi S"). Informacje z parametrów o rozmiarach zignoruj w tekście. Zignoruj też info typu "Mierzone na płasko".
+4. PRODUKCJA: OBOWIĄZKOWO wpleć do każdego opisu informację, że ubranie jest szyte w Polsce, w naszej własnej szwalni (brzmienie naturalne).
+5. MERYTORYKA: Opieraj się na analizie załączonego zdjęcia oraz składzie/kroju z Parametrów.
+6. FORMAT HTML: Wyjustuj <div style="text-align: justify;">. BEZWZGLĘDNY ZAKAZ UŻYWANIA ZNAKÓW ** DO POGRUBIEŃ. Zawsze używaj znacznika <strong> dla kluczowych atutów.
+
+Zwróć obiekt JSON:
+{"name": "nowa nazwa bez kropki", "description": "html opisu"}`;
 
             try {
-                // Zapytanie do AI
+                // Zapytanie do AI (teraz z uwzględnieniem zdjęcia!)
                 const aiRes = await fetch('/api/generate', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ prompt: prompt, json_mode: true })
+                    body: JSON.stringify({ prompt: prompt, json_mode: true, image_url: firstImageUrl })
                 });
                 const aiData = await aiRes.json();
                 let aiResult = JSON.parse(aiData.result.replace(/```json/g, '').replace(/```/g, ''));
