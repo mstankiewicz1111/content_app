@@ -440,11 +440,13 @@ function renderMassCard(index) {
             
             <div style="margin-top: 15px; padding: 15px; background: #f9f9f9; border-radius: 5px; border: 1px dashed #ccc;">
                 <label style="font-size: 11px; font-weight: bold; color: #555;">Co zmienić w tym opisie?</label>
-                <div style="display: flex; gap: 10px; margin-top: 5px;">
+                <div style="display: flex; gap: 10px; margin-top: 8px; align-items: stretch;">
                     <input type="text" id="mass-rev-input-${index}" placeholder="np. dodaj więcej o materiale, skróć drugie zdanie..." 
-                           style="flex-grow: 1; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px;">
+                           style="flex-grow: 1; padding: 10px 15px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; box-sizing: border-box; outline: none; font-family: inherit;">
+                    
                     <button onclick="regenerateMassItem(${index})" 
-                            style="padding: 8px 15px; background: #333; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">
+                            style="padding: 0 20px; background: #333; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: bold; white-space: nowrap; display: flex; align-items: center; justify-content: center; box-sizing: border-box; font-family: inherit; transition: background 0.2s;"
+                            onmouseover="this.style.background='#555'" onmouseout="this.style.background='#333'">
                         Generuj ponownie
                     </button>
                 </div>
@@ -468,23 +470,32 @@ function renderMassCard(index) {
 function acceptMassProduct(index) {
     // Pobieramy dane z pól wizualnych
     const nameVal = document.getElementById(`mass-name-${index}`).value;
-    const descVal = document.getElementById(`mass-desc-${index}`).innerHTML; // To pobierze sformatowany HTML
+    const descVal = document.getElementById(`mass-desc-${index}`).innerHTML;
 
     massProductsQueue[index].newName = nameVal;
     massProductsQueue[index].newDesc = descVal;
     massProductsQueue[index].accepted = true;
 
-    // Zwijanie kafelka
+    // Zwijanie formularza
     document.getElementById(`mass-card-content-${index}`).style.display = 'none';
-    document.getElementById(`mass-card-done-${index}`).style.display = 'block';
     
+    // Odkrywamy pasek sukcesu i zmieniamy kursor na "rączkę"
+    const doneDiv = document.getElementById(`mass-card-done-${index}`);
+    doneDiv.style.display = 'block';
+    doneDiv.style.cursor = 'pointer';
+    
+    // Zmieniamy styl głównej karty na zielony
     const card = document.getElementById(`mass-card-${index}`);
     card.style.background = "#f0fff4";
     card.style.borderColor = "#28a745";
-    card.onclick = function() { // Kliknięcie w zaakceptowany kafelek go rozwija
+    
+    // WAŻNE: Kliknięcie przypisujemy TYLKO do małego paska na dole, a nie do całej karty!
+    doneDiv.onclick = function() { 
         document.getElementById(`mass-card-content-${index}`).style.display = 'block';
-        document.getElementById(`mass-card-done-${index}`).style.display = 'none';
+        doneDiv.style.display = 'none';
         card.style.background = "#fff";
+        card.style.borderColor = "#ddd";
+        massProductsQueue[index].accepted = false; // Cofamy akceptację na czas edycji
     };
 }
 
