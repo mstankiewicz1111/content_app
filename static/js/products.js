@@ -418,20 +418,43 @@ function renderMassCard(index) {
     const container = document.getElementById('mass-results-container');
     
     const cardHtml = `
-    <div id="mass-card-${index}" style="border: 1px solid #ddd; border-radius: 8px; padding: 15px; margin-bottom: 15px; background: #fff; position: relative;">
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-            <h4 style="margin: 0; color: #333;">🛒 ID: ${item.id}</h4>
-            <span style="font-size: 12px; color: #888;">Oryginał: ${item.originalName}</span>
+    <div id="mass-card-${index}" style="border: 1px solid #ddd; border-radius: 10px; padding: 20px; margin-bottom: 20px; background: #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; padding-bottom: 10px; margin-bottom: 15px;">
+            <h4 style="margin: 0; color: #d32f2f;">🛒 ID: ${item.id}</h4>
+            <span style="font-size: 12px; color: #888; font-style: italic;">Oryginał: ${item.originalName}</span>
         </div>
         
-        <div id="mass-card-content-${index}" style="margin-top: 15px;">
-            <label style="font-size: 12px; font-weight: bold;">Nowa Nazwa:</label>
-            <input type="text" id="mass-name-${index}" value="${item.newName.replace(/"/g, '&quot;')}" style="width: 100%; margin-bottom: 10px; padding: 5px;">
+        <div id="mass-card-content-${index}">
+            <label style="font-size: 11px; font-weight: bold; text-transform: uppercase; color: #666;">Propozycja nazwy:</label>
+            <input type="text" id="mass-name-${index}" value="${item.newName.replace(/"/g, '&quot;')}" 
+                   style="width: 100%; margin-bottom: 15px; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-weight: bold;">
             
-            <label style="font-size: 12px; font-weight: bold;">Nowy Opis (HTML):</label>
-            <textarea id="mass-desc-${index}" style="width: 100%; height: 120px; font-family: monospace; font-size: 12px; padding: 5px;">${item.newDesc}</textarea>
+            <label style="font-size: 11px; font-weight: bold; text-transform: uppercase; color: #666;">Wizualny podgląd opisu (edytowalny):</label>
+            <div id="mass-desc-${index}" contenteditable="true" 
+                 style="width: 100%; min-height: 150px; padding: 15px; border: 1px solid #ddd; border-radius: 4px; background: #fdfdfd; line-height: 1.6; font-size: 14px; overflow-y: auto; text-align: justify;">
+                ${item.newDesc}
+            </div>
             
-            <button onclick="acceptMassProduct(${index})" class="btn-primary" style="margin-top: 10px; width: 100%; background: #28a745;">✅ Wygląda super, Akceptuj</button>
+            <div style="margin-top: 15px; padding: 15px; background: #f9f9f9; border-radius: 5px; border: 1px dashed #ccc;">
+                <label style="font-size: 11px; font-weight: bold; color: #555;">Co zmienić w tym opisie?</label>
+                <div style="display: flex; gap: 10px; margin-top: 5px;">
+                    <input type="text" id="mass-rev-input-${index}" placeholder="np. dodaj więcej o materiale, skróć drugie zdanie..." 
+                           style="flex-grow: 1; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px;">
+                    <button onclick="regenerateMassItem(${index})" 
+                            style="padding: 8px 15px; background: #333; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">
+                        Generuj ponownie
+                    </button>
+                </div>
+            </div>
+
+            <button onclick="acceptMassProduct(${index})" 
+                    style="margin-top: 20px; width: 100%; padding: 12px; background: #28a745; color: white; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; font-size: 14px;">
+                ✅ Zaakceptuj i zwiń
+            </button>
+        </div>
+        
+        <div id="mass-card-done-${index}" style="display: none; text-align: center; padding: 5px; color: #28a745; font-weight: bold;">
+            ✓ Zaakceptowano (kliknij by edytować ponownie)
         </div>
     </div>`;
     
@@ -504,4 +527,60 @@ async function publishMassProducts() {
     btn.innerText = "✅ WYŚLIJ ZAAKCEPTOWANE DO IDOSELL";
     btn.disabled = false;
     alert(`Wysyłka zakończona!\nSukces: ${successCount}\nBłędy: ${errorCount} (Sprawdź konsolę F12 jeśli są błędy)`);
+}
+
+async function regenerateMassItem(index) {
+    const item = massProductsQueue[index];
+    const instruction = document.getElementById(`mass-rev-input-${index}`).value;
+    const currentName = document.getElementById(`mass-name-${index}`).value;
+    const currentDesc = document.getElementById(`mass-desc-${index}`).innerHTML; // Pobieramy HTML z div
+    
+    if (!instruction) return alert("Wpisz najpierw uwagi do poprawy!");
+
+    const statusBtn = document.querySelector(`#mass-card-content-${index} button[onclick*="regenerateMassItem"]`);
+    const originalBtnText = statusBtn.innerText;
+    statusBtn.innerText = "⏳ Myślę...";
+    statusBtn.disabled = true;
+
+    const brandContext = (typeof WASSYL_DNA !== 'undefined') ? WASSYL_DNA + "\n\n" : "";
+
+    const prompt = `${brandContext}Zadanie: Skoryguj nazwę i opis produktu Wassyl wg uwag.
+    OBECNA NAZWA: ${currentName}
+    OBECNY OPIS HTML: ${currentDesc}
+    UWAGI: "${instruction}"
+
+    WYTYCZNE:
+    1. Zwróć JSON: {"name": "...", "description": "..."}
+    2. Formatuj TYLKO przez HTML (<strong>, <p>). ZAKAZ gwiazdek **.
+    3. Zachowaj styl lifestylowy i informację o polskiej produkcji.
+    4. ZAKAZ kropki na końcu nazwy.`;
+
+    try {
+        const res = await fetch('/api/generate', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ prompt: prompt, json_mode: true })
+        });
+        const data = await res.json();
+        let result = JSON.parse(data.result.replace(/```json/g, '').replace(/```/g, ''));
+
+        // Żelazna miotła
+        if (result.description) {
+            result.description = result.description.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+        }
+
+        // Aktualizacja widoku i kolejki
+        document.getElementById(`mass-name-${index}`).value = result.name;
+        document.getElementById(`mass-desc-${index}`).innerHTML = result.description;
+        document.getElementById(`mass-rev-input-${index}`).value = ""; // Czyścimy pole uwag
+        
+        item.newName = result.name;
+        item.newDesc = result.description;
+
+    } catch (e) {
+        alert("Błąd regeneracji: " + e.message);
+    } finally {
+        statusBtn.innerText = originalBtnText;
+        statusBtn.disabled = false;
+    }
 }
