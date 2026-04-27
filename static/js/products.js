@@ -602,3 +602,138 @@ async function regenerateMassItem(index) {
         statusBtn.disabled = false;
     }
 }
+
+// =====================================================================
+// ANALIZATOR PRODUKTÓW (SEO AUDYT)
+// =====================================================================
+
+let analyzerMatches = [];
+let isAnalyzing = false;
+
+async function startSeoAnalysis() {
+    if (isAnalyzing) return;
+    
+    const status = document.getElementById('analyzer-status');
+    const resultsContainer = document.getElementById('analyzer-results');
+    const list = document.getElementById('analyzer-list');
+    const btn = document.getElementById('btn-start-analyze');
+    
+    isAnalyzing = true;
+    analyzerMatches = [];
+    list.innerHTML = '';
+    resultsContainer.style.display = 'none';
+    document.getElementById('analyze-check-all').checked = false;
+    
+    btn.disabled = true;
+    btn.innerText = "⏳ Skanowanie w toku...";
+    
+    let page = 0;
+    let totalScanned = 0;
+    
+    try {
+        // Pętla skanująca (max 10 stron lub do znalezienia 40 braków)
+        while(isAnalyzing) {
+            status.innerText = `⏳ Pobieranie paczki produktów... Przeskanowano już ~${totalScanned} pozycji. (Znaleziono: ${analyzerMatches.length})`;
+            
+            const res = await fetch('/api/idosell/analyze', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ page: page })
+            });
+            
+            const data = await res.json();
+            
+            if (!data.success) {
+                throw new Error(data.error);
+            }
+            
+            totalScanned += 50;
+            
+            if (data.matches && data.matches.length > 0) {
+                analyzerMatches.push(...data.matches);
+            }
+            
+            // Kończymy jeśli API mówi, że nie ma więcej produktów, 
+            // lub jeśli znaleźliśmy już sporą paczkę (np. 40), by nie dławić przeglądarki.
+            if (!data.has_more || analyzerMatches.length >= 40 || page > 15) {
+                isAnalyzing = false;
+            }
+            
+            page++;
+        }
+        
+        status.innerText = `✅ Skanowanie zakończone! Znaleziono ${analyzerMatches.length} produktów wymagających poprawy.`;
+        
+        if (analyzerMatches.length > 0) {
+            renderAnalyzerResults();
+            resultsContainer.style.display = 'block';
+        }
+        
+    } catch (e) {
+        status.innerText = `❌ Błąd skanowania: ${e.message}`;
+    } finally {
+        isAnalyzing = false;
+        btn.disabled = false;
+        btn.innerText = "🔍 Skanuj bazę IdoSell";
+    }
+}
+
+function renderAnalyzerResults() {
+    const list = document.getElementById('analyzer-list');
+    list.innerHTML = '';
+    
+    analyzerMatches.forEach((prod, index) => {
+        const itemHtml = `
+            <div style="display: flex; align-items: center; padding: 12px 15px; border-bottom: 1px solid #eee; gap: 15px;">
+                <input type="checkbox" class="analyze-checkbox" value="${prod.id}" style="width: 18px; height: 18px; cursor: pointer;">
+                <div style="flex-grow: 1; min-width: 0;">
+                    <div style="font-size: 14px; font-weight: bold; color: #333; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                        ${prod.name}
+                    </div>
+                    <div style="font-size: 12px; color: #888; margin-top: 4px;">
+                        ID: <span style="color:#d32f2f;">${prod.id}</span> | 
+                        Długość opisu: <span style="color:#d32f2f; font-weight:bold;">${prod.desc_len} zn.</span> | 
+                        Stan: <span style="color:#28a745;">${prod.stock} szt.</span>
+                    </div>
+                </div>
+            </div>
+        `;
+        list.insertAdjacentHTML('beforeend', itemHtml);
+    });
+}
+
+function toggleAllAnalyzer(source) {
+    const checkboxes = document.querySelectorAll('.analyze-checkbox');
+    checkboxes.forEach(cb => cb.checked = source.checked);
+}
+
+function sendSelectedToMass() {
+    const checkboxes = document.querySelectorAll('.analyze-checkbox:checked');
+    const selectedIds = Array.from(checkboxes).map(cb => cb.value);
+    
+    if (selectedIds.length === 0) {
+        return alert("Zaznacz co najmniej jeden produkt do optymalizacji!");
+    }
+    
+    if (selectedIds.length > 20) {
+        return alert("Dla zachowania stabilności przenieś jednorazowo maksymalnie 20 produktów.");
+    }
+    
+    // Przenosimy ID do textarea w Masowej Edycji
+    const massTextarea = document.getElementById('mass-product-ids');
+    if (massTextarea) {
+        massTextarea.value = selectedIds.join(', ');
+        
+        // Przełączamy się na główną zakładkę (zakładam, że Masowa Edycja jest na 'tab1')
+        switchProdTab('tab1');
+        
+        // Płynnie przewijamy stronę do sekcji Masowej Optymalizacji
+        massTextarea.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        
+        // Lekkie mrugnięcie pola, żeby przyciągnąć wzrok
+        massTextarea.style.background = '#e8f5e9';
+        setTimeout(() => massTextarea.style.background = '#fafafa', 1000);
+    } else {
+        alert("Błąd: Nie znaleziono pola Masowej Edycji.");
+    }
+}
