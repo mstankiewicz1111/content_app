@@ -311,7 +311,10 @@ async function startMassGeneration() {
         const products = data.results;
         
         // 2. Pętla przez produkty - generujemy opisy JEDEN PO DRUGIM
-        // --- BEZPIECZNE WYCIĄGANIE NAZWY ---
+        for (let i = 0; i < products.length; i++) {
+            const prod = products[i];
+
+            // --- BEZPIECZNE WYCIĄGANIE NAZWY ---
             let nazwa = "Brak nazwy";
             if (prod.productDescriptionsLangData) {
                 const polData = prod.productDescriptionsLangData.find(d => d.langId === 'pol');
@@ -328,7 +331,7 @@ async function startMassGeneration() {
                 }).join(', ');
             }
 
-            // --- NOWOŚĆ: BEZPIECZNE WYCIĄGANIE ZDJĘCIA DLA AI ---
+            // --- BEZPIECZNE WYCIĄGANIE ZDJĘCIA DLA AI ---
             let firstImageUrl = null;
             if (prod.productImages && prod.productImages.length > 0) {
                 firstImageUrl = prod.productImages[0].productImageLargeUrl || prod.productImages[0].productImageMediumUrl;
@@ -344,7 +347,7 @@ async function startMassGeneration() {
             const suggestedCode = parts.slice(Math.max(parts.length - 3, 0)).join(' ');
             const brandContext = (typeof WASSYL_DNA !== 'undefined') ? WASSYL_DNA + "\n\n" : "";
 
-            // --- PEŁNY, RYGORYSTYCZNY PROMPT (1:1 z pojedynczym produktem) ---
+            // --- PEŁNY, RYGORYSTYCZNY PROMPT ---
             const prompt = `${brandContext}Zadanie: Optymalizacja SEO odzieży e-commerce dla polskiej marki Wassyl.
 
 DANE BAZOWE:
@@ -369,7 +372,7 @@ Zwróć obiekt JSON:
 {"name": "nowa nazwa bez kropki", "description": "html opisu"}`;
 
             try {
-                // Zapytanie do AI (teraz z uwzględnieniem zdjęcia!)
+                // Zapytanie do AI
                 const aiRes = await fetch('/api/generate', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
@@ -400,7 +403,7 @@ Zwróć obiekt JSON:
                 console.error(`Błąd AI dla ${prod.productId}:`, err);
                 resultsContainer.innerHTML += `<div style="color:red; padding: 10px;">❌ Błąd generowania dla ID: ${prod.productId}</div>`;
             }
-        }
+        } // <--- TO JEST TEN NAWIAS, KTÓREGO PRAWDOPODOBNIE ZABRAKŁO W TWOIM KODZIE!
 
         statusText.innerText = "✅ Generowanie zakończone! Sprawdź i zaakceptuj opisy poniżej.";
         progressBar.style.width = "100%";
