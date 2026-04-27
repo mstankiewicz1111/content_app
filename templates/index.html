@@ -78,6 +78,9 @@
                 <hr>
                 <p style="font-size: 13px; color: #555; line-height: 1.5;">Bot pamięta całą konwersację. Możesz przesyłać mu <strong>zdjęcia lub krótkie wideo</strong> do oceny (MP4/MOV).</p>
                 <button class="btn-primary" onclick="clearChat()" style="background: #dc3545; border:none; width:100%; margin-top: 10px;">🗑️ Wyczyść historię</button>
+                <button id="btn-tab-analyzer" onclick="switchProdTab('tab-analyzer')" style="margin-top: 15px; border-top: 1px solid #444; padding-top: 15px; color: #ffcc00;">
+    📊 Analizator Produktów
+</button>
             </div>
         </div>
 
@@ -259,6 +262,35 @@
             </div>
 
             <div id="module-products" class="module-content">
+                <div id="tab-analyzer" class="tab-content" style="display: none;">
+    <h2 style="color: #d32f2f;">📊 Audytor SEO Produktów</h2>
+    <p style="font-size: 14px; color: #666; margin-bottom: 20px;">
+        Znajduje produkty, które wymagają poprawy (Stan magazynowy > 0, Brak "k01" w nazwie, Opis poniżej 1000 znaków).
+    </p>
+
+    <button id="btn-start-analyze" onclick="startSeoAnalysis()" style="width: 100%; padding: 12px; background: #333; color: white; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; font-size: 15px;">
+        🔍 Skanuj bazę IdoSell
+    </button>
+
+    <div id="analyzer-status" style="margin-top: 15px; font-weight: bold; color: #0066cc; text-align: center; font-size: 14px;"></div>
+
+    <div id="analyzer-results" style="margin-top: 20px; border-radius: 5px; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.1); overflow: hidden; display: none;">
+        <div style="padding: 15px; background: #f1f1f1; border-bottom: 1px solid #ddd; display: flex; align-items: center; justify-content: space-between;">
+            <label style="cursor: pointer; font-weight: bold; display: flex; align-items: center; gap: 10px; font-size: 14px;">
+                <input type="checkbox" id="analyze-check-all" onchange="toggleAllAnalyzer(this)" style="width: 18px; height: 18px;">
+                Zaznacz wszystko
+            </label>
+        </div>
+        
+        <div id="analyzer-list" style="max-height: 500px; overflow-y: auto;"></div>
+        
+        <div style="padding: 15px; background: #fafafa; border-top: 1px solid #ddd;">
+            <button onclick="sendSelectedToMass()" style="width: 100%; padding: 12px; background: #28a745; color: white; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; font-size: 15px;">
+                🚀 Wyślij zaznaczone do Masowej Optymalizacji
+            </button>
+        </div>
+    </div>
+</div>
                 <div id="prod-init" class="tab-content active">
                     <h2>🛍️ Optymalizacja Karty Produktu</h2>
                     <p style="color: #666; margin-bottom: 20px;">Wprowadź ID produktu, aby pobrać dane bazowe z IdoSell i wygenerować teksty pod Google Discover.</p>
