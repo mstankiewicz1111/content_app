@@ -463,22 +463,26 @@ function renderMassCard(index) {
 
 // Akceptowanie i zwijanie kafelka
 function acceptMassProduct(index) {
-    // Zapisujemy ewentualne ręczne poprawki z inputów
-    massProductsQueue[index].newName = document.getElementById(`mass-name-${index}`).value;
-    massProductsQueue[index].newDesc = document.getElementById(`mass-desc-${index}`).value;
+    // Pobieramy dane z pól wizualnych
+    const nameVal = document.getElementById(`mass-name-${index}`).value;
+    const descVal = document.getElementById(`mass-desc-${index}`).innerHTML; // To pobierze sformatowany HTML
+
+    massProductsQueue[index].newName = nameVal;
+    massProductsQueue[index].newDesc = descVal;
     massProductsQueue[index].accepted = true;
 
-    // Zwijamy kafelek (wizualny feedback)
-    const content = document.getElementById(`mass-card-content-${index}`);
-    content.style.display = 'none';
+    // Zwijanie kafelka
+    document.getElementById(`mass-card-content-${index}`).style.display = 'none';
+    document.getElementById(`mass-card-done-${index}`).style.display = 'block';
     
     const card = document.getElementById(`mass-card-${index}`);
-    card.style.border = '2px solid #28a745';
-    card.style.opacity = '0.7';
-    
-    // Dodajemy małą etykietkę "Zaakceptowano"
-    const header = card.querySelector('div');
-    header.innerHTML += `<span style="background: #28a745; color: white; padding: 2px 8px; border-radius: 10px; font-size: 11px;">Gotowe do wysyłki</span>`;
+    card.style.background = "#f0fff4";
+    card.style.borderColor = "#28a745";
+    card.onclick = function() { // Kliknięcie w zaakceptowany kafelek go rozwija
+        document.getElementById(`mass-card-content-${index}`).style.display = 'block';
+        document.getElementById(`mass-card-done-${index}`).style.display = 'none';
+        card.style.background = "#fff";
+    };
 }
 
 // Ostateczna wysyłka do IdoSell
