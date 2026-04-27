@@ -267,7 +267,26 @@
                         <input type="text" id="opt-product-id" placeholder="Wpisz ID produktu (np. 16216)">
                         <button class="btn-primary" onclick="loadProductToEdit()" style="width: 100%;">🔍 Pobierz dane i zacznij</button>
                     </div>
+                    <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
+        <p style="font-size: 14px; color: #d32f2f; margin-bottom: 10px;">Masowa optymalizacja produktów</p>
+        
+        <textarea id="mass-product-ids" rows="4" style="width: 100%; padding: 15px; border-radius: 5px; border: 1px solid #ddd; background: #fafafa; font-family: inherit; margin-bottom: 10px; resize: vertical;" placeholder="podaj ID produktów (max 20)"></textarea>
+        
+        <button onclick="startMassGeneration()" style="width: 100%; padding: 12px; background: #fff; color: #d32f2f; border: 1px solid #d32f2f; border-radius: 5px; font-weight: bold; cursor: pointer; transition: background 0.3s;" onmouseover="this.style.background='#fff0f0'" onmouseout="this.style.background='#fff'">
+            Pobierz dane i zacznij
+        </button>
 
+        <div id="mass-progress-container" style="display: none; margin-top: 25px; text-align: center;">
+            <h4 id="mass-status-text" style="color: #333; margin-bottom: 8px; font-size: 14px; font-weight: normal;">Przygotowywanie...</h4>
+            <div style="width: 100%; background: #eee; border-radius: 10px; height: 8px; overflow: hidden;">
+                <div id="mass-progress-bar" style="width: 0%; height: 100%; background: #000; transition: width 0.3s;"></div>
+            </div>
+        </div>
+
+        <div id="mass-results-container" style="margin-top: 20px;"></div>
+
+        <button id="btn-mass-publish" onclick="publishMassProducts()" style="display: none; margin-top: 20px; width: 100%; padding: 12px; background-color: #28a745; color: #fff; border: none; border-radius: 5px; font-weight: bold; cursor: pointer;">✅ WYŚLIJ ZAAKCEPTOWANE DO IDOSELL</button>
+    </div>
                     <div id="loader-prod-fetch" class="loader">⏳ Łączę się z bazą IdoSell...</div>
                     
                     <div id="fetch-status" style="margin-top: 20px; display: none; padding: 15px; background: #eef2f5; border-radius: 5px; border-left: 4px solid #0066cc;">
