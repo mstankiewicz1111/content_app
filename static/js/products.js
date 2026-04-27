@@ -313,22 +313,39 @@ async function startMassGeneration() {
         // 2. Pętla przez produkty - generujemy opisy JEDEN PO DRUGIM
         for (let i = 0; i < products.length; i++) {
             const prod = products[i];
-            statusText.innerText = `🤖 Generowanie przez AI (${i + 1} z ${products.length}): ${prod.productName}`;
+
+            // --- BEZPIECZNE WYCIĄGANIE NAZWY (Jak w module pojedynczym) ---
+            let nazwa = "Brak nazwy";
+            if (prod.productDescriptionsLangData) {
+                const polData = prod.productDescriptionsLangData.find(d => d.langId === 'pol');
+                if (polData && polData.productName) nazwa = polData.productName;
+            }
+
+            // --- BEZPIECZNE WYCIĄGANIE PARAMETRÓW ---
+            let parametryTekst = "Brak parametrów";
+            if (prod.productParameters && Array.isArray(prod.productParameters)) {
+                parametryTekst = prod.productParameters.map(p => {
+                    const polName = p.parameterDescriptionsLangData?.find(l => l.langId === 'pol')?.parameterName || "Parametr";
+                    const val = p.parameterValues?.[0]?.parameterValueDescriptionsLangData?.find(l => l.langId === 'pol')?.parameterValueName || "";
+                    return `${polName}: ${val}`;
+                }).join(', ');
+            }
+
+            statusText.innerText = `🤖 Generowanie przez AI (${i + 1} z ${products.length}): ${nazwa}`;
             progressBar.style.width = `${10 + ((i / products.length) * 90)}%`;
 
-            // Przygotowanie danych dla AI (Tak samo jak w pojedynczym opisie)
-            const parts = prod.productName.split(' ');
+            // Przygotowanie danych dla AI
+            const parts = nazwa.split(' ');
             const suggestedCode = parts.slice(Math.max(parts.length - 3, 0)).join(' ');
             const brandContext = (typeof WASSYL_DNA !== 'undefined') ? WASSYL_DNA + "\n\n" : "";
-            const paramText = Object.entries(prod.productParameters || {}).map(([k, v]) => `${k}: ${v}`).join(', ');
 
             const prompt = `${brandContext}Zadanie: Napisz lifestylowy opis produktu dla marki Wassyl.
-PRODUKT: ${prod.productName}
-PARAMETRY: ${paramText}
+PRODUKT: ${nazwa}
+PARAMETRY: ${parametryTekst}
 
 WYTYCZNE:
 1. Styl: Streetwear, miejski luz, kumpelski ton.
-2. Format: Czysty HTML (wyjustowany <div>). 
+2. Format: Czysty HTML (wyjustowany <div style="text-align: justify;">). 
 3. ABSOLUTNY ZAKAZ używania znaków **. Jeśli chcesz coś pogrubić, użyj <strong>.
 4. Wspomnij o polskiej produkcji we własnej szwalni.
 5. Zachowaj kod modelu: "${suggestedCode}". ZAKAZ emoji i kropki na końcu nazwy.
@@ -352,14 +369,16 @@ Zwróć JSON: {"name": "...", "description": "..."}`;
                 // Zapisujemy do kolejki
                 massProductsQueue.push({
                     id: prod.productId,
-                    originalName: prod.productName,
-                    newName: aiResult.name || prod.productName,
+                    originalName: nazwa,
+                    newName: aiResult.name || nazwa,
                     newDesc: cleanDesc,
                     accepted: false
                 });
 
                 // Rysujemy kafelek na ekranie
-                renderMassCard(massProductsQueue.length - 1);
+                if (typeof renderMassCard === 'function') {
+                    renderMassCard(massProductsQueue.length - 1);
+                }
 
             } catch (err) {
                 console.error(`Błąd AI dla ${prod.productId}:`, err);
