@@ -62,15 +62,13 @@
                 <div class="sidebar-menu">
                     <button onclick="switchProdTab('prod-init')" id="btn-prod-init" class="active">1. Wybierz produkt</button>
                     <button onclick="switchProdTab('prod-editor')" id="btn-prod-editor">2. Edytor Google Discover</button>
+                    <button onclick="switchProdTab('tab-analyzer')" id="btn-tab-analyzer" style="color: #d32f2f; font-weight: bold; margin-top: 10px; border-top: 1px dashed #ccc; padding-top: 10px;">📊 Analizator Produktów</button>
                 </div>
                 <hr>
                 <p style="font-size: 13px; color: #555; line-height: 1.5;">Moduł służy do optymalizacji nazw i opisów pod kątem wyszukiwarki Google oraz usługi Google Discover.</p>
                 <div class="status-box {% if status_idosell %}status-ok{% else %}status-error{% endif %}" style="margin-top: 15px;">
                     {% if status_idosell %} IdoSell połączone {% else %} Brak kluczy IdoSell! {% endif %}
                 </div>
-                <button id="btn-tab-analyzer" onclick="switchProdTab('tab-analyzer')" style="margin-top: 15px; border-top: 1px solid #444; padding-top: 15px; color: #ffcc00;">
-    📊 Analizator Produktów
-</button>
             </div>
 
             <div id="sidebar-chat" class="module-sidebar" style="display:none;">
