@@ -265,3 +265,208 @@ async function updateProductInIdosell() {
         btn.disabled = false;
     }
 }
+
+// =====================================================================
+// MASOWA OPTYMALIZACJA PRODUKTÓW (HUMAN-IN-THE-LOOP)
+// =====================================================================
+
+let massProductsQueue = []; // Tutaj trzymamy dane do wysyłki
+
+async function startMassGeneration() {
+    const idsInput = document.getElementById('mass-product-ids').value;
+    // Wyciągamy same cyfry, ignorujemy spacje i białe znaki
+    const ids = idsInput.split(/[\s,]+/).filter(id => id.trim() !== '' && !isNaN(id));
+    
+    if (ids.length === 0) return alert("Podaj przynajmniej jedno ID produktu!");
+    if (ids.length > 20) return alert("Dla bezpieczeństwa jednorazowo możesz przetworzyć max 20 produktów.");
+
+    const progressContainer = document.getElementById('mass-progress-container');
+    const progressBar = document.getElementById('mass-progress-bar');
+    const statusText = document.getElementById('mass-status-text');
+    const resultsContainer = document.getElementById('mass-results-container');
+    const publishBtn = document.getElementById('btn-mass-publish');
+
+    // Resetowanie widoku
+    progressContainer.style.display = 'block';
+    resultsContainer.innerHTML = '';
+    publishBtn.style.display = 'none';
+    massProductsQueue = [];
+
+    try {
+        statusText.innerText = "⏳ Pobieranie danych z IdoSell...";
+        progressBar.style.width = "10%";
+
+        // 1. Pobieramy produkty z IdoSell
+        const res = await fetch('/api/idosell/products', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ ids: ids.join(',') })
+        });
+        const data = await res.json();
+        
+        if (!data.results || data.results.length === 0) {
+            throw new Error("Nie znaleziono podanych produktów w bazie IdoSell.");
+        }
+
+        const products = data.results;
+        
+        // 2. Pętla przez produkty - generujemy opisy JEDEN PO DRUGIM
+        for (let i = 0; i < products.length; i++) {
+            const prod = products[i];
+            statusText.innerText = `🤖 Generowanie przez AI (${i + 1} z ${products.length}): ${prod.productName}`;
+            progressBar.style.width = `${10 + ((i / products.length) * 90)}%`;
+
+            // Przygotowanie danych dla AI (Tak samo jak w pojedynczym opisie)
+            const parts = prod.productName.split(' ');
+            const suggestedCode = parts.slice(Math.max(parts.length - 3, 0)).join(' ');
+            const brandContext = (typeof WASSYL_DNA !== 'undefined') ? WASSYL_DNA + "\n\n" : "";
+            const paramText = Object.entries(prod.productParameters || {}).map(([k, v]) => `${k}: ${v}`).join(', ');
+
+            const prompt = `${brandContext}Zadanie: Napisz lifestylowy opis produktu dla marki Wassyl.
+PRODUKT: ${prod.productName}
+PARAMETRY: ${paramText}
+
+WYTYCZNE:
+1. Styl: Streetwear, miejski luz, kumpelski ton.
+2. Format: Czysty HTML (wyjustowany <div>). 
+3. ABSOLUTNY ZAKAZ używania znaków **. Jeśli chcesz coś pogrubić, użyj <strong>.
+4. Wspomnij o polskiej produkcji we własnej szwalni.
+5. Zachowaj kod modelu: "${suggestedCode}". ZAKAZ emoji i kropki na końcu nazwy.
+
+Zwróć JSON: {"name": "...", "description": "..."}`;
+
+            try {
+                // Zapytanie do AI
+                const aiRes = await fetch('/api/generate', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ prompt: prompt, json_mode: true })
+                });
+                const aiData = await aiRes.json();
+                let aiResult = JSON.parse(aiData.result.replace(/```json/g, '').replace(/```/g, ''));
+                
+                // Żelazna miotła na gwiazdki
+                let cleanDesc = aiResult.description || "Błąd generowania.";
+                cleanDesc = cleanDesc.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+
+                // Zapisujemy do kolejki
+                massProductsQueue.push({
+                    id: prod.productId,
+                    originalName: prod.productName,
+                    newName: aiResult.name || prod.productName,
+                    newDesc: cleanDesc,
+                    accepted: false
+                });
+
+                // Rysujemy kafelek na ekranie
+                renderMassCard(massProductsQueue.length - 1);
+
+            } catch (err) {
+                console.error(`Błąd AI dla ${prod.productId}:`, err);
+                resultsContainer.innerHTML += `<div style="color:red; padding: 10px;">❌ Błąd generowania dla ID: ${prod.productId}</div>`;
+            }
+        }
+
+        statusText.innerText = "✅ Generowanie zakończone! Sprawdź i zaakceptuj opisy poniżej.";
+        progressBar.style.width = "100%";
+        publishBtn.style.display = 'block';
+
+    } catch (e) {
+        statusText.innerText = "❌ Wystąpił błąd!";
+        alert(e.message);
+    }
+}
+
+// Rysowanie pojedynczego kafelka do weryfikacji
+function renderMassCard(index) {
+    const item = massProductsQueue[index];
+    const container = document.getElementById('mass-results-container');
+    
+    const cardHtml = `
+    <div id="mass-card-${index}" style="border: 1px solid #ddd; border-radius: 8px; padding: 15px; margin-bottom: 15px; background: #fff; position: relative;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h4 style="margin: 0; color: #333;">🛒 ID: ${item.id}</h4>
+            <span style="font-size: 12px; color: #888;">Oryginał: ${item.originalName}</span>
+        </div>
+        
+        <div id="mass-card-content-${index}" style="margin-top: 15px;">
+            <label style="font-size: 12px; font-weight: bold;">Nowa Nazwa:</label>
+            <input type="text" id="mass-name-${index}" value="${item.newName.replace(/"/g, '&quot;')}" style="width: 100%; margin-bottom: 10px; padding: 5px;">
+            
+            <label style="font-size: 12px; font-weight: bold;">Nowy Opis (HTML):</label>
+            <textarea id="mass-desc-${index}" style="width: 100%; height: 120px; font-family: monospace; font-size: 12px; padding: 5px;">${item.newDesc}</textarea>
+            
+            <button onclick="acceptMassProduct(${index})" class="btn-primary" style="margin-top: 10px; width: 100%; background: #28a745;">✅ Wygląda super, Akceptuj</button>
+        </div>
+    </div>`;
+    
+    container.insertAdjacentHTML('beforeend', cardHtml);
+}
+
+// Akceptowanie i zwijanie kafelka
+function acceptMassProduct(index) {
+    // Zapisujemy ewentualne ręczne poprawki z inputów
+    massProductsQueue[index].newName = document.getElementById(`mass-name-${index}`).value;
+    massProductsQueue[index].newDesc = document.getElementById(`mass-desc-${index}`).value;
+    massProductsQueue[index].accepted = true;
+
+    // Zwijamy kafelek (wizualny feedback)
+    const content = document.getElementById(`mass-card-content-${index}`);
+    content.style.display = 'none';
+    
+    const card = document.getElementById(`mass-card-${index}`);
+    card.style.border = '2px solid #28a745';
+    card.style.opacity = '0.7';
+    
+    // Dodajemy małą etykietkę "Zaakceptowano"
+    const header = card.querySelector('div');
+    header.innerHTML += `<span style="background: #28a745; color: white; padding: 2px 8px; border-radius: 10px; font-size: 11px;">Gotowe do wysyłki</span>`;
+}
+
+// Ostateczna wysyłka do IdoSell
+async function publishMassProducts() {
+    const acceptedItems = massProductsQueue.filter(item => item.accepted);
+    
+    if (acceptedItems.length === 0) {
+        return alert("Nie zaakceptowałeś jeszcze żadnego produktu!");
+    }
+
+    if (!confirm(`Wysyłasz ${acceptedItems.length} produktów do IdoSell. Jesteś pewien?`)) return;
+
+    const btn = document.getElementById('btn-mass-publish');
+    btn.innerText = "⏳ Wysyłanie...";
+    btn.disabled = true;
+
+    let successCount = 0;
+    let errorCount = 0;
+
+    // Wysyłamy pojedynczo, żeby nie dostać błędu 429 lub 207 (Multi-Status)
+    for (const item of acceptedItems) {
+        try {
+            const res = await fetch('/api/idosell/update_product', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ 
+                    id: item.id, 
+                    name: item.newName, 
+                    long_description: item.newDesc 
+                })
+            });
+            const data = await res.json();
+            
+            if (data.success) {
+                successCount++;
+                document.getElementById(`mass-card-${massProductsQueue.indexOf(item)}`).style.display = 'none'; // Znika całkowicie po sukcesie
+            } else {
+                errorCount++;
+                console.error(`Błąd wysyłki ID ${item.id}:`, data.error);
+            }
+        } catch (e) {
+            errorCount++;
+        }
+    }
+
+    btn.innerText = "✅ WYŚLIJ ZAAKCEPTOWANE DO IDOSELL";
+    btn.disabled = false;
+    alert(`Wysyłka zakończona!\nSukces: ${successCount}\nBłędy: ${errorCount} (Sprawdź konsolę F12 jeśli są błędy)`);
+}
