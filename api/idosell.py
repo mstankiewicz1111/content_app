@@ -308,3 +308,66 @@ def api_update_product():
             
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
+
+# --- ANALIZATOR PRODUKTÓW (SEO AUDYT) ---
+@idosell_bp.route('/analyze', methods=['POST'])
+def api_analyze_products():
+    domain, api_key = get_idosell_config()
+    page = request.json.get('page', 0)
+    
+    url = f"https://{domain}/api/admin/v7/products/products"
+    headers = {"X-API-KEY": api_key, "Accept": "application/json"}
+    
+    # Pobieramy po 50 produktów na stronę, by nie przeciążyć serwera
+    params = {
+        "resultsLimit": 50,
+        "resultsPage": page
+    }
+    
+    try:
+        res = requests.get(url, headers=headers, params=params, timeout=30)
+        if res.status_code != 200:
+            return jsonify({"success": False, "error": f"API Error: {res.status_code}"})
+            
+        data = res.json()
+        products = data.get("results", [])
+        
+        matches = []
+        for p in products:
+            # 1. Filtrujemy po stanie magazynowym (> 0)
+            stock = 0
+            for size in p.get("productSizes", []):
+                # Zliczamy stock ze wszystkich rozmiarów
+                stock += float(size.get("stockQuantity", 0))
+            if stock <= 0:
+                continue
+                
+            # 2. Wyciągamy polskie dane
+            pol_data = next((d for d in p.get("productDescriptionsLangData", []) if d.get("langId") == "pol"), None)
+            if not pol_data:
+                continue
+                
+            name = pol_data.get("productName", "")
+            
+            # 3. Wykluczamy dopisek "k01" (niezależnie od wielkości liter)
+            if "k01" in name.lower():
+                continue
+                
+            # 4. Opis poniżej 1000 znaków
+            desc = pol_data.get("productLongDescription", "")
+            if len(desc) >= 1000:
+                continue
+                
+            matches.append({
+                "id": p.get("productId"),
+                "name": name,
+                "desc_len": len(desc),
+                "stock": stock
+            })
+            
+        # Informujemy frontend, czy są jeszcze kolejne strony do przeskanowania
+        has_more = len(products) == 50
+        return jsonify({"success": True, "matches": matches, "has_more": has_more})
+        
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
