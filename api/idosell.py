@@ -246,13 +246,13 @@ def api_update_product():
     new_name = data.get("name")
     new_desc = data.get("long_description")
     
-    # NOWE: Odbieramy krótki opis przesłany z naszego frontendu (JavaScript)
+    # Odbieramy krótki opis z frontendu
     new_short_desc = data.get("short_description")
     
     if not product_id:
         return jsonify({"success": False, "error": "Brak ID produktu"}), 400
         
-    # Payload odwzorowany DOKŁADNIE 1:1 z poprawnie działającego cURL-a
+    # Payload z prawidłowymi kluczami dla krótkiego opisu
     payload = {
         "params": {
             "products": [
@@ -266,12 +266,12 @@ def api_update_product():
                             }
                         ]
                     },
-                    # NOWE: Dodajemy blok odpowiedzialny za krótki opis
-                    "productDescriptions": {
-                        "productDescriptionsLangData": [
+                    # TUTAJ JEST POPRAWIONY BLOK (zgodnie z Twoim odkryciem)
+                    "productParamDescriptions": {
+                        "productParamDescriptionsLangData": [
                             {
                                 "langId": "pol",
-                                "productDescription": new_short_desc
+                                "productParamDescriptions": new_short_desc
                             }
                         ]
                     },
