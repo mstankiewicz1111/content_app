@@ -128,6 +128,7 @@ WYTYCZNE OPISU HTML:
 4. PRODUKCJA: OBOWIĄZKOWO wpleć do każdego opisu informację, że ubranie jest szyte w Polsce, w Waszej własnej szwalni (brzmienie naturalne).
 5. MERYTORYKA: Opieraj się na analizie załączonego zdjęcia oraz składzie/kroju z Parametrów.
 6. FORMAT HTML: Wyjustuj <div style="text-align: justify;">. BEZWZGLĘDNY ZAKAZ UŻYWANIA ZNAKÓW ** DO POGRUBIEŃ. Zawsze używaj znacznika <strong> dla kluczowych atutów.
+7. ZAKAZ odnoszenia się w opisie do koloru produktu. Opisy są wspólne dla różnych kolorów tego samego modelu.
 
 Zwróć obiekt JSON:
 {"name": "nowa nazwa bez kropki", "description": "html opisu"}
