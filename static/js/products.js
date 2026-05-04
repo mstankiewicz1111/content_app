@@ -130,8 +130,11 @@ WYTYCZNE OPISU HTML:
 6. FORMAT HTML: Wyjustuj <div style="text-align: justify;">. BEZWZGLĘDNY ZAKAZ UŻYWANIA ZNAKÓW ** DO POGRUBIEŃ. Zawsze używaj znacznika <strong> dla kluczowych atutów.
 7. ZAKAZ odnoszenia się w opisie do koloru produktu. Opisy są wspólne dla różnych kolorów tego samego modelu.
 
+WYTYCZNE OPISU KRÓTKIEGO:
+Napisz zwięzłe podsumowanie opisu (max 250 znaków ze spacjami), idealne jako zajawka pod SEO.
+
 Zwróć obiekt JSON:
-{"name": "nowa nazwa bez kropki", "description": "html opisu"}
+{"name": "nowa nazwa bez kropki", "short_description": "opis krótki do 250 znaków", "description": "html opisu"}
     `;
 
     try {
@@ -151,6 +154,7 @@ Zwróć obiekt JSON:
         }
 
         document.getElementById('new-name-input').value = result.name || "";
+        document.getElementById('new-short-desc-input').value = result.short_description || ""; // Dodane wstawianie krótkiego opisu
         editor.innerHTML = result.description || "Błąd generowania.";
         updateCharCounter();
         editor.addEventListener('input', updateCharCounter);
@@ -237,6 +241,7 @@ function copyToClipboard(elementId) {
 async function updateProductInIdosell() {
     const productId = document.getElementById('opt-product-id').value;
     const newName = document.getElementById('new-name-input').value;
+    const newShortDesc = document.getElementById('new-short-desc-input').value; // Pobranie krótkiego opisu
     const newDesc = document.getElementById('new-description-editor').innerHTML;
     
     if (!confirm(`Czy na pewno chcesz zaktualizować dane dla produktu ID: ${productId} w IdoSell?`)) return;
@@ -250,7 +255,12 @@ async function updateProductInIdosell() {
         const res = await fetch('/api/idosell/update_product', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ id: productId, name: newName, long_description: newDesc })
+            body: JSON.stringify({ 
+                id: productId, 
+                name: newName, 
+                short_description: newShortDesc, // Przekazanie do API
+                long_description: newDesc 
+            })
         });
         const data = await res.json();
         
@@ -369,8 +379,11 @@ WYTYCZNE OPISU HTML:
 5. MERYTORYKA: Opieraj się na analizie załączonego zdjęcia oraz składzie/kroju z Parametrów.
 6. FORMAT HTML: Wyjustuj <div style="text-align: justify;">. BEZWZGLĘDNY ZAKAZ UŻYWANIA ZNAKÓW ** DO POGRUBIEŃ. Zawsze używaj znacznika <strong> dla kluczowych atutów.
 
+WYTYCZNE OPISU KRÓTKIEGO:
+Stwórz podsumowanie długiego opisu. MUSI mieć maksymalnie 250 znaków ze spacjami.
+
 Zwróć obiekt JSON:
-{"name": "nowa nazwa bez kropki", "description": "html opisu"}`;
+{"name": "nowa nazwa bez kropki", "short_description": "krótki opis do 250 znaków", "description": "html opisu"}`;
 
             try {
                 // Zapytanie do AI
@@ -391,6 +404,7 @@ Zwróć obiekt JSON:
                     id: prod.productId,
                     originalName: nazwa,
                     newName: aiResult.name || nazwa,
+                    newShortDesc: aiResult.short_description || "", // Zapisanie krótkiego opisu do kolejki
                     newDesc: cleanDesc,
                     accepted: false
                 });
@@ -433,6 +447,9 @@ function renderMassCard(index) {
             <input type="text" id="mass-name-${index}" value="${item.newName.replace(/"/g, '&quot;')}" 
                    style="width: 100%; margin-bottom: 15px; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-weight: bold;">
             
+            <label style="font-size: 11px; font-weight: bold; text-transform: uppercase; color: #666;">Krótki opis (max 250 zn.):</label>
+            <textarea id="mass-short-desc-${index}" rows="2" style="width: 100%; margin-bottom: 15px; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-family: inherit; font-size: 13px;">${item.newShortDesc}</textarea>
+
             <label style="font-size: 11px; font-weight: bold; text-transform: uppercase; color: #666;">Wizualny podgląd opisu (edytowalny):</label>
             <div id="mass-desc-${index}" contenteditable="true" 
                  style="width: 100%; min-height: 150px; padding: 15px; border: 1px solid #ddd; border-radius: 4px; background: #fdfdfd; line-height: 1.6; font-size: 14px; overflow-y: auto; text-align: justify;">
@@ -471,9 +488,11 @@ function renderMassCard(index) {
 function acceptMassProduct(index) {
     // Pobieramy dane z pól wizualnych
     const nameVal = document.getElementById(`mass-name-${index}`).value;
+    const shortDescVal = document.getElementById(`mass-short-desc-${index}`).value; // Nowe
     const descVal = document.getElementById(`mass-desc-${index}`).innerHTML;
 
     massProductsQueue[index].newName = nameVal;
+    massProductsQueue[index].newShortDesc = shortDescVal; // Nowe
     massProductsQueue[index].newDesc = descVal;
     massProductsQueue[index].accepted = true;
 
@@ -526,6 +545,7 @@ async function publishMassProducts() {
                 body: JSON.stringify({ 
                     id: item.id, 
                     name: item.newName, 
+                    short_description: item.newShortDesc, // Przekazanie krótkiego opisu
                     long_description: item.newDesc 
                 })
             });
