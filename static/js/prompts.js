@@ -15,12 +15,29 @@ STRUKTURA SOCIAL MEDIA: Hook (zaczepka) -> Story/Benefit (konkretna korzyść) -
 `;
 
 const Prompts = {
-    // --- SEKACJA: BLOG (Nienaruszone formaty, zaktualizowany ton) ---
+    // --- SEKCJA: BLOG (Nienaruszone formaty, zaktualizowany ton i zawężony asortyment) ---
     getIdeas: function(userIdea) {
-        const context = userIdea ? `na podstawie pomysłu: "${userIdea}"` : "trendy streetwear/casual na wiosnę 2026";
+        // 1. Ustalenie kontekstu (pomysł użytkownika lub domyślne trendy)
+        const context = userIdea ? `na podstawie pomysłu: "${userIdea}"` : "trendy streetwear/casual na sezon bieżący";
+        
+        // 2. Budowa i zwrot głównego prompta
         return `${WASSYL_DNA}
         Zaproponuj 5 konkretnych, klikalnych tematów blogowych ${context}. 
         Zorientowane na SEO i realne potrzeby klientek.
+
+        DOZWOLONY ASORTYMENT (pisz WYŁĄCZNIE o tych kategoriach):
+        - Komplety dresowe, bluzy, spodnie dresowe
+        - Sukienki (codzienne, dresowe, eleganckie)
+        - T-shirty, topy, bluzki
+        - Legginsy, szorty
+
+        ZAKAZANY ASORTYMENT (NIGDY nie proponuj tematów o tych produktach, sklep ich NIE SPRZEDAJE):
+        - Obuwie (sneakersy, szpilki, botki itp.)
+        - Torebki, plecaki, nerki
+        - Biżuteria (zegarki, naszyjniki, kolczyki)
+        - Bielizna i stroje kąpielowe
+        - Odzież męska i dziecięca
+
         Zwróć WYŁĄCZNIE czysty JSON: [{"title": "Tytuł", "desc": "Opis"}]`;
     },
 
