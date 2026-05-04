@@ -246,6 +246,9 @@ def api_update_product():
     new_name = data.get("name")
     new_desc = data.get("long_description")
     
+    # NOWE: Odbieramy krótki opis przesłany z naszego frontendu (JavaScript)
+    new_short_desc = data.get("short_description")
+    
     if not product_id:
         return jsonify({"success": False, "error": "Brak ID produktu"}), 400
         
@@ -260,6 +263,15 @@ def api_update_product():
                             {
                                 "langId": "pol",
                                 "productName": new_name
+                            }
+                        ]
+                    },
+                    # NOWE: Dodajemy blok odpowiedzialny za krótki opis
+                    "productDescriptions": {
+                        "productDescriptionsLangData": [
+                            {
+                                "langId": "pol",
+                                "productDescription": new_short_desc
                             }
                         ]
                     },
