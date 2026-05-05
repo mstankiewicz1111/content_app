@@ -171,3 +171,83 @@ async function getProductContextText(inputId) {
 document.addEventListener('DOMContentLoaded', () => {
     console.log("Wassyl Core Ready.");
 });
+
+// --- LOGIKA ZAKŁADEK DLA STUDIO ---
+function switchStudioTab(tabId) {
+    document.querySelectorAll('#module-studio .tab-content').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('#sidebar-studio button').forEach(el => el.classList.remove('active'));
+    
+    document.getElementById(tabId).classList.add('active');
+    document.getElementById('btn-' + tabId).classList.add('active');
+}
+
+// --- GENEROWANIE OBRAZU FLAT LAY ---
+async function generateFlatLay() {
+    const fileInput = document.getElementById('studio-image-upload');
+    const topDesc = document.getElementById('studio-top-desc').value;
+    const bottomDesc = document.getElementById('studio-bottom-desc').value;
+    const props = document.getElementById('studio-props').value;
+
+    if (fileInput.files.length === 0) return alert("Wgraj zdjęcie źródłowe!");
+    if (!topDesc) return alert("Opisz co najmniej górną część ubioru!");
+
+    // Składamy dynamiczny prompt z Twojego wzoru
+    let clothesDesc = `Góra: Dokładnie odwzorowana ${topDesc}. Należy wiernie odtworzyć jej fakturę materiału i kolor. Musi być rozłożona gładko, bez fałd, jak po prasowaniu.`;
+    if (bottomDesc) {
+        clothesDesc += `\nDół: Dokładnie odwzorowane ${bottomDesc}. Należy wiernie odtworzyć ich materiał i kolor. Rozłożone płasko, nogawki równoległe.`;
+    }
+
+    const dynamicPrompt = `Tytuł kompozycji: Profesjonalne zdjęcie Flat Lay (z góry) odzieży z załączonego obrazu na czystym, jasnym tle.
+Szczegółowy opis kompozycji:
+Tworzy to wysokiej rozdzielczości, profesjonalne zdjęcie typu Flat Lay (top-down view), przedstawiające dokładnie tę samą odzież, która znajduje się na modelce na zdjęciu źródłowym, rozłożoną na płasko w estetyczny sposób.
+Kluczowa odzież:
+${clothesDesc}
+Wierność materiału i koloru:
+Faktura materiału ubrań musi być niezwykle wierna i wyraźnie widoczna pod naturalnym oświetleniem. Kolory muszą być identyczne z kolorem na modelu.
+Tło i Oświetlenie:
+Czyste, bardzo jasne tło, np. lekko fakturowana, jasnokremowa (off-white) powierzchnia, całkowicie wolne od cieni i przedmiotów. Oświetlenie jest miękkie, rozproszone, naturalne światło dzienne.
+Estetyczne ułożenie (Styl Pinteresta):
+Zestaw jest ułożony centralnie w kadrze, z góry. Całość jest otoczona starannie dobranymi, minimalistycznymi rekwizytami:
+${props}
+Rekwizyty te są ułożone asymetrycznie, aby nadać kompozycji naturalny, profesjonalnie zaaranżowany wygląd.
+Kadr i Ostrość:
+Wysoka ostrość w całym kadrze, z wyraźnym widokiem wszystkich szczegółów tekstury odzieży i rekwizytów.`;
+
+    const loader = document.getElementById('loader-studio');
+    const resultContainer = document.getElementById('studio-result-container');
+    const placeholderText = document.getElementById('studio-placeholder-text');
+    const imgEl = document.getElementById('studio-result-img');
+    const downloadBtn = document.getElementById('studio-download-btn');
+
+    loader.style.display = 'block';
+    resultContainer.style.display = 'none';
+    placeholderText.style.display = 'none';
+
+    // Przygotowujemy dane do wysłania (zdjęcie + prompt)
+    const formData = new FormData();
+    formData.append('image', fileInput.files[0]);
+    formData.append('prompt', dynamicPrompt);
+
+    try {
+        // Tę końcówkę API zbudujemy w Pythonie w następnym kroku
+        const res = await fetch('/api/generate_image', {
+            method: 'POST',
+            body: formData
+        });
+        const data = await res.json();
+
+        if (data.success && data.image_url) {
+            imgEl.src = data.image_url;
+            downloadBtn.href = data.image_url;
+            resultContainer.style.display = 'block';
+        } else {
+            alert("Błąd generowania obrazu: " + (data.error || "Nieznany błąd"));
+            placeholderText.style.display = 'block';
+        }
+    } catch (e) {
+        alert("Błąd połączenia z serwerem: " + e.message);
+        placeholderText.style.display = 'block';
+    } finally {
+        loader.style.display = 'none';
+    }
+}
