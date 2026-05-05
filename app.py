@@ -1,5 +1,5 @@
 import os
-from flask import Flask, render_template
+from flask import Flask, render_template, request, jsonify
 
 # Import naszych nowych, zmodularyzowanych ścieżek
 from api.ai import ai_bp
@@ -22,10 +22,9 @@ def index():
     
     return render_template('index.html', status_idosell=status_idosell, domena=domain)
 
-if __name__ == '__main__':
-    app.run(debug=True, port=5000)
 
 # --- API: STUDIO FOTO (NANO BANANA 2) ---
+# Ważne: Wszystkie ścieżki umieszczamy PRZED blokiem uruchamiającym aplikację!
 @app.route('/api/generate_image', methods=['POST'])
 def api_generate_image():
     # 1. Sprawdzamy, czy w ogóle przesłano plik
@@ -50,3 +49,8 @@ def api_generate_image():
         
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
+
+
+# Ten blok to silnik naszej aplikacji - MUSI być na samym dole!
+if __name__ == '__main__':
+    app.run(debug=True, port=5000)
