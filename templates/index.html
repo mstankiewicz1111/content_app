@@ -80,9 +80,8 @@
                 <hr>
                 <p style="font-size: 13px; color: #555; line-height: 1.5;">Bot pamięta całą konwersację. Możesz przesyłać mu <strong>zdjęcia lub krótkie wideo</strong> do oceny (MP4/MOV).</p>
                 <button class="btn-primary" onclick="clearChat()" style="background: #dc3545; border:none; width:100%; margin-top: 10px;">🗑️ Wyczyść historię</button>
-            </div> <!-- POPRAWA: Zamknięcie modułu chatu -->
+            </div>
 
-            <!-- NOWY SIDEBAR: STUDIO FOTO (teraz jest niezależny) -->
             <div id="sidebar-studio" class="module-sidebar" style="display:none;">
                 <h3>Studio Foto (AI)</h3>
                 <div class="sidebar-menu">
@@ -91,7 +90,6 @@
                 <hr>
                 <p style="font-size: 13px; color: #555; line-height: 1.5;">Przerabiaj zdjęcia z modelki na estetyczne kompozycje typu flat lay przy użyciu modelu obrazu.</p>
             </div>
-        </div> <!-- Zamknięcie całego app-sidebar -->
         </div>
 
         <div class="main-content">
@@ -100,35 +98,33 @@
             <h1 class="header-title">Asystent Content Marketingu</h1>
 
             <div id="module-blog" class="module-content">
-<div id="tab1" class="tab-content active">
-    <h2>💡 Propozycje tematów na bloga</h2>
-    <div class="box-option">
-        <h3 style="margin-top: 0;">Opcja A: Automatyczne Trendy</h3>
-        <button class="btn-primary" onclick="generateIdeas('')">🔥 Generuj z trendów</button>
-    </div>
-    <div class="box-option">
-        <h3 style="margin-top: 0;">Opcja B: Twój konkretny pomysł</h3>
-        <input type="text" id="idea-input" placeholder="np. sukienka na szybką kawę">
-        <button class="btn-primary" onclick="generateIdeas(document.getElementById('idea-input').value)">💡 Generuj z pomysłu</button>
-    </div>
-    
-    <div id="loader-ideas" class="loader" style="display: none;">⏳ Pracuję nad tematami... To może potrwać do 30 sekund.</div>
-    
-    <div id="ideas-list" style="margin-top: 20px;"></div>
-</div>
+                <div id="tab1" class="tab-content active">
+                    <h2>💡 Propozycje tematów na bloga</h2>
+                    <div class="box-option">
+                        <h3 style="margin-top: 0;">Opcja A: Automatyczne Trendy</h3>
+                        <button class="btn-primary" onclick="generateIdeas('')">🔥 Generuj z trendów</button>
+                    </div>
+                    <div class="box-option">
+                        <h3 style="margin-top: 0;">Opcja B: Twój konkretny pomysł</h3>
+                        <input type="text" id="idea-input" placeholder="np. sukienka na szybką kawę">
+                        <button class="btn-primary" onclick="generateIdeas(document.getElementById('idea-input').value)">💡 Generuj z pomysłu</button>
+                    </div>
+                    
+                    <div id="loader-ideas" class="loader" style="display: none;">⏳ Pracuję nad tematami... To może potrwać do 30 sekund.</div>
+                    <div id="ideas-list" style="margin-top: 20px;"></div>
+                </div>
 
                 <div id="tab2" class="tab-content">
                     <h2>✍️ Dwustopniowy Kreator Treści</h2>
                     <input type="text" id="topic-input" oninput="saveDraft()" placeholder="Wybrany temat artykułu">
                     <textarea id="guidelines-input" rows="2" placeholder="Dodatkowe wytyczne (opcjonalnie)" oninput="saveDraft()"></textarea>
                     <div style="background: #eef2f5; padding: 15px; border-radius: 5px; margin-bottom: 15px; border-left: 4px solid #0066cc;">
-    <label style="font-weight:bold; font-size:12px;">Kontekst produktów (polecane we wpisie):</label>
-<div style="display: flex; gap: 10px; flex-wrap: wrap;">
-    <input type="text" id="context-product-ids" placeholder="np. 16533, 16212" style="flex: 1; margin: 0;">
-    
-    <button class="btn-primary" onclick="autoFetchXML()" style="margin: 0; background: #17a2b8; padding: 0 15px;">⚡ Auto-dobór z XML</button>
-</div>
-</div>
+                        <label style="font-weight:bold; font-size:12px;">Kontekst produktów (polecane we wpisie):</label>
+                        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                            <input type="text" id="context-product-ids" placeholder="np. 16533, 16212" style="flex: 1; margin: 0;">
+                            <button class="btn-primary" onclick="autoFetchXML()" style="margin: 0; background: #17a2b8; padding: 0 15px;">⚡ Auto-dobór z XML</button>
+                        </div>
+                    </div>
                     <button class="btn-primary" onclick="generatePlan()">📋 KROK 1: Wygeneruj Szkielet</button>
                     <div id="loader-plan" class="loader">⏳ Tworzę strukturę wpisu...</div>
                     
@@ -148,26 +144,26 @@
                         </div>
                         <input type="text" id="revision-input" placeholder="Własne uwagi...">
                         <hr style="border:0; border-top:1px dashed #ccc; margin: 30px 0;">
-    <h3>🎯 Krok 3: Tytuł i Zaczepny Lead</h3>
-    <p style="font-size: 12px; color: #666;">AI przeczyta Twój artykuł i wymyśli do niego chwytliwy tytuł oraz krótki wstęp.</p>
-    
-    <button class="btn-primary" onclick="generateMeta()" style="width: 100%; background: #0066cc;">💡 Wygeneruj Tytuł i Lead</button>
-    
-    <div id="meta-section" style="display: none; margin-top: 20px; background: #f8f9fa; padding: 15px; border-radius: 8px; border: 1px solid #ddd;">
-        <label style="font-weight:bold; font-size:12px;">TYTUŁ SEO:</label>
-        <input type="text" id="final-title" style="font-weight: bold; border-color: #0066cc; width: 100%; margin-bottom: 15px; padding: 10px;">
-        
-        <label style="font-weight:bold; font-size:12px;">LEAD (Zajawka / Hook - 2-3 zdania):</label>
-        <textarea id="final-lead" rows="3" style="border-color: #0066cc; line-height: 1.5; width: 100%; padding: 10px; margin-bottom: 10px;"></textarea>
-        
-        <div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
-            <button class="btn-primary btn-quick" onclick="tweakMeta('Zrób tytuł i lead bardziej clickbaitowy i intrygujący.')">🔥 Clickbaitowy</button>
-            <button class="btn-primary btn-quick" onclick="tweakMeta('Zrób bardzo konkretny i informacyjny tytuł oraz lead.')">ℹ️ Informacyjny</button>
-            <button class="btn-primary btn-quick" onclick="tweakMeta('Napisz to w totalnie luźnym, streetwearowym stylu.')">🛹 Luzacki</button>
-        </div>
-        
-        <button class="btn-primary" onclick="goToPublish()" style="width: 100%; background: #28a745; padding: 15px; font-weight: bold;">✅ Gotowe! Idź do Publikacji ➜</button>
-    </div>
+                        <h3>🎯 Krok 3: Tytuł i Zaczepny Lead</h3>
+                        <p style="font-size: 12px; color: #666;">AI przeczyta Twój artykuł i wymyśli do niego chwytliwy tytuł oraz krótki wstęp.</p>
+                        
+                        <button class="btn-primary" onclick="generateMeta()" style="width: 100%; background: #0066cc;">💡 Wygeneruj Tytuł i Lead</button>
+                        
+                        <div id="meta-section" style="display: none; margin-top: 20px; background: #f8f9fa; padding: 15px; border-radius: 8px; border: 1px solid #ddd;">
+                            <label style="font-weight:bold; font-size:12px;">TYTUŁ SEO:</label>
+                            <input type="text" id="final-title" style="font-weight: bold; border-color: #0066cc; width: 100%; margin-bottom: 15px; padding: 10px;">
+                            
+                            <label style="font-weight:bold; font-size:12px;">LEAD (Zajawka / Hook - 2-3 zdania):</label>
+                            <textarea id="final-lead" rows="3" style="border-color: #0066cc; line-height: 1.5; width: 100%; padding: 10px; margin-bottom: 10px;"></textarea>
+                            
+                            <div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
+                                <button class="btn-primary btn-quick" onclick="tweakMeta('Zrób tytuł i lead bardziej clickbaitowy i intrygujący.')">🔥 Clickbaitowy</button>
+                                <button class="btn-primary btn-quick" onclick="tweakMeta('Zrób bardzo konkretny i informacyjny tytuł oraz lead.')">ℹ️ Informacyjny</button>
+                                <button class="btn-primary btn-quick" onclick="tweakMeta('Napisz to w totalnie luźnym, streetwearowym stylu.')">🛹 Luzacki</button>
+                            </div>
+                            
+                            <button class="btn-primary" onclick="goToPublish()" style="width: 100%; background: #28a745; padding: 15px; font-weight: bold;">✅ Gotowe! Idź do Publikacji ➜</button>
+                        </div>
                         <div style="display: flex; justify-content: space-between; align-items: center;">
                             <button class="btn-primary" onclick="reviseArticle()" style="background:#555; border:none;">🔄 Nanieś poprawki</button>
                             <button class="btn-primary" onclick="goToPublish()" style="background: #28a745;">✅ Idź do Publikacji ➜</button>
@@ -175,38 +171,38 @@
                     </div>
                 </div>
 
-               <div id="tab3" class="tab-content">
-    <button class="btn-primary" onclick="switchTab('tab2')" style="background: #555; margin-bottom: 20px;">⬅ Wróć do edytora tekstu</button>
-    <h2>⚙️ Formularz Publikacji</h2>
-    <div class="row">
-        <div class="col">
-            <label>Tytuł wpisu:</label><input type="text" id="pub-title" oninput="saveDraft()">
-            <label>Lead wpisu:</label><textarea id="pub-lead" rows="4" oninput="saveDraft()"></textarea>
-            <label>ID produktów polecanych:</label><input type="text" id="pub-rec-ids" oninput="saveDraft()">
-            <label>ID produktów do HTML:</label><input type="text" id="pub-html-ids" oninput="saveDraft()">
-        </div>
-        <div class="col">
-            <label>ID na Kolaż (max 3):</label>
-            <input type="text" id="pub-collage-ids">
-            <button class="btn-primary" onclick="generateCollage()">🖼️ Generuj Kolaż</button>
-            <div id="loader-collage" class="loader">⏳ Pobieram zdjęcia i rysuję kolaż...</div>
-            
-            <div id="collage-container" style="margin-top: 15px; display: none;">
-                <p style="font-size: 11px; color: #666; margin-bottom: 5px;">Kolaż 1200 x 675 px. Prawy przycisk myszy -> "Zapisz grafikę jako..."</p>
-                <canvas id="collage-canvas" width="1200" height="675" style="width: 100%; border: 1px solid #ddd; border-radius: 5px;"></canvas>
-            </div>
-        </div>
-    </div>
-    
-    <button class="btn-primary" onclick="generateHtml()" style="margin-top: 20px;">✨ Konwertuj na IdoSell HTML</button>
-    <div id="loader-html" class="loader">⏳ Tworzę kod HTML...</div>
-    <div id="html-section" style="display: none; margin-top: 20px;">
-        <textarea id="html-result" rows="8" readonly></textarea>
-        
-        <button class="btn-primary" onclick="publishToIdosell()" style="width: 100%; background: #28a745; margin-top: 15px;">🚀 OPUBLIKUJ SZKIC W IDOSELL</button>
-        <div id="loader-publish" class="loader" style="text-align: center;">⏳ Wysyłam do IdoSell...</div>
-    </div>
-</div>
+                <div id="tab3" class="tab-content">
+                    <button class="btn-primary" onclick="switchTab('tab2')" style="background: #555; margin-bottom: 20px;">⬅ Wróć do edytora tekstu</button>
+                    <h2>⚙️ Formularz Publikacji</h2>
+                    <div class="row">
+                        <div class="col">
+                            <label>Tytuł wpisu:</label><input type="text" id="pub-title" oninput="saveDraft()">
+                            <label>Lead wpisu:</label><textarea id="pub-lead" rows="4" oninput="saveDraft()"></textarea>
+                            <label>ID produktów polecanych:</label><input type="text" id="pub-rec-ids" oninput="saveDraft()">
+                            <label>ID produktów do HTML:</label><input type="text" id="pub-html-ids" oninput="saveDraft()">
+                        </div>
+                        <div class="col">
+                            <label>ID na Kolaż (max 3):</label>
+                            <input type="text" id="pub-collage-ids">
+                            <button class="btn-primary" onclick="generateCollage()">🖼️ Generuj Kolaż</button>
+                            <div id="loader-collage" class="loader">⏳ Pobieram zdjęcia i rysuję kolaż...</div>
+                            
+                            <div id="collage-container" style="margin-top: 15px; display: none;">
+                                <p style="font-size: 11px; color: #666; margin-bottom: 5px;">Kolaż 1200 x 675 px. Prawy przycisk myszy -> "Zapisz grafikę jako..."</p>
+                                <canvas id="collage-canvas" width="1200" height="675" style="width: 100%; border: 1px solid #ddd; border-radius: 5px;"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <button class="btn-primary" onclick="generateHtml()" style="margin-top: 20px;">✨ Konwertuj na IdoSell HTML</button>
+                    <div id="loader-html" class="loader">⏳ Tworzę kod HTML...</div>
+                    <div id="html-section" style="display: none; margin-top: 20px;">
+                        <textarea id="html-result" rows="8" readonly></textarea>
+                        
+                        <button class="btn-primary" onclick="publishToIdosell()" style="width: 100%; background: #28a745; margin-top: 15px;">🚀 OPUBLIKUJ SZKIC W IDOSELL</button>
+                        <div id="loader-publish" class="loader" style="text-align: center;">⏳ Wysyłam do IdoSell...</div>
+                    </div>
+                </div>
             </div>
 
             <div id="module-social" class="module-content">
@@ -273,34 +269,34 @@
 
             <div id="module-products" class="module-content">
                 <div id="tab-analyzer" class="tab-content">
-    <h2 style="color: #d32f2f;">📊 Audytor SEO Produktów</h2>
-    <p style="font-size: 14px; color: #666; margin-bottom: 20px;">
-        Znajduje produkty, które wymagają poprawy (Stan magazynowy > 0, Brak "k01" w nazwie, Opis poniżej 1000 znaków).
-    </p>
+                    <h2 style="color: #d32f2f;">📊 Audytor SEO Produktów</h2>
+                    <p style="font-size: 14px; color: #666; margin-bottom: 20px;">
+                        Znajduje produkty, które wymagają poprawy (Stan magazynowy > 0, Brak "k01" w nazwie, Opis poniżej 1000 znaków).
+                    </p>
 
-    <button id="btn-start-analyze" onclick="startSeoAnalysis()" style="width: 100%; padding: 12px; background: #333; color: white; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; font-size: 15px;">
-        🔍 Skanuj bazę IdoSell
-    </button>
+                    <button id="btn-start-analyze" onclick="startSeoAnalysis()" style="width: 100%; padding: 12px; background: #333; color: white; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; font-size: 15px;">
+                        🔍 Skanuj bazę IdoSell
+                    </button>
 
-    <div id="analyzer-status" style="margin-top: 15px; font-weight: bold; color: #0066cc; text-align: center; font-size: 14px;"></div>
+                    <div id="analyzer-status" style="margin-top: 15px; font-weight: bold; color: #0066cc; text-align: center; font-size: 14px;"></div>
 
-    <div id="analyzer-results" style="margin-top: 20px; border-radius: 5px; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.1); overflow: hidden; display: none;">
-        <div style="padding: 15px; background: #f1f1f1; border-bottom: 1px solid #ddd; display: flex; align-items: center; justify-content: space-between;">
-            <label style="cursor: pointer; font-weight: bold; display: flex; align-items: center; gap: 10px; font-size: 14px;">
-                <input type="checkbox" id="analyze-check-all" onchange="toggleAllAnalyzer(this)" style="width: 18px; height: 18px;">
-                Zaznacz wszystko
-            </label>
-        </div>
-        
-        <div id="analyzer-list" style="max-height: 500px; overflow-y: auto;"></div>
-        
-        <div style="padding: 15px; background: #fafafa; border-top: 1px solid #ddd;">
-            <button onclick="sendSelectedToMass()" style="width: 100%; padding: 12px; background: #28a745; color: white; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; font-size: 15px;">
-                🚀 Wyślij zaznaczone do Masowej Optymalizacji
-            </button>
-        </div>
-    </div>
-</div>
+                    <div id="analyzer-results" style="margin-top: 20px; border-radius: 5px; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.1); overflow: hidden; display: none;">
+                        <div style="padding: 15px; background: #f1f1f1; border-bottom: 1px solid #ddd; display: flex; align-items: center; justify-content: space-between;">
+                            <label style="cursor: pointer; font-weight: bold; display: flex; align-items: center; gap: 10px; font-size: 14px;">
+                                <input type="checkbox" id="analyze-check-all" onchange="toggleAllAnalyzer(this)" style="width: 18px; height: 18px;">
+                                Zaznacz wszystko
+                            </label>
+                        </div>
+                        
+                        <div id="analyzer-list" style="max-height: 500px; overflow-y: auto;"></div>
+                        
+                        <div style="padding: 15px; background: #fafafa; border-top: 1px solid #ddd;">
+                            <button onclick="sendSelectedToMass()" style="width: 100%; padding: 12px; background: #28a745; color: white; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; font-size: 15px;">
+                                🚀 Wyślij zaznaczone do Masowej Optymalizacji
+                            </button>
+                        </div>
+                    </div>
+                </div>
                 <div id="prod-init" class="tab-content active">
                     <h2>🛍️ Optymalizacja Karty Produktu</h2>
                     <p style="color: #666; margin-bottom: 20px;">Wprowadź ID produktu, aby pobrać dane bazowe z IdoSell i wygenerować teksty pod Google Discover.</p>
@@ -310,25 +306,25 @@
                         <button class="btn-primary" onclick="loadProductToEdit()" style="width: 100%;">🔍 Pobierz dane i zacznij</button>
                     </div>
                     <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
-        <p style="font-size: 14px; color: #d32f2f; margin-bottom: 10px;">Masowa optymalizacja produktów</p>
-        
-        <textarea id="mass-product-ids" rows="4" style="width: 100%; padding: 15px; border-radius: 5px; border: 1px solid #ddd; background: #fafafa; font-family: inherit; margin-bottom: 10px; resize: vertical;" placeholder="podaj ID produktów (max 20)"></textarea>
-        
-        <button onclick="startMassGeneration()" style="width: 100%; padding: 12px; background: #fff; color: #d32f2f; border: 1px solid #d32f2f; border-radius: 5px; font-weight: bold; cursor: pointer; transition: background 0.3s;" onmouseover="this.style.background='#fff0f0'" onmouseout="this.style.background='#fff'">
-            Pobierz dane i zacznij
-        </button>
+                        <p style="font-size: 14px; color: #d32f2f; margin-bottom: 10px;">Masowa optymalizacja produktów</p>
+                        
+                        <textarea id="mass-product-ids" rows="4" style="width: 100%; padding: 15px; border-radius: 5px; border: 1px solid #ddd; background: #fafafa; font-family: inherit; margin-bottom: 10px; resize: vertical;" placeholder="podaj ID produktów (max 20)"></textarea>
+                        
+                        <button onclick="startMassGeneration()" style="width: 100%; padding: 12px; background: #fff; color: #d32f2f; border: 1px solid #d32f2f; border-radius: 5px; font-weight: bold; cursor: pointer; transition: background 0.3s;" onmouseover="this.style.background='#fff0f0'" onmouseout="this.style.background='#fff'">
+                            Pobierz dane i zacznij
+                        </button>
 
-        <div id="mass-progress-container" style="display: none; margin-top: 25px; text-align: center;">
-            <h4 id="mass-status-text" style="color: #333; margin-bottom: 8px; font-size: 14px; font-weight: normal;">Przygotowywanie...</h4>
-            <div style="width: 100%; background: #eee; border-radius: 10px; height: 8px; overflow: hidden;">
-                <div id="mass-progress-bar" style="width: 0%; height: 100%; background: #000; transition: width 0.3s;"></div>
-            </div>
-        </div>
+                        <div id="mass-progress-container" style="display: none; margin-top: 25px; text-align: center;">
+                            <h4 id="mass-status-text" style="color: #333; margin-bottom: 8px; font-size: 14px; font-weight: normal;">Przygotowywanie...</h4>
+                            <div style="width: 100%; background: #eee; border-radius: 10px; height: 8px; overflow: hidden;">
+                                <div id="mass-progress-bar" style="width: 0%; height: 100%; background: #000; transition: width 0.3s;"></div>
+                            </div>
+                        </div>
 
-        <div id="mass-results-container" style="margin-top: 20px;"></div>
+                        <div id="mass-results-container" style="margin-top: 20px;"></div>
 
-        <button id="btn-mass-publish" onclick="publishMassProducts()" style="display: none; margin-top: 20px; width: 100%; padding: 12px; background-color: #28a745; color: #fff; border: none; border-radius: 5px; font-weight: bold; cursor: pointer;">✅ WYŚLIJ ZAAKCEPTOWANE DO IDOSELL</button>
-    </div>
+                        <button id="btn-mass-publish" onclick="publishMassProducts()" style="display: none; margin-top: 20px; width: 100%; padding: 12px; background-color: #28a745; color: #fff; border: none; border-radius: 5px; font-weight: bold; cursor: pointer;">✅ WYŚLIJ ZAAKCEPTOWANE DO IDOSELL</button>
+                    </div>
                     <div id="loader-prod-fetch" class="loader">⏳ Łączę się z bazą IdoSell...</div>
                     
                     <div id="fetch-status" style="margin-top: 20px; display: none; padding: 15px; background: #eef2f5; border-radius: 5px; border-left: 4px solid #0066cc;">
@@ -338,51 +334,51 @@
                 </div>
 
                 <div id="prod-editor" class="tab-content">
-    <h2>✨ Edytor SEO (Google Discover)</h2>
-    
-    <div class="row" style="margin-bottom: 20px;">
-        <div class="col">
-            <label style="font-size: 12px; font-weight: bold;">ORYGINALNA NAZWA (IDOSELL):</label>
-            <div id="orig-name" class="result-box" style="font-size: 13px; opacity: 0.7; margin-bottom: 0; min-height: 40px;"></div>
-        </div>
-        <div class="col">
-            <label style="font-size: 12px; font-weight: bold; color: #0066cc;">NOWA NAZWA:</label>
-            <input type="text" id="new-name-input" style="border-color: #0066cc; font-weight: bold; margin-bottom: 10px; width: 100%; padding: 10px;">
-            
-            <label style="font-size: 12px; font-weight: bold; color: #0066cc;">KRÓTKI OPIS (MAX 250 ZN.):</label>
-            <textarea id="new-short-desc-input" rows="2" style="border-color: #0066cc; width: 100%; padding: 10px; font-family: inherit; font-size: 13px;" placeholder="Wygenerowany krótki opis pojawi się tutaj..."></textarea>
-        </div>
-    </div>
+                    <h2>✨ Edytor SEO (Google Discover)</h2>
+                    
+                    <div class="row" style="margin-bottom: 20px;">
+                        <div class="col">
+                            <label style="font-size: 12px; font-weight: bold;">ORYGINALNA NAZWA (IDOSELL):</label>
+                            <div id="orig-name" class="result-box" style="font-size: 13px; opacity: 0.7; margin-bottom: 0; min-height: 40px;"></div>
+                        </div>
+                        <div class="col">
+                            <label style="font-size: 12px; font-weight: bold; color: #0066cc;">NOWA NAZWA:</label>
+                            <input type="text" id="new-name-input" style="border-color: #0066cc; font-weight: bold; margin-bottom: 10px; width: 100%; padding: 10px;">
+                            
+                            <label style="font-size: 12px; font-weight: bold; color: #0066cc;">KRÓTKI OPIS (MAX 250 ZN.):</label>
+                            <textarea id="new-short-desc-input" rows="2" style="border-color: #0066cc; width: 100%; padding: 10px; font-family: inherit; font-size: 13px;" placeholder="Wygenerowany krótki opis pojawi się tutaj..."></textarea>
+                        </div>
+                    </div>
 
-    <h3 style="margin-top: 0; font-size: 14px;">🎨 Pobrane zdjęcia produktu:</h3>
-    <div id="prod-images-preview" style="display: flex; gap: 10px; overflow-x: auto; margin-bottom: 20px; padding-bottom: 10px;"></div>
+                    <h3 style="margin-top: 0; font-size: 14px;">🎨 Pobrane zdjęcia produktu:</h3>
+                    <div id="prod-images-preview" style="display: flex; gap: 10px; overflow-x: auto; margin-bottom: 20px; padding-bottom: 10px;"></div>
 
-    <h3 style="display: flex; justify-content: space-between; align-items: center; font-size: 14px; margin-bottom: 10px;">
-        📝 Nowy opis HTML 
-        <span id="prod-char-counter" class="counter-badge">0 znaków</span>
-    </h3>
-    <div id="new-description-editor" class="result-box" contenteditable="true" style="min-height: 400px; text-align: justify; font-size: 14px; line-height: 1.6;"></div>
-    <p style="font-size: 11px; color: #888; text-align: right; margin-top: 5px;">* Edytor jest aktywny. Możesz kliknąć w tekst powyżej i wprowadzić ręczne poprawki z klawiatury.</p>
-    
-    <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-top: 15px; border: 1px solid #ddd;">
-        <h4 style="margin-top: 0; font-size: 13px;">🤖 Korekta AI</h4>
-        <div style="display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: wrap;">
-            <button class="btn-primary btn-quick" onclick="reviseProductSEO('Skróć tekst o około 30%, zachowując formatowanie HTML.')">✂️ Skróć o 30%</button>
-            <button class="btn-primary btn-quick" onclick="reviseProductSEO('Przepisz tekst w tonie bardziej eleganckim i profesjonalnym, skierowanym do dojrzalszych kobiet.')">💼 Profesjonalny</button>
-            <button class="btn-primary btn-quick" onclick="reviseProductSEO('Przepisz tekst tak, by był bardzo na luzie, w stylu streetwearowym, skierowany bezpośrednio do pokolenia Z.')">🛹 Luzacki</button>
-        </div>
-        <div style="display: flex; gap: 10px;">
-            <input type="text" id="prod-revision-input" placeholder="Własne uwagi (np. 'skup się bardziej na materiale')..." style="margin: 0; flex: 1;">
-            <button class="btn-primary" onclick="reviseProductSEO()" style="margin: 0; background: #555; border: none;">Zastosuj</button>
-        </div>
-    </div>
+                    <h3 style="display: flex; justify-content: space-between; align-items: center; font-size: 14px; margin-bottom: 10px;">
+                        📝 Nowy opis HTML 
+                        <span id="prod-char-counter" class="counter-badge">0 znaków</span>
+                    </h3>
+                    <div id="new-description-editor" class="result-box" contenteditable="true" style="min-height: 400px; text-align: justify; font-size: 14px; line-height: 1.6;"></div>
+                    <p style="font-size: 11px; color: #888; text-align: right; margin-top: 5px;">* Edytor jest aktywny. Możesz kliknąć w tekst powyżej i wprowadzić ręczne poprawki z klawiatury.</p>
+                    
+                    <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-top: 15px; border: 1px solid #ddd;">
+                        <h4 style="margin-top: 0; font-size: 13px;">🤖 Korekta AI</h4>
+                        <div style="display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: wrap;">
+                            <button class="btn-primary btn-quick" onclick="reviseProductSEO('Skróć tekst o około 30%, zachowując formatowanie HTML.')">✂️ Skróć o 30%</button>
+                            <button class="btn-primary btn-quick" onclick="reviseProductSEO('Przepisz tekst w tonie bardziej eleganckim i profesjonalnym, skierowanym do dojrzalszych kobiet.')">💼 Profesjonalny</button>
+                            <button class="btn-primary btn-quick" onclick="reviseProductSEO('Przepisz tekst tak, by był bardzo na luzie, w stylu streetwearowym, skierowany bezpośrednio do pokolenia Z.')">🛹 Luzacki</button>
+                        </div>
+                        <div style="display: flex; gap: 10px;">
+                            <input type="text" id="prod-revision-input" placeholder="Własne uwagi (np. 'skup się bardziej na materiale')..." style="margin: 0; flex: 1;">
+                            <button class="btn-primary" onclick="reviseProductSEO()" style="margin: 0; background: #555; border: none;">Zastosuj</button>
+                        </div>
+                    </div>
 
-    <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 25px;">
-        <button class="btn-primary" onclick="copyToClipboard('new-description-editor')" style="background: #28a745; border: none;">📋 Kopiuj HTML</button>
-        <div style="flex: 1;"></div>
-        <button class="btn-primary" id="btn-prod-update" onclick="updateProductInIdosell()" style="background: #000; border: none; padding: 10px 25px; font-weight: bold;">🚀 Zaktualizuj na żywo w IdoSell</button>
-    </div>
-</div>
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 25px;">
+                        <button class="btn-primary" onclick="copyToClipboard('new-description-editor')" style="background: #28a745; border: none;">📋 Kopiuj HTML</button>
+                        <div style="flex: 1;"></div>
+                        <button class="btn-primary" id="btn-prod-update" onclick="updateProductInIdosell()" style="background: #000; border: none; padding: 10px 25px; font-weight: bold;">🚀 Zaktualizuj na żywo w IdoSell</button>
+                    </div>
+                </div>
             </div>
 
             <div id="module-chat" class="module-content">
@@ -401,9 +397,8 @@
                         <button class="btn-primary" style="margin: 0;" onclick="sendChatMessage()">Wyślij</button>
                    </div>
                 </div>
-            </div> <!-- POPRAWA: To jest zamknięcie module-chat -->
+            </div>
 
-            <!-- NOWY MODUŁ GŁÓWNY: STUDIO FOTO (teraz jest wewnątrz main-content) -->
             <div id="module-studio" class="module-content" style="display:none;">
                 <div id="studio-flatlay" class="tab-content active">
                     <h2>📸 Generator Flat Lay (Styl Pinteresta)</h2>
@@ -437,17 +432,13 @@
                     </div>
                 </div>
             </div>
-            
-        </div> <!-- POPRAWA: Zamknięcie całego main-content zostało przeniesione TUTAJ -->
-    </div> <!-- Zamknięcie view-app -->
 
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    </div>
+        </div> 
+    </div> 
+
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="{{ url_for('static', filename='js/core.js') }}"></script>
     <script src="{{ url_for('static', filename='js/prompts.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/blog.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/core.js') }}"></script>
     <script src="{{ url_for('static', filename='js/blog.js') }}"></script>
     <script src="{{ url_for('static', filename='js/social.js') }}"></script>
     <script src="{{ url_for('static', filename='js/products.js') }}"></script>
