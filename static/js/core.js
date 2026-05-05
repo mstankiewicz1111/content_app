@@ -30,17 +30,22 @@ function openModule(moduleName) {
     document.getElementById('view-home').style.display = 'none';
     document.getElementById('view-app').style.display = 'flex';
     
-    // 1. Resetujemy widoczność WSZYSTKICH modułów i sidebarów (żeby nic na siebie nie nachodziło)
-    document.querySelectorAll('.module-content').forEach(el => el.classList.remove('active'));
+    // 1. Resetujemy widoczność WSZYSTKICH modułów i sidebarów
     document.querySelectorAll('.module-sidebar').forEach(el => el.style.display = 'none');
+    document.querySelectorAll('.module-content').forEach(el => {
+        el.classList.remove('active');
+        el.style.display = 'none'; // Wymuszamy ukrycie wszystkich głównych okien
+    });
     
     // 2. Aktywujemy TYLKO ten sidebar i moduł, który został kliknięty
     const activeSidebar = document.getElementById('sidebar-' + moduleName);
     const activeModule = document.getElementById('module-' + moduleName);
     
     if (activeSidebar) activeSidebar.style.display = 'block';
-    if (activeModule) activeModule.classList.add('active');
-
+    if (activeModule) {
+        activeModule.classList.add('active');
+        activeModule.style.display = 'block'; // Wymuszamy pokazanie naszego okna!
+    }
     // 3. Dodatkowe akcje przy otwieraniu konkretnych modułów (np. ustawienie domyślnej zakładki)
     if (moduleName === 'blog') {
         if (typeof switchTab === 'function') switchTab('tab1');
