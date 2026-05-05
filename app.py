@@ -24,23 +24,23 @@ def index():
 
 
 # --- API: STUDIO FOTO (NANO BANANA 2) ---
-# Ważne: Wszystkie ścieżki umieszczamy PRZED blokiem uruchamiającym aplikację!
 @app.route('/api/generate_image', methods=['POST'])
 def api_generate_image():
-    # 1. Sprawdzamy, czy w ogóle przesłano plik
-    if 'image' not in request.files:
-        return jsonify({"success": False, "error": "Brak zdjęcia. Wgraj plik!"}), 400
-        
-    image_file = request.files['image']
-    prompt_text = request.form.get('prompt')
-    
-    # 2. Tutaj w przyszłości podepniemy właściwe połączenie z API modelu (Nano Banana 2 / Gemini Flash Image).
-    # Na ten moment tworzymy w pełni działającą "zaślepkę", aby upewnić się, 
-    # że interfejs w przeglądarce poprawnie reaguje na odpowiedź z serwera.
-    
     try:
-        # Zamiast generować przez AI, zwracamy testowy obrazek zastępczy po udanym połączeniu
-        mock_image_url = "https://via.placeholder.com/800x800.png?text=Sukces!+Backend+podlaczony"
+        # 1. Sprawdzamy, czy przeglądarka w ogóle przesłała plik
+        if 'image' not in request.files:
+            return jsonify({"success": False, "error": "Brak zdjęcia. Wgraj plik!"}), 400
+            
+        image_file = request.files['image']
+        prompt_text = request.form.get('prompt')
+        
+        # 2. NAJWAŻNIEJSZA ZMIANA: Wczytujemy plik!
+        # Wymuszamy na serwerze "odebranie paczki" do końca. 
+        # Bez tego serwer zamknąłby połączenie za wcześnie.
+        image_data = image_file.read()
+        
+        # Zamiast generować przez AI, zwracamy testowy obrazek zastępczy po udanym pobraniu
+        mock_image_url = "https://via.placeholder.com/800x800.png?text=Sukces!+Plik+odebrany"
         
         return jsonify({
             "success": True, 
@@ -48,9 +48,5 @@ def api_generate_image():
         })
         
     except Exception as e:
+        # Jeśli cokolwiek pójdzie nie tak (np. plik będzie uszkodzony), bezpiecznie zwracamy błąd
         return jsonify({"success": False, "error": str(e)}), 500
-
-
-# Ten blok to silnik naszej aplikacji - MUSI być na samym dole!
-if __name__ == '__main__':
-    app.run(debug=True, port=5000)
