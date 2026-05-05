@@ -80,7 +80,10 @@
                 <hr>
                 <p style="font-size: 13px; color: #555; line-height: 1.5;">Bot pamięta całą konwersację. Możesz przesyłać mu <strong>zdjęcia lub krótkie wideo</strong> do oceny (MP4/MOV).</p>
                 <button class="btn-primary" onclick="clearChat()" style="background: #dc3545; border:none; width:100%; margin-top: 10px;">🗑️ Wyczyść historię</button>
-                <div id="sidebar-studio" class="module-sidebar" style="display:none;">
+            </div> <!-- POPRAWA: Zamknięcie modułu chatu -->
+
+            <!-- NOWY SIDEBAR: STUDIO FOTO (teraz jest niezależny) -->
+            <div id="sidebar-studio" class="module-sidebar" style="display:none;">
                 <h3>Studio Foto (AI)</h3>
                 <div class="sidebar-menu">
                     <button onclick="switchStudioTab('studio-flatlay')" id="btn-studio-flatlay" class="active">👕 Flat Lay (Z góry)</button>
@@ -88,7 +91,7 @@
                 <hr>
                 <p style="font-size: 13px; color: #555; line-height: 1.5;">Przerabiaj zdjęcia z modelki na estetyczne kompozycje typu flat lay przy użyciu modelu obrazu.</p>
             </div>
-            </div>
+        </div> <!-- Zamknięcie całego app-sidebar -->
         </div>
 
         <div class="main-content">
@@ -396,12 +399,11 @@
                         </label>
                         <input type="text" id="chat-input" placeholder="Wiadomość do AI..." style="margin: 0; flex: 1;" onkeypress="if(event.key === 'Enter') sendChatMessage()">
                         <button class="btn-primary" style="margin: 0;" onclick="sendChatMessage()">Wyślij</button>
-                    </div>
+                   </div>
                 </div>
-            </div>
+            </div> <!-- POPRAWA: To jest zamknięcie module-chat -->
 
-        </div>
-        <!-- NOWY MODUŁ GŁÓWNY: STUDIO FOTO -->
+            <!-- NOWY MODUŁ GŁÓWNY: STUDIO FOTO (teraz jest wewnątrz main-content) -->
             <div id="module-studio" class="module-content" style="display:none;">
                 <div id="studio-flatlay" class="tab-content active">
                     <h2>📸 Generator Flat Lay (Styl Pinteresta)</h2>
@@ -435,6 +437,11 @@
                     </div>
                 </div>
             </div>
+            
+        </div> <!-- POPRAWA: Zamknięcie całego main-content zostało przeniesione TUTAJ -->
+    </div> <!-- Zamknięcie view-app -->
+
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="{{ url_for('static', filename='js/core.js') }}"></script>
