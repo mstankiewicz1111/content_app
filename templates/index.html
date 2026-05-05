@@ -19,6 +19,7 @@
             <div class="menu-card" onclick="openModule('social')"><i>📱</i><span>SOCIAL MEDIA</span></div>
             <div class="menu-card" onclick="openModule('products')"><i>👗</i><span>PRODUKTY</span></div>
             <div class="menu-card" onclick="openModule('chat')"><i>🤖</i><span>KONSULTANT AI</span></div>
+            <div class="menu-card" onclick="openModule('studio')"><i>📸</i><span>STUDIO FOTO</span></div>
         </div>
     </div>
 
@@ -79,6 +80,14 @@
                 <hr>
                 <p style="font-size: 13px; color: #555; line-height: 1.5;">Bot pamięta całą konwersację. Możesz przesyłać mu <strong>zdjęcia lub krótkie wideo</strong> do oceny (MP4/MOV).</p>
                 <button class="btn-primary" onclick="clearChat()" style="background: #dc3545; border:none; width:100%; margin-top: 10px;">🗑️ Wyczyść historię</button>
+                <div id="sidebar-studio" class="module-sidebar" style="display:none;">
+                <h3>Studio Foto (AI)</h3>
+                <div class="sidebar-menu">
+                    <button onclick="switchStudioTab('studio-flatlay')" id="btn-studio-flatlay" class="active">👕 Flat Lay (Z góry)</button>
+                </div>
+                <hr>
+                <p style="font-size: 13px; color: #555; line-height: 1.5;">Przerabiaj zdjęcia z modelki na estetyczne kompozycje typu flat lay przy użyciu modelu obrazu.</p>
+            </div>
             </div>
         </div>
 
@@ -392,6 +401,40 @@
             </div>
 
         </div>
+        <!-- NOWY MODUŁ GŁÓWNY: STUDIO FOTO -->
+            <div id="module-studio" class="module-content" style="display:none;">
+                <div id="studio-flatlay" class="tab-content active">
+                    <h2>📸 Generator Flat Lay (Styl Pinteresta)</h2>
+                    <p style="color: #666; margin-bottom: 20px;">Wgraj zdjęcie odzieży na modelce, opisz krótko co to za ubranie, a AI ułoży je na płasko z rekwizytami.</p>
+                    
+                    <div class="row">
+                        <div class="col">
+                            <label style="font-weight:bold;">1. Wgraj zdjęcie źródłowe:</label>
+                            <input type="file" id="studio-image-upload" accept="image/*" style="margin-bottom: 15px; width: 100%;">
+                            
+                            <label style="font-weight:bold;">2. Co jest na zdjęciu (Góra)?</label>
+                            <input type="text" id="studio-top-desc" placeholder="np. prążkowana biała podkoszulka (tank top)" style="margin-bottom: 15px; width: 100%;">
+                            
+                            <label style="font-weight:bold;">3. Co jest na zdjęciu (Dół - opcjonalnie)?</label>
+                            <input type="text" id="studio-bottom-desc" placeholder="np. szare dresowe szorty" style="margin-bottom: 15px; width: 100%;">
+                            
+                            <label style="font-weight:bold;">4. Dodatkowe rekwizyty (opcjonalnie):</label>
+                            <textarea id="studio-props" rows="2" style="margin-bottom: 15px; width: 100%; font-family: inherit;">okulary przeciwsłoneczne, delikatny naszyjnik z zawieszką, mały notes z piórem, gałązka eukaliptusa</textarea>
+                            
+                            <button class="btn-primary" onclick="generateFlatLay()" style="width: 100%; background: #000; padding: 15px; font-size: 16px;">✨ Generuj Flat Lay</button>
+                        </div>
+                        
+                        <div class="col" style="background: #f8f9fa; padding: 20px; border-radius: 8px; border: 1px solid #ddd; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 400px;">
+                            <div id="loader-studio" class="loader" style="display: none;">⏳ Trwa magia AI... Generowanie obrazu (może potrwać do 30 sek)...</div>
+                            <div id="studio-result-container" style="display: none; text-align: center; width: 100%;">
+                                <img id="studio-result-img" src="" style="max-width: 100%; max-height: 500px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+                                <a id="studio-download-btn" href="#" download="wassyl_flat_lay.jpg" class="btn-primary" style="display: block; margin-top: 15px; background: #28a745; text-decoration: none; width: 100%; text-align: center;">⬇️ Pobierz na dysk</a>
+                            </div>
+                            <p id="studio-placeholder-text" style="color: #999; text-align: center;">Tutaj pojawi się Twoje wygenerowane zdjęcie.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="{{ url_for('static', filename='js/core.js') }}"></script>
