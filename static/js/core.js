@@ -234,26 +234,39 @@ Wysoka ostrość w całym kadrze, z wyraźnym widokiem wszystkich szczegółów 
     formData.append('image', fileInput.files[0]);
     formData.append('prompt', dynamicPrompt);
 
+    // --- SEKCJA DEBUGOWANIA (FRONTEND) ---
+    console.log(">>> [FRONTEND] 1. Rozpoczynam przygotowanie danych do wysyłki.");
+    console.log(">>> [FRONTEND] Rozmiar wgranego pliku to: " + fileInput.files[0].size + " bajtów");
+
     try {
-        // Tę końcówkę API zbudujemy w Pythonie w następnym kroku
+        console.log(">>> [FRONTEND] 2. Pukam do drzwi serwera (wysyłam zapytanie do /api/generate_image)...");
+        
         const res = await fetch('/api/generate_image', {
             method: 'POST',
             body: formData
         });
+        
+        console.log(">>> [FRONTEND] 3. Serwer odpowiedział! Status odpowiedzi HTTP to: " + res.status);
+        
         const data = await res.json();
+        console.log(">>> [FRONTEND] 4. Otrzymane dane od serwera:", data);
 
         if (data.success && data.image_url) {
+            console.log(">>> [FRONTEND] 5. Sukces! Wyświetlam wygenerowane zdjęcie.");
             imgEl.src = data.image_url;
             downloadBtn.href = data.image_url;
             resultContainer.style.display = 'block';
         } else {
+            console.warn(">>> [FRONTEND] Serwer zgłosił błąd:", data.error);
             alert("Błąd generowania obrazu: " + (data.error || "Nieznany błąd"));
             placeholderText.style.display = 'block';
         }
     } catch (e) {
+        console.error(">>> [FRONTEND] KRYTYCZNY BŁĄD. Przerwano połączenie na linii przeglądarka-serwer:", e);
         alert("Błąd połączenia z serwerem: " + e.message);
         placeholderText.style.display = 'block';
     } finally {
+        console.log(">>> [FRONTEND] Zakończono działanie funkcji.");
         loader.style.display = 'none';
     }
 }
