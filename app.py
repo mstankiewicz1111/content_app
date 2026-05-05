@@ -1,6 +1,10 @@
 import os
-from flask import Flask, render_template, request, jsonify
+import base64
+import requests
 import traceback
+
+from flask import Flask, render_template, request, jsonify
+
 # Import naszych nowych, zmodularyzowanych ścieżek
 from api.ai import ai_bp
 from api.idosell import idosell_bp
@@ -23,38 +27,58 @@ def index():
     return render_template('index.html', status_idosell=status_idosell, domena=domain)
 
 
-# --- API: STUDIO FOTO (NANO BANANA 2) ---
+# --- API: STUDIO FOTO (PRAWDZIWE POŁĄCZENIE Z AI) ---
 @app.route('/api/generate_image', methods=['POST'])
 def api_generate_image():
     print(">>> [BACKEND] Otrzymano żądanie do /api/generate_image")
     try:
-        print(f">>> [BACKEND] Nagłówki (Headers): {request.headers.get('Content-Type')}")
-        
-        # 1. Sprawdzamy, czy przesłano plik
+        # 1. Sprawdzenie i odbiór pliku
         if 'image' not in request.files:
-            print(">>> [BACKEND] Błąd: Brak pliku 'image' w paczce (request.files jest puste)")
             return jsonify({"success": False, "error": "Brak zdjęcia. Wgraj plik!"}), 400
             
         image_file = request.files['image']
         prompt_text = request.form.get('prompt')
         
-        print(f">>> [BACKEND] Otrzymano plik. Nazwa: {image_file.filename}")
-        print(f">>> [BACKEND] Długość prompta: {len(prompt_text) if prompt_text else 0} znaków")
-        
-        # 2. Próbujemy wczytać plik do pamięci
-        print(">>> [BACKEND] Rozpoczynam wczytywanie pliku do pamięci serwera...")
+        # 2. Wczytanie i konwersja zdjęcia do formatu Base64 (wymagane przez większość API AI)
         image_data = image_file.read()
-        print(f">>> [BACKEND] Sukces! Wczytano {len(image_data)} bajtów.")
+        base64_image = base64.b64encode(image_data).decode('utf-8')
+        print(">>> [BACKEND] Zdjęcie poprawnie zakodowane do Base64.")
         
-        mock_image_url = "https://via.placeholder.com/800x800.png?text=Sukces!+Backend+podlaczony"
+        # 3. WYSYŁKA DO PRAWDZIWEGO API AI
+        # UWAGA: Poniższy blok to standardowy szablon. Musisz wpisać tu swój klucz API
+        # oraz adres (endpoint) dostawcy, z którego usług korzystasz.
         
-        print(">>> [BACKEND] Zwracam odpowiedź JSON do przeglądarki.")
+        api_key = os.environ.get("AI_IMAGE_API_KEY", "TUTAJ_WKLEJ_SWOJ_KLUCZ")
+        api_url = "TUTAJ_ADRES_API_DOSTAWCY" # np. adres API Google Gemini / Vertex AI
+        
+        headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json"
+        }
+        
+        payload = {
+            "prompt": prompt_text,
+            "image_base64": base64_image
+            # Format payloadu zależy ściśle od dokumentacji wybranego modelu AI!
+        }
+        
+        print(">>> [BACKEND] Wysyłam żądanie do sztucznej inteligencji. Proszę czekać...")
+        
+        # ODKOMENTUJ PONIŻSZE LINIE, GDY WPISZESZ POPRAWNE DANE API:
+        # response = requests.post(api_url, headers=headers, json=payload)
+        # response_data = response.json()
+        # final_image_url = response_data.get('url_do_wygenerowanego_zdjecia')
+        
+        # Na czas testów kodu nadal zwracamy logo, dopóki nie wpiszesz kluczy:
+        final_image_url = "https://wassyl.pl/data/gfx/mask/pol/logo_1_big.svg"
+        
+        print(">>> [BACKEND] Sukces! Otrzymano odpowiedź z API.")
         return jsonify({
             "success": True, 
-            "image_url": mock_image_url
+            "image_url": final_image_url
         })
         
     except Exception as e:
         print(f">>> [BACKEND] KRYTYCZNY BŁĄD W PYTHONIE: {str(e)}")
-        traceback.print_exc()  # Wypisze na konsoli serwera bardzo dokładny ślad błędu
+        traceback.print_exc()
         return jsonify({"success": False, "error": str(e)}), 500
