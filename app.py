@@ -1,6 +1,6 @@
 import os
 from flask import Flask, render_template, request, jsonify
-
+import traceback
 # Import naszych nowych, zmodularyzowanych ścieżek
 from api.ai import ai_bp
 from api.idosell import idosell_bp
@@ -26,27 +26,35 @@ def index():
 # --- API: STUDIO FOTO (NANO BANANA 2) ---
 @app.route('/api/generate_image', methods=['POST'])
 def api_generate_image():
+    print(">>> [BACKEND] Otrzymano żądanie do /api/generate_image")
     try:
-        # 1. Sprawdzamy, czy przeglądarka w ogóle przesłała plik
+        print(f">>> [BACKEND] Nagłówki (Headers): {request.headers.get('Content-Type')}")
+        
+        # 1. Sprawdzamy, czy przesłano plik
         if 'image' not in request.files:
+            print(">>> [BACKEND] Błąd: Brak pliku 'image' w paczce (request.files jest puste)")
             return jsonify({"success": False, "error": "Brak zdjęcia. Wgraj plik!"}), 400
             
         image_file = request.files['image']
         prompt_text = request.form.get('prompt')
         
-        # 2. NAJWAŻNIEJSZA ZMIANA: Wczytujemy plik!
-        # Wymuszamy na serwerze "odebranie paczki" do końca. 
-        # Bez tego serwer zamknąłby połączenie za wcześnie.
+        print(f">>> [BACKEND] Otrzymano plik. Nazwa: {image_file.filename}")
+        print(f">>> [BACKEND] Długość prompta: {len(prompt_text) if prompt_text else 0} znaków")
+        
+        # 2. Próbujemy wczytać plik do pamięci
+        print(">>> [BACKEND] Rozpoczynam wczytywanie pliku do pamięci serwera...")
         image_data = image_file.read()
+        print(f">>> [BACKEND] Sukces! Wczytano {len(image_data)} bajtów.")
         
-        # Zamiast generować przez AI, zwracamy testowy obrazek zastępczy po udanym pobraniu
-        mock_image_url = "https://via.placeholder.com/800x800.png?text=Sukces!+Plik+odebrany"
+        mock_image_url = "https://via.placeholder.com/800x800.png?text=Sukces!+Backend+podlaczony"
         
+        print(">>> [BACKEND] Zwracam odpowiedź JSON do przeglądarki.")
         return jsonify({
             "success": True, 
             "image_url": mock_image_url
         })
         
     except Exception as e:
-        # Jeśli cokolwiek pójdzie nie tak (np. plik będzie uszkodzony), bezpiecznie zwracamy błąd
+        print(f">>> [BACKEND] KRYTYCZNY BŁĄD W PYTHONIE: {str(e)}")
+        traceback.print_exc()  # Wypisze na konsoli serwera bardzo dokładny ślad błędu
         return jsonify({"success": False, "error": str(e)}), 500
