@@ -25,41 +25,42 @@ let scrapedContext = "";
 
 // --- NAWIGACJA GŁÓWNA ---
 
-function openModule(module) {
+function openModule(moduleName) {
     // Ukrywamy ekran startowy, pokazujemy aplikację
     document.getElementById('view-home').style.display = 'none';
     document.getElementById('view-app').style.display = 'flex';
     
-    // Resetujemy widoczność modułów i sidebarów
+    // 1. Resetujemy widoczność WSZYSTKICH modułów i sidebarów (żeby nic na siebie nie nachodziło)
     document.querySelectorAll('.module-content').forEach(el => el.classList.remove('active'));
     document.querySelectorAll('.module-sidebar').forEach(el => el.style.display = 'none');
     
-    if(module === 'blog') {
-        document.getElementById('module-blog').classList.add('active');
-        document.getElementById('sidebar-blog').style.display = 'block';
+    // 2. Aktywujemy TYLKO ten sidebar i moduł, który został kliknięty
+    const activeSidebar = document.getElementById('sidebar-' + moduleName);
+    const activeModule = document.getElementById('module-' + moduleName);
+    
+    if (activeSidebar) activeSidebar.style.display = 'block';
+    if (activeModule) activeModule.classList.add('active');
+
+    // 3. Dodatkowe akcje przy otwieraniu konkretnych modułów (np. ustawienie domyślnej zakładki)
+    if (moduleName === 'blog') {
         if (typeof switchTab === 'function') switchTab('tab1');
     } 
-    else if(module === 'social') {
-        document.getElementById('module-social').classList.add('active');
-        document.getElementById('sidebar-social').style.display = 'block';
+    else if (moduleName === 'social') {
         if (typeof switchSocialTab === 'function') switchSocialTab('sm-trend');
-        
-        // WYWOŁANIE DASHBOARDU: To kluczowy moment dla widoczności bloków
         console.log("Ładowanie modułu Social Media...");
         if (typeof initSocialDashboard === 'function') {
             initSocialDashboard();
         }
     } 
-    else if(module === 'chat') {
-        document.getElementById('module-chat').classList.add('active');
-        document.getElementById('sidebar-chat').style.display = 'block';
+    else if (moduleName === 'products') {
+        const prodInit = document.getElementById('prod-init');
+        const prodEditor = document.getElementById('prod-editor');
+        if (prodInit) prodInit.classList.add('active');
+        if (prodEditor) prodEditor.classList.remove('active');
     }
-    else if(module === 'products') {
-    document.getElementById('module-products').classList.add('active');
-    document.getElementById('sidebar-blog').style.display = 'none'; // Możesz stworzyć osobny sidebar dla produktów
-    // Resetuj widok do startowego
-    document.getElementById('prod-init').classList.add('active');
-    document.getElementById('prod-editor').classList.remove('active');
+    else if (moduleName === 'studio') {
+        // Upewniamy się, że po wejściu w studio aktywna jest nasza nowa zakładka Flat Lay
+        if (typeof switchStudioTab === 'function') switchStudioTab('studio-flatlay');
     }
 }
 
