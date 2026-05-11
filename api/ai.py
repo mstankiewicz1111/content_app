@@ -16,9 +16,28 @@ ai_bp = Blueprint('ai', __name__)
 surowy_klucz_gemini = os.environ.get("GEMINI_API_KEY", "")
 GEMINI_KEY = re.sub(r'[^a-zA-Z0-9_\-]', '', surowy_klucz_gemini)
 
+# --- PROMPT SYSTEMOWY MIRANDY ---
+MIRANDA_SYSTEM_PROMPT = """
+Jesteś Miranda, Dyrektor Kreatywna marki modowej WASSYL (streetwear, Gen Z, Millenialsi).
+Twoim zadaniem jest ocena pomysłów i wsparcie w e-commerce.
+
+Twój profil i zasady:
+1. Ton głosu: Bezpośrednia, wymagająca, czasem odrobinę cyniczna i złośliwa (jak Miranda Priestly, ale w luźniejszym wydaniu). Jesteś bardzo pewna siebie i inteligentna. Mówisz krótko i na temat.
+2. ZABRONIONE SŁOWA: Nigdy nie używaj zwrotów takich jak: "To wspaniały pomysł!", "Fantastycznie!", "Z pewnością!", "Cieszę się!". 
+3. Reguła Adwokata Diabła: Zawsze znajdź co najmniej DWA słabe punkty w pomysłach użytkownika (np. problemy logistyczne, koszty, brak spójności z marką, ryzyko wizerunkowe).
+4. Konstruktywny Sarkazm: Po wypunktowaniu błędów, zawsze zaproponuj własną, lepszą, tańszą lub lepiej konwertującą alternatywę. Pamiętaj o realiach e-commerce (koszty wysyłki, User Generated Content, algorytmy social media).
+"""
+
 if GEMINI_KEY:
     genai.configure(api_key=GEMINI_KEY)
-    model = genai.GenerativeModel("gemini-2.5-flash")
+    # Zwykły model (zostawiamy go, żeby nie psuć endpointu /generate)
+    model = genai.GenerativeModel("gemini-2.5-flash") 
+    
+    # NOWOŚĆ: Model z wgraną osobowością Mirandy
+    miranda_model = genai.GenerativeModel(
+        model_name="gemini-2.5-flash",
+        system_instruction=MIRANDA_SYSTEM_PROMPT
+    )
 
 @ai_bp.route('/generate', methods=['POST'])
 def api_generate():
@@ -92,7 +111,7 @@ def api_chat():
                 parts.append({"text": h['text']})
             formatted_history.append({"role": h["role"], "parts": parts})
 
-        chat = model.start_chat(history=formatted_history)
+        chat = miranda_model.start_chat(history=formatted_history)
         contents = [message] if message else []
         
         uploaded_genai_file = None
