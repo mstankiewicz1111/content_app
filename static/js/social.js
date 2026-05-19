@@ -35,10 +35,14 @@ async function initSocialDashboard() {
             } else { return; }
         }
 
+        // --- DYNAMICZNE DATY ---
+        const todayStr = new Date().toLocaleDateString('pl-PL');
+        const monthYearStr = new Intl.DateTimeFormat('pl-PL', { month: 'long', year: 'numeric' }).format(new Date());
+
         container.style.display = "block";
         container.innerHTML = `
             <div style="padding: 20px; background: #f8f9fa; border-radius: 10px; border: 1px dashed #000; text-align: center; margin-top: 20px;">
-                <p style="margin: 0; font-weight: bold;">🚀 Pobieram trendy na KWIECIEŃ 2026...</p>
+                <p style="margin: 0; font-weight: bold;">🚀 Pobieram trendy na ${monthYearStr.toUpperCase()}...</p>
                 <small style="color: #666;">(Przeszukuję sieć pod kątem aktualnych viralów)</small>
             </div>`;
 
@@ -50,7 +54,7 @@ async function initSocialDashboard() {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({
-                        prompt: "Jesteś ekspertem social media Wassyl. Dziś jest 20 kwietnia 2026. Podaj 1 kreatywny, lifestylowy pomysł na post. Skup się na bluzach/spodniach dresowych. ZAKAZ: trendów z 2024/2025 roku. Napisz to w 2 zdaniach.",
+                        prompt: `Jesteś ekspertem social media Wassyl. Dziś jest ${todayStr}. Podaj 1 kreatywny, lifestylowy pomysł na post. Skup się na bluzach/spodniach dresowych. ZAKAZ: trendów z zeszłego roku. Napisz to w 2 zdaniach.`,
                         search: true
                     })
                 }).then(r => r.json()),
@@ -58,7 +62,7 @@ async function initSocialDashboard() {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({
-                        prompt: "Znajdź 1 NAJŚWIEŻSZY trend modowy na TikToku (stan na kwiecień 2026). Nie podawaj starych trendów. Szukaj czegoś, co pasuje do ubrań basic i streetwear. Opisz krótko.",
+                        prompt: `Znajdź 1 NAJŚWIEŻSZY trend modowy na TikToku (stan na ${monthYearStr}). Nie podawaj starych trendów. Szukaj czegoś, co pasuje do ubrań basic i streetwear. Opisz krótko.`,
                         search: true
                     })
                 }).then(r => r.json())
@@ -74,7 +78,7 @@ async function initSocialDashboard() {
                 <div class="dashboard-wrapper" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
                     <div class="dashboard-left-col">
                         <div class="dashboard-block trend-live" style="margin-bottom: 20px;">
-                            <h3>🔥 TikTok Trend (LIVE 2026)</h3>
+                            <h3>🔥 TikTok Trend (LIVE)</h3>
                             <div class="trend-content">${safeMd(tiktokTrendRes.result)}</div>
                             <button class="btn-refresh-mini" onclick="refreshSingleInspiration('trend')">🔄 Szukaj nowszego</button>
                         </div>
@@ -93,19 +97,22 @@ async function initSocialDashboard() {
                 </div>
             `;
         } catch (e) {
-            container.innerHTML = `<div style="color: red; padding: 20px; border: 1px solid red;">Błąd synchronizacji 2026: ${e.message}</div>`;
+            container.innerHTML = `<div style="color: red; padding: 20px; border: 1px solid red;">Błąd synchronizacji: ${e.message}</div>`;
         }
     }, 200);
 }
 
 async function refreshSingleInspiration(type) {
+    const todayStr = new Date().toLocaleDateString('pl-PL');
+    const monthYearStr = new Intl.DateTimeFormat('pl-PL', { month: 'long', year: 'numeric' }).format(new Date());
+
     const block = type === 'idea' ? document.querySelector('.dashboard-block:not(.trend-live):not(.events-block)') : document.querySelector('.trend-live');
     const contentArea = block.querySelector('.ai-content') || block.querySelector('.trend-content');
-    contentArea.innerHTML = `<p style="font-size:12px; color:#666;">🔄 Przeszukuję trendy z kwietnia 2026...</p>`;
+    contentArea.innerHTML = `<p style="font-size:12px; color:#666;">🔄 Przeszukuję internet z datą: ${todayStr}...</p>`;
 
     const prompt = type === 'idea' 
-        ? "Daj inny pomysł na post Wassyl (20.04.2026). Tylko dresy i streetstyle. Absolutny zakaz trendów retro/vintage z lat 2024-2025."
-        : "Znajdź INNY trend z TikToka, który narodził się w marcu/kwietniu 2026. Skup się na Gen-Z i ubraniach baggy.";
+        ? `Daj inny pomysł na post Wassyl (dzisiejsza data: ${todayStr}). Tylko dresy i streetstyle. Absolutny zakaz starych trendów retro/vintage.`
+        : `Znajdź INNY, absolutnie najnowszy trend z TikToka, który narodził się w tym miesiącu (${monthYearStr}). Skup się na Gen-Z i ubraniach baggy.`;
 
     try {
         const res = await fetch('/api/generate', {
@@ -127,22 +134,23 @@ async function analyzeTrends() {
     const loader = document.getElementById('loader-trend');
     const wrapper = document.getElementById('trend-wrapper');
     
+    // --- DYNAMICZNE DATY ---
+    const monthYearStr = new Intl.DateTimeFormat('pl-PL', { month: 'long', year: 'numeric' }).format(new Date());
+
     if(loader) loader.style.display = 'block'; 
     if(wrapper) wrapper.style.display = 'none';
     
     try {
-        // Zabezpieczony prompt z uwzględnieniem miejskiego luzu
         const promptText = (typeof WASSYL_DNA !== 'undefined') 
-            ? `${WASSYL_DNA}\nWymień 3 najgorętsze, aktualne trendy fashion na TikToku. Skup się na streetwearze, dresach i basicach, które pasują do naszej marki. Zwróć wynik jako czytelny Markdown, bez poetyckich metafor.`
-            : "Wymień 3 najgorętsze trendy fashion na TikToku (Kwiecień 2026). Format: Markdown.";
+            ? `${WASSYL_DNA}\nDzisiaj jest ${monthYearStr}. Wymień 3 najgorętsze, aktualne trendy fashion na TikToku. Skup się na streetwearze, dresach i basicach, które pasują do naszej marki. Zwróć wynik jako czytelny Markdown, bez poetyckich metafor.`
+            : `Wymień 3 najgorętsze trendy fashion na TikToku (${monthYearStr}). Format: Markdown.`;
 
-        console.log("Wysyłam zapytanie o trendy...");
+        console.log("Wysyłam zapytanie o aktualne trendy...");
         
         const res = await fetch('/api/generate', { 
             method: 'POST', 
             headers: {'Content-Type': 'application/json'}, 
-            // Usunięto parametr search: true, aby uniknąć błędu 500
-            body: JSON.stringify({prompt: promptText}) 
+            body: JSON.stringify({prompt: promptText, search: true}) // WŁĄCZYŁEM WYSZUKIWANIE!
         });
         
         const data = await res.json(); 
