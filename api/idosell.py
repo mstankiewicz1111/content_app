@@ -383,3 +383,55 @@ def api_analyze_products():
         
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
+
+# =====================================================================
+# INTELIGENTNY CROSS-SELLING - WYSYŁKA DO IDOSELL
+# =====================================================================
+@idosell_bp.route('/update_associated', methods=['POST'])
+def api_update_associated():
+    # Pobieramy Twoje klucze dostępowe do IdoSell
+    domain, api_key = get_idosell_config()
+    if not domain or not api_key:
+        return jsonify({"success": False, "error": "Brak konfiguracji API IdoSell."}), 500
+
+    data = request.json
+    base_product_id = data.get('product_id')
+    associated_ids = data.get('associated_ids', []) # Lista zatwierdzonych ID
+
+    if not base_product_id or not associated_ids:
+        return jsonify({"success": False, "error": "Brak ID bazy lub produktów powiązanych."}), 400
+
+    url = f"https://{domain}/api/admin/v7/products/products"
+    headers = {
+        "X-API-KEY": api_key, 
+        "Accept": "application/json",
+        "Content-Type": "application/json"
+    }
+
+    # Budujemy payload dokładnie w takim formacie, jak z Twojego skryptu Colab
+    payload = {
+        "params": {
+            "products": [
+                {
+                    "productId": int(base_product_id),
+                    "associatedProducts": [
+                        {"associatedProductId": int(aid)} for aid in associated_ids
+                    ]
+                }
+            ]
+        }
+    }
+
+    try:
+        # Metoda PUT zgodnie z dokumentacją IdoSell
+        response = requests.put(url, json=payload, headers=headers, timeout=30)
+        
+        if response.status_code == 200:
+            return jsonify({"success": True, "message": f"Zaktualizowano cross-selling dla ID: {base_product_id}"})
+        else:
+            return jsonify({"success": False, "error": f"Błąd ze strony IdoSell: {response.text}"}), response.status_code
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "error": str(e)}), 500
