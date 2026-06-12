@@ -3,6 +3,8 @@ import json
 import time
 import tempfile
 import re
+import random
+import xml.etree.ElementTree as ET
 from flask import Blueprint, request, jsonify
 import google.generativeai as genai
 from PIL import Image
@@ -147,3 +149,120 @@ def api_chat():
         return jsonify({"result": response.text, "new_file": new_file_info})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+
+# =====================================================================
+# NOWOŚĆ: INTELIGENTNY CROSS-SELLING (SHOP THE LOOK)
+# =====================================================================
+@ai_bp.route('/cross_sell_proposals', methods=['POST'])
+def api_cross_sell_proposals():
+    data = request.json
+    base_id = str(data.get('base_product_id', '')).strip()
+    exclude_ids = [str(x) for x in data.get('exclude_ids', [])]
+
+    # Pobieramy link do XML tak samo, jak robiłeś to w idosell.py!
+    XML_FEED_URL = os.environ.get("WASSYL_XML_FEED", "https://wassyl.pl/data/export/feed10015_1b9e5511234776450ad2740f.xml").strip()
+
+    try:
+        # 1. Pobieranie i parsowanie pliku XML
+        response = requests.get(XML_FEED_URL, timeout=15)
+        if response.status_code != 200:
+            return jsonify({"success": False, "error": f"Błąd pobierania XML ze sklepu (kod: {response.status_code})"})
+            
+        root = ET.fromstring(response.content)
+
+        all_products = []
+        base_product = None
+        namespaces = {'g': 'http://base.google.com/ns/1.0'} 
+
+        # 2. Przeszukiwanie bazy
+        for item in root.findall('.//item'):
+            # Wyciąganie ID
+            p_id_node = item.find('g:id', namespaces)
+            if p_id_node is None:
+                p_id_node = item.find('id')
+            p_id = p_id_node.text if p_id_node is not None else ""
+
+            # Wyciąganie nazwy
+            title_node = item.find('g:title', namespaces)
+            if title_node is None:
+                title_node = item.find('title')
+            title = title_node.text if title_node is not None else ""
+
+            # Wyciąganie zdjęcia
+            image_node = item.find('g:image_link', namespaces)
+            image_url = image_node.text if image_node is not None else ""
+
+            # Wykluczenie "k01" (zgodnie z Twoimi wytycznymi)
+            if "k01" in title.lower():
+                continue
+
+            prod_data = {"id": p_id.strip(), "name": title.strip(), "image_url": image_url}
+
+            # Szukamy naszego produktu bazowego
+            if p_id.strip() == base_id:
+                base_product = prod_data
+            # Zbieramy pozostałe (omijając te, które już odrzuciliśmy/zaakceptowaliśmy na froncie)
+            elif p_id.strip() not in exclude_ids and p_id.strip():
+                all_products.append(prod_data)
+
+        if not base_product:
+            return jsonify({"success": False, "error": f"Nie znaleziono produktu o ID {base_id} w pliku XML. Upewnij się, że nie zawiera dopisku 'k01' i jest aktywny w feedzie."})
+
+        # 3. Zasilanie AI danymi
+        # Dajemy modelowi pulę np. 600 losowych produktów do analizy
+        random.shuffle(all_products)
+        candidates = all_products[:600] 
+        candidates_text = "\n".join([f"ID: {p['id']} | Nazwa: {p['name']}" for p in candidates])
+
+        # 4. Prompt z Twoimi złotymi regułami
+        prompt = f"""
+        Jesteś ekspertem ds. Visual Merchandisingu i cross-sellingu w sklepie modowym WASSYL.
+        Produkt bazowy dodany właśnie przez klientkę do koszyka to: 
+        Nazwa: "{base_product['name']}" (ID: {base_product['id']})
+
+        Twoim zadaniem jest wybranie z poniższej listy kandydatów MAKSYMALNIE 8 idealnie pasujących produktów.
+        Musisz wywnioskować z nazwy bazowej jej KATEGORIĘ (np. bluza, sukienka, komplet) oraz KOLOR, a następnie
+        bezwzględnie zastosować się do poniższych reguł doboru:
+
+        REGUŁY DOBORU:
+        - Jeśli Bluza: szukaj spodni w tym samym kolorze (2 szt.), spodni czarnych (1 szt.), szortów w tym samym kolorze (2 szt.), szortów czarnych (1 szt.), bluzki białej (1 szt.), bluzki czarnej (1 szt.).
+        - Jeśli Komplet bluzka + spodnie: szukaj szortów w tym samym kolorze (2 szt.), bluzy w tym samym kolorze (2 szt.), bluzy czarnej (1 szt.), bluzy szarej (1 szt.), bluzki białej (1 szt.), bluzki czarnej (1 szt.).
+        - Jeśli Komplet bluza + spodnie: szukaj szortów w tym samym kolorze (2 szt.), szortów czarnych (1 szt.), bluzki białej (1 szt.), bluzki czarnej (1 szt.), bluzy czarnej (1 szt.), bluzy szarej (1 szt.), spodni czarnych (1 szt.).
+        - Jeśli Bluzka, T-shirt lub Top: szukaj szortów w tym samym kolorze (2 szt.), szortów czarnych (1 szt.), spódnicy w tym samym kolorze (1 szt.), spódnicy czarnej (2 szt.), spodni w tym samym kolorze (2 szt.), spodni czarnych (1 szt.), bluzy czarnej (1 szt.).
+        - Jeśli Sukienka: szukaj bluzki białej (1 szt.), bluzki czarnej (1 szt.), bluzy w tym samym kolorze (2 szt.), bluzy czarnej (1 szt.), spódnicy w tym samym kolorze (1 szt.), spódnicy czarnej (2 szt.), kurtki dowolnej (1 szt.), płaszcza dowolnego (1 szt.), marynarki dowolnej (1 szt.).
+        - Jeśli Spodnie: szukaj bluzki białej (1 szt.), bluzki czarnej (1 szt.), bluzki w tym samym kolorze (2 szt.), bluzy w tym samym kolorze (2 szt.), bluzy czarnej (1 szt.), bluzy szarej (1 szt.), szortów w tym samym kolorze (1 szt.), szortów czarnych (1 szt.), kurtki dowolnej (1 szt.), płaszcza dowolnego (1 szt.).
+        - Jeśli Szorty: szukaj bluzki białej (1 szt.), bluzki czarnej (1 szt.), bluzki w tym samym kolorze (2 szt.), bluzy w tym samym kolorze (2 szt.), bluzy czarnej (1 szt.), bluzy szarej (1 szt.), spodni w tym samym kolorze (1 szt.), spodni czarnych (1 szt.), szortów czarnych (1 szt.).
+        - Jeśli Spódnica: szukaj bluzki białej (1 szt.), bluzki czarnej (1 szt.), bluzki w tym samym kolorze (2 szt.), bluzy w tym samym kolorze (2 szt.), bluzy czarnej (1 szt.), bluzy szarej (1 szt.), kurtki dowolnej (1 szt.), płaszcza dowolnego (1 szt.), marynarki dowolnej (1 szt.).
+        - Jeśli Kurtka, Płaszcz lub Marynarka: szukaj bluzki białej (1 szt.), bluzki czarnej (1 szt.), bluzy czarnej (1 szt.), bluzy szarej (1 szt.), spodni w tym samym kolorze (2 szt.), spodni czarnych (1 szt.), spodni szarych (1 szt.).
+
+        Oto kandydaci dostępni w magazynie:
+        {candidates_text}
+
+        ZWRÓĆ WYŁĄCZNIE CZYSTY KOD JSON (tablicę ID wybranych produktów). Żadnego markdowna, żadnych komentarzy.
+        Przykład poprawnej odpowiedzi:
+        ["1122", "3344", "5566"]
+        """
+
+        # Używamy standardowego modelu (bo chcemy czystego JSONa, a nie rozmowy z Mirandą)
+        ai_response = model.generate_content(prompt, request_options={"timeout": 120})
+        
+        # Oczyszczanie wyniku i konwersja na listę JSON
+        raw_json = ai_response.text.replace('```json', '').replace('```', '').strip()
+        selected_ids = json.loads(raw_json)
+
+        # Dopasowanie wybranych przez AI ID do ich pełnych obiektów ze zdjęciem
+        proposals = [p for p in all_products if p['id'] in selected_ids]
+
+        return jsonify({
+            "success": True,
+            "base_product_name": base_product['name'],
+            "proposals": proposals
+        })
+
+    except json.JSONDecodeError:
+        return jsonify({"success": False, "error": "AI nie zwróciło poprawnego formatu JSON z listą ID."})
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "error": str(e)})
