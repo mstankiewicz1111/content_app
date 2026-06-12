@@ -758,3 +758,176 @@ function sendSelectedToMass() {
         alert("Błąd: Nie znaleziono pola Masowej Edycji.");
     }
 }
+
+// =====================================================================
+// INTELIGENTNY CROSS-SELLING (TINDER DLA UBRAŃ)
+// =====================================================================
+
+// Słownik przechowujący aktualny stan naszej sesji cross-sellingu
+let crossState = {
+    baseId: null,
+    accepted: [], // Lista obiektów np. {id: '123', name: 'Bluza', img: 'url'}
+    rejected: []  // Zwykła lista ID odrzuconych produktów
+};
+
+// Funkcja startowa uruchamiana po kliknięciu "Pobierz bazę"
+async function startCrossSelling() {
+    const baseId = document.getElementById('cross-base-id').value.trim();
+    if(!baseId) return alert("Podaj ID produktu bazowego!");
+
+    // Resetujemy stan na wypadek, gdyby użytkownik wpisał nowe ID
+    crossState.baseId = baseId;
+    crossState.accepted = [];
+    crossState.rejected = [];
+
+    document.getElementById('cross-workspace').style.display = 'block';
+    document.getElementById('cross-base-info').innerText = `ID: ${baseId} (Weryfikowanie produktu...)`;
+    updateCrossAcceptedUI();
+
+    await fetchCrossSellBatch();
+}
+
+// Funkcja strzelająca do naszego przyszłego backendu w Pythonie
+async function fetchCrossSellBatch() {
+    const loader = document.getElementById('cross-loader');
+    const grid = document.getElementById('cross-proposals-grid');
+    
+    loader.style.display = 'block';
+    grid.innerHTML = '';
+    document.getElementById('btn-cross-publish').disabled = true;
+
+    try {
+        // Zbieramy ID, których system ma już nam nie proponować (zaakceptowane + odrzucone)
+        const excludeList = [...crossState.accepted.map(a => a.id), ...crossState.rejected];
+
+        // Odpytujemy nowy endpoint (który wdrożymy na serwerze)
+        const res = await fetch('/api/cross_sell_proposals', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                base_product_id: crossState.baseId,
+                exclude_ids: excludeList
+            })
+        });
+        
+        const data = await res.json();
+        if(!data.success) throw new Error(data.error || "Błąd podczas dobierania produktów.");
+
+        // Ustawiamy nazwę bazowego produktu (backend ją zwróci po analizie)
+        if (data.base_product_name) {
+             document.getElementById('cross-base-info').innerText = `ID: ${crossState.baseId} | ${data.base_product_name}`;
+        }
+
+        // Renderujemy kafelki propozycji
+        if(!data.proposals || data.proposals.length === 0) {
+            grid.innerHTML = '<p style="color: #d32f2f; grid-column: 1 / -1;">Brak nowych propozycji spełniających wyśrubowane kryteria w pliku XML.</p>';
+        } else {
+            renderCrossSellGrid(data.proposals);
+        }
+
+    } catch (e) {
+        alert("Błąd: " + e.message);
+    } finally {
+        loader.style.display = 'none';
+        document.getElementById('btn-cross-publish').disabled = crossState.accepted.length === 0;
+    }
+}
+
+// Rysowanie kafelków w stylu aplikacji randkowej
+function renderCrossSellGrid(proposals) {
+    const grid = document.getElementById('cross-proposals-grid');
+    grid.innerHTML = proposals.map(p => `
+        <div id="cross-card-${p.id}" style="border: 1px solid #ddd; border-radius: 8px; overflow: hidden; background: #fff; text-align: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
+            <img src="${p.image_url}" alt="Brak zdjęcia" style="width: 100%; height: 220px; object-fit: cover; background: #f4f4f4;">
+            <div style="padding: 10px;">
+                <p style="font-size: 12px; margin: 0 0 10px 0; font-weight: bold; height: 32px; overflow: hidden; text-overflow: ellipsis;" title="${p.name}">${p.name}</p>
+                <p style="font-size: 11px; color: #888; margin-bottom: 10px;">ID: ${p.id}</p>
+                <div style="display: flex; gap: 5px;">
+                    <button onclick="acceptCrossItem('${p.id}', '${p.name.replace(/'/g, "\\'")}', '${p.image_url}')" style="flex: 1; padding: 10px; background: #28a745; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 16px;" title="Dodaj do wysyłki">✅</button>
+                    <button onclick="rejectCrossItem('${p.id}')" style="flex: 1; padding: 10px; background: #dc3545; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 16px;" title="Odrzuć ten model">❌</button>
+                </div>
+            </div>
+        </div>
+    `).join('');
+}
+
+// Akcje dla przycisków na kafelkach
+function acceptCrossItem(id, name, img) {
+    crossState.accepted.push({id, name, img});
+    document.getElementById(`cross-card-${id}`).style.display = 'none';
+    updateCrossAcceptedUI();
+}
+
+function rejectCrossItem(id) {
+    crossState.rejected.push(id);
+    document.getElementById(`cross-card-${id}`).style.display = 'none';
+}
+
+function removeAcceptedCrossItem(id) {
+    crossState.accepted = crossState.accepted.filter(item => item.id !== id);
+    crossState.rejected.push(id); // Jeśli wywalamy z koszyka, oznaczamy jako odrzucone
+    updateCrossAcceptedUI();
+}
+
+// Aktualizacja paska z miniaturkami gotowymi do wysyłki
+function updateCrossAcceptedUI() {
+    const list = document.getElementById('cross-accepted-list');
+    const count = document.getElementById('cross-accepted-count');
+    const pubBtn = document.getElementById('btn-cross-publish');
+    
+    count.innerText = crossState.accepted.length;
+    
+    if(crossState.accepted.length === 0) {
+        list.innerHTML = '<span style="color: #999; font-size: 13px; margin: auto;">Brak zatwierdzonych produktów. Kliknij ✅ na propozycjach poniżej.</span>';
+        pubBtn.disabled = true;
+    } else {
+        list.innerHTML = crossState.accepted.map(p => `
+            <div style="position: relative; width: 60px; height: 60px; flex-shrink: 0; border-radius: 5px; overflow: hidden; border: 2px solid #28a745; box-shadow: 0 2px 4px rgba(0,0,0,0.1);" title="${p.name}">
+                <img src="${p.img}" style="width: 100%; height: 100%; object-fit: cover;">
+                <button onclick="removeAcceptedCrossItem('${p.id}')" style="position: absolute; top: 0; right: 0; background: rgba(220,53,69,0.9); color: white; border: none; width: 20px; height: 20px; font-size: 10px; cursor: pointer; border-bottom-left-radius: 4px;">✖</button>
+            </div>
+        `).join('');
+        pubBtn.disabled = false;
+    }
+}
+
+// Ostateczna wysyłka zebranych ID do API IdoSell
+async function publishCrossSell() {
+    if(crossState.accepted.length === 0) return alert("Brak zaakceptowanych produktów do wysyłki.");
+    
+    if(!confirm(`Zaakceptowano ${crossState.accepted.length} produktów.\nCzy chcesz wysłać powiązania dla towaru ${crossState.baseId} do IdoSell?`)) return;
+
+    const btn = document.getElementById('btn-cross-publish');
+    const originalText = btn.innerText;
+    btn.innerText = "⏳ Aktualizowanie sklepu...";
+    btn.disabled = true;
+
+    try {
+        // Uderzamy do naszego istniejącego skryptu Python, który rozmawialiśmy żeby stworzyć
+        const res = await fetch('/api/idosell/update_associated', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                product_id: crossState.baseId,
+                associated_ids: crossState.accepted.map(a => a.id)
+            })
+        });
+        
+        const data = await res.json();
+        
+        if(data.success) {
+            alert("✅ Sukces! Powiązania cross-sellingowe zostały bezpiecznie zaktualizowane w bazie IdoSell.");
+            // Czyszczenie koszyka po sukcesie
+            crossState.accepted = [];
+            updateCrossAcceptedUI();
+        } else {
+            alert("❌ Błąd IdoSell: " + (data.error || "Sklep odrzucił paczkę danych."));
+        }
+
+    } catch(e) {
+        alert("❌ Błąd połączenia z serwerem: " + e.message);
+    } finally {
+        btn.innerText = originalText;
+        btn.disabled = crossState.accepted.length === 0;
+    }
+}
