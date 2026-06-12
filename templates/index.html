@@ -402,7 +402,10 @@
         <div id="cross-accepted-list" style="display: flex; gap: 10px; overflow-x: auto; margin-bottom: 20px; padding-bottom: 10px; min-height: 80px; border: 1px dashed #ccc; border-radius: 5px; padding: 10px;">
             <span style="color: #999; font-size: 13px; margin: auto;">Brak zatwierdzonych produktów.</span>
         </div>
-
+<div style="display: flex; gap: 10px; margin-bottom: 25px; align-items: stretch;">
+    <input type="text" id="manual-cross-id" placeholder="Znasz pasujące ID? Wpisz i dodaj ręcznie..." style="margin: 0; flex: 1; border: 1px solid #ddd; border-radius: 4px; padding: 10px;">
+    <button class="btn-primary" onclick="addManualCrossItem()" style="margin: 0; background: #17a2b8; border: none; font-weight: bold; padding: 0 20px;">➕ Dodaj ID</button>
+</div>
         <h3 style="display: flex; justify-content: space-between; align-items: center; font-size: 15px; border-top: 1px solid #eee; padding-top: 15px;">
             Pula propozycji AI:
             <button class="btn-primary" onclick="fetchCrossSellBatch()" style="background: #333; font-size: 12px; padding: 5px 15px;">🔄 Losuj nową pulę</button>
