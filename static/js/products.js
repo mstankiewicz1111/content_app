@@ -931,3 +931,74 @@ async function publishCrossSell() {
         btn.disabled = crossState.accepted.length === 0;
     }
 }
+
+// Ręczne dodawanie produktu po ID
+async function addManualCrossItem() {
+    const inputEl = document.getElementById('manual-cross-id');
+    const manualId = inputEl.value.trim();
+
+    if (!manualId) {
+        return alert("Wpisz najpierw ID produktu!");
+    }
+
+    // Sprawdzamy, czy to ID nie zostało już dodane
+    if (crossState.accepted.some(item => item.id === manualId)) {
+        return alert("Ten produkt jest już na liście zatwierdzonych!");
+    }
+
+    // Zabezpieczenie przycisku przed podwójnym kliknięciem
+    const btn = inputEl.nextElementSibling;
+    const originalText = btn.innerText;
+    btn.innerText = "⏳ Dodaję...";
+    btn.disabled = true;
+
+    try {
+        // Używamy Twojego istniejącego endpointu do pobrania danych o produkcie
+        const res = await fetch('/api/idosell/products', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ ids: manualId })
+        });
+        
+        const data = await res.json();
+
+        if (!data.results || data.results.length === 0) {
+            throw new Error("Nie znaleziono produktu o tym ID w sklepie IdoSell.");
+        }
+
+        const prod = data.results[0];
+        
+        // Wyciągamy polską nazwę
+        let nazwa = `Ręcznie dodany (${manualId})`;
+        if (prod.productDescriptionsLangData) {
+            const polData = prod.productDescriptionsLangData.find(d => d.langId === 'pol');
+            if (polData && polData.productName) nazwa = polData.productName;
+        }
+
+        // Wyciągamy zdjęcie (szukamy średniego lub dużego formatu)
+        let imgUrl = "https://via.placeholder.com/150?text=Brak+zdjęcia";
+        if (prod.productImages && prod.productImages.length > 0) {
+            imgUrl = prod.productImages[0].productImageMediumUrl || prod.productImages[0].productImageLargeUrl || imgUrl;
+        } else if (prod.productIcon && prod.productIcon.productIconMediumUrl) {
+            imgUrl = prod.productIcon.productIconMediumUrl;
+        }
+
+        // Zapisujemy nowy produkt do koszyka
+        crossState.accepted.push({
+            id: manualId,
+            name: nazwa,
+            img: imgUrl
+        });
+
+        // Czyszczenie pola i odświeżenie paska zatwierdzonych
+        inputEl.value = "";
+        updateCrossAcceptedUI();
+
+    } catch (e) {
+        alert("Błąd podczas dodawania: " + e.message);
+    } finally {
+        // Przywracamy wygląd przycisku
+        btn.innerText = originalText;
+        btn.disabled = false;
+    }
+}
