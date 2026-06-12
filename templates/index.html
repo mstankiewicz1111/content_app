@@ -63,6 +63,7 @@
                     <button onclick="switchProdTab('prod-init')" id="btn-prod-init" class="active">1. Wybierz produkt</button>
                     <button onclick="switchProdTab('prod-editor')" id="btn-prod-editor">2. Edytor Google Discover</button>
                     <button onclick="switchProdTab('tab-analyzer')" id="btn-tab-analyzer" style="color: #d32f2f; font-weight: bold; margin-top: 10px; border-top: 1px dashed #ccc; padding-top: 10px;">📊 Analizator Produktów</button>
+                    <button onclick="switchProdTab('prod-cross')" id="btn-prod-cross" style="color: #28a745; font-weight: bold; margin-top: 10px; border-top: 1px dashed #ccc; padding-top: 10px;">🛒 Cross-Selling (Shop the look)</button>
                 </div>
                 <hr>
                 <p style="font-size: 13px; color: #555; line-height: 1.5;">Moduł służy do optymalizacji nazw i opisów pod kątem wyszukiwarki Google oraz usługi Google Discover.</p>
@@ -379,6 +380,39 @@
                     </div>
                 </div>
             </div>
+
+            <div id="prod-cross" class="tab-content">
+    <h2 style="color: #28a745;">🛒 Inteligentny Cross-Selling</h2>
+    <p style="color: #666; margin-bottom: 20px;">Wpisz ID produktu bazowego, a system przeanalizuje feed produktowy i dobierze pasujące elementy do kompletu (wg reguł marki).</p>
+
+    <div class="box-option">
+        <input type="text" id="cross-base-id" placeholder="Wpisz ID produktu bazowego (np. 16216)">
+        <button class="btn-primary" onclick="startCrossSelling()" style="width: 100%;">🔍 Pobierz bazę i dobierz propozycje</button>
+    </div>
+
+    <div id="cross-loader" class="loader" style="display: none;">⏳ Analizuję zdjęcia i przeszukuję XML... Trwa szukanie propozycji...</div>
+
+    <div id="cross-workspace" style="display: none; margin-top: 20px;">
+        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #28a745;">
+            <h4 style="margin: 0 0 10px 0;">🎯 Produkt bazowy:</h4>
+            <div id="cross-base-info" style="font-weight: bold; font-size: 14px;"></div>
+        </div>
+
+        <h3 style="margin-top: 0; font-size: 15px;">Zatwierdzone powiązania (<span id="cross-accepted-count">0</span>):</h3>
+        <div id="cross-accepted-list" style="display: flex; gap: 10px; overflow-x: auto; margin-bottom: 20px; padding-bottom: 10px; min-height: 80px; border: 1px dashed #ccc; border-radius: 5px; padding: 10px;">
+            <span style="color: #999; font-size: 13px; margin: auto;">Brak zatwierdzonych produktów.</span>
+        </div>
+
+        <h3 style="display: flex; justify-content: space-between; align-items: center; font-size: 15px; border-top: 1px solid #eee; padding-top: 15px;">
+            Pula propozycji AI:
+            <button class="btn-primary" onclick="fetchCrossSellBatch()" style="background: #333; font-size: 12px; padding: 5px 15px;">🔄 Losuj nową pulę</button>
+        </h3>
+        
+        <div id="cross-proposals-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 15px; margin-bottom: 20px;"></div>
+
+        <button id="btn-cross-publish" class="btn-primary" onclick="publishCrossSell()" style="width: 100%; background: #28a745; padding: 15px; font-size: 16px; font-weight: bold;" disabled>🚀 WYŚLIJ POWIĄZANIA DO IDOSELL</button>
+    </div>
+</div>
 
             <div id="module-chat" class="module-content">
                 <div id="chat-box" style="flex: 1; overflow-y: auto; background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 20px; display: flex; flex-direction: column;">
